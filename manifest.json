@@ -1,0 +1,19 @@
+{
+  "name": "Connect 4: Subterranean Ascension // Gambonanza Edition",
+  "short_name": "Subterranean C4",
+  "description": "3D Roguelike Deckbuilder Connect 4 by Dyagonil",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070609",
+  "theme_color": "#070609",
+  "icons": [
+    {
+      "src": "./assets/images/dyagonil-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
