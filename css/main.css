@@ -1,0 +1,124 @@
+/* ============================================================================
+   MAIN STYLESHEET: RESETS, TYPOGRAPHY, PANELS, CARDS & CALLOUTS (css/main.css)
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+  background-color: #070609;
+  font-family: 'Inter', sans-serif;
+  color: #f8fafc;
+}
+.font-display { font-family: 'Space Grotesk', sans-serif; }
+.font-mono-code { font-family: 'JetBrains Mono', monospace; }
+
+#webgl-container {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.safe-top { padding-top: max(0.45rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+
+.cavern-panel {
+  background: rgba(14, 12, 18, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Disable redundant backdrop-filter passes on covered HUD panels when a full-screen modal is open */
+body.modal-occluded header .cavern-panel,
+body.modal-occluded footer .cavern-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.arcane-card {
+  background: linear-gradient(165deg, rgba(32, 25, 36, 0.96), rgba(14, 12, 18, 0.98));
+  border: 1px solid rgba(217, 119, 6, 0.38);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.1), border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.arcane-card.card-selected {
+  transform: translateY(-8px) scale(1.03);
+  border-color: #2dd4bf !important;
+  box-shadow: 0 10px 24px rgba(45, 212, 191, 0.38), 0 0 0 1px rgba(45, 212, 191, 0.6);
+}
+.arcane-card.card-disabled {
+  opacity: 0.4;
+  filter: grayscale(0.6);
+}
+
+.reserve-token-pill {
+  background: linear-gradient(145deg, rgba(40, 28, 20, 0.95), rgba(18, 14, 22, 0.98));
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  transition: all 0.16s ease;
+}
+.reserve-token-pill.token-selected {
+  transform: translateY(-6px) scale(1.04);
+  border-color: #f43f5e !important;
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.4);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.telemetry-tag {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 12;
+  transition: transform 0.1s ease;
+}
+
+.floating-pop {
+  position: fixed;
+  z-index: 45;
+  pointer-events: none;
+  animation: floatUpFade 4.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-fade-transition {
+  transition: opacity 0.95s cubic-bezier(0.22, 1, 0.36, 1), transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.toast-quick-dismiss {
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out !important;
+  opacity: 0 !important;
+  transform: translateY(-10px) scale(0.92) !important;
+  pointer-events: none !important;
+}
+
+.slot-bonus-callout {
+  position: fixed;
+  z-index: 48;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1), transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.slot-callout-quick-dismiss {
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out !important;
+  opacity: 0 !important;
+  transform: translate(-50%, -60%) scale(0.88) !important;
+  pointer-events: none !important;
+}
