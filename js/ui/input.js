@@ -128,6 +128,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Escape closes Info Sheet / Settings or cancels an armed Card/Reserve selection
   if (e.key === 'Escape') {
     const infoSheet = document.getElementById('info-sheet-modal');
     if (infoSheet && !infoSheet.classList.contains('hidden')) {
@@ -151,6 +152,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // 1. Number Keys 1-7: Aim or Drop in Column 1-7
   if (e.key >= '1' && e.key <= '7') {
     e.preventDefault();
     const col = parseInt(e.key, 10) - 1;
@@ -162,6 +164,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // 2. ArrowLeft / ArrowRight (or A / D): Step Column Aim
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
     e.preventDefault();
     const nextCol = state.previewCol <= 0 ? COLS - 1 : state.previewCol - 1;
@@ -175,6 +178,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // 3. Enter or Space: Confirm Action on Previewed Column
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
     const targetCol = state.previewCol !== -1 ? state.previewCol : 3;
@@ -186,6 +190,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // 4. Q, W, E, R, T: Quick-Select Arcane Cards 1-5 in Hand
   const cardHotkeys = ['q', 'w', 'e', 'r', 't'];
   const cardIdx = cardHotkeys.indexOf(e.key.toLowerCase());
   if (cardIdx !== -1 && cardIdx < state.hand.length) {
@@ -200,6 +205,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  // 5. Z, X, C, V: Quick-Select Tactical Reserve Tokens 1-4
   const reserveHotkeys = ['z', 'x', 'c', 'v'];
   const resIdx = reserveHotkeys.indexOf(e.key.toLowerCase());
   if (resIdx !== -1 && resIdx < state.reservePouch.length) {
