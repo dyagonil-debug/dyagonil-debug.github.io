@@ -1,7 +1,7 @@
 // ============================================================================
-// SERVICE WORKER: OFFLINE CACHING & INSTANT BOOT (sw.js)
+// SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v1.21';
+const CACHE_NAME = 'subterranean-ascension-v1.22';
 
 const PRECACHE_ASSETS = [
   './',
@@ -57,28 +57,24 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Stale-While-Revalidate for fast offline-first loading + background updates
+// Fetch: Network-First so new GitHub Pages commits load immediately, falling back to Cache when offline
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const networkFetch = fetch(event.request)
-        .then((networkResponse) => {
-          if (
-            networkResponse &&
-            (networkResponse.status === 200 || networkResponse.type === 'opaque')
-          ) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => cachedResponse);
-
-      return cachedResponse || networkFetch;
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (
+          networkResponse &&
+          (networkResponse.status === 200 || networkResponse.type === 'opaque')
+        ) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
