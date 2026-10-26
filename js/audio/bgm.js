@@ -666,3 +666,360 @@ class SubterraneanChiptuneEngine {
 }
 
 const bgm = new SubterraneanChiptuneEngine(sfx);
+
+// ============================================================================
+// UNDERGROUND BAZAAR & WHEEL OF FATE CHIPTUNE EXPANSION (Append to js/audio/bgm.js)
+// ============================================================================
+(function attachBazaarAndRouletteChiptunes(bgmEngine) {
+  if (!bgmEngine) return;
+
+  // 1. UNDERGROUND BAZAAR OUTPOST THEME (64-Step / 4-Bar Loop, 96 BPM, D Dorian Caravan)
+  bgmEngine.bazaarTrack = {
+    bpm: 96,
+    cutoff: 1850,
+    bassGain: 0.072,
+    leadGain: 0.036,
+    arpGain: 0.020,
+    arpWave: 'triangle',
+    vibratoDepth: 1.006,
+    // Walking subterranean caravan triangle bassline
+    bass: [
+      // Bar 1 (Dm7 -> G7)
+      38, null, 45, null, 50, null, 45, null,
+      43, null, 47, null, 50, null, 45, 43,
+      // Bar 2 (BbMaj7 -> A7)
+      46, null, 50, null, 53, null, 50, null,
+      45, null, 49, null, 52, null, 45, 37,
+      // Bar 3 (Dm7 -> Em7 -> F6)
+      38, null, 45, null, 40, null, 47, null,
+      41, null, 48, null, 50, null, 45, null,
+      // Bar 4 (Gm7 -> A7sus4 -> A7 turnaround)
+      43, null, 46, null, 50, null, 46, null,
+      45, null, 52, null, 49, null, 45, 37
+    ],
+    // Mysterious lantern-lit shopkeeper melody
+    lead: [
+      // Bar 1
+      62, null, 65, 67, 69, null, 71, null,
+      69, null, 67, 65, 64, null, null, null,
+      // Bar 2
+      70, null, 69, 65, 67, null, 64, null,
+      69, null, 67, 64, 61, null, null, null,
+      // Bar 3
+      62, null, 65, 69, 74, null, 72, 71,
+      69, null, 67, 65, 67, null, 69, null,
+      // Bar 4
+      70, 69, 67, 65, 64, null, 67, null,
+      61, null, 64, 67, 69, null, null, null
+    ],
+    // Echoing coin-shimmer arpeggio
+    arp: [
+      // Bar 1
+      74, 69, 65, 69, 77, 74, 69, 74,
+      74, 71, 67, 71, 79, 74, 71, 67,
+      // Bar 2
+      74, 70, 65, 70, 77, 74, 70, 65,
+      73, 69, 64, 69, 76, 73, 69, 64,
+      // Bar 3
+      74, 69, 65, 69, 76, 71, 67, 71,
+      77, 72, 69, 72, 74, 69, 65, 69,
+      // Bar 4
+      74, 70, 67, 70, 79, 74, 70, 67,
+      76, 73, 69, 73, 73, 69, 64, 61
+    ],
+    // Warm off-beat RPG shop organ/accordion chords
+    stab: [
+      null, 57, null, null, null, 60, null, null,
+      null, 59, null, null, null, 62, null, null,
+      null, 58, null, null, null, 62, null, null,
+      null, 57, null, null, null, 61, null, null,
+      null, 57, null, null, null, 59, null, null,
+      null, 60, null, null, null, 62, null, null,
+      null, 58, null, null, null, 62, null, null,
+      null, 57, null, 61, null, null, null, null
+    ],
+    // Laid-back subterranean outpost percussion
+    drums: [
+      'K', null, 'H', null, 'S', null, 'H', null,
+      'K', null, 'H', 'K', 'S', null, 'H', null,
+      'K', null, 'H', null, 'S', null, 'H', null,
+      'K', null, 'H', null, 'S', 'H', 'K', 'H',
+      'K', null, 'H', null, 'S', null, 'H', null,
+      'K', null, 'H', 'K', 'S', null, 'H', null,
+      'K', null, 'H', null, 'S', null, 'H', 'K',
+      'K', 'H', 'S', 'H', 'K', 'S', 'H', null
+    ]
+  };
+
+  // 2. WHEEL OF SUBTERRANEAN FATE THEME (64-Step / 4-Bar Loop, 132 BPM -> 156 BPM Spin Overdrive, D Harmonic Minor)
+  bgmEngine.rouletteTrack = {
+    bpm: 132,
+    spinBpm: 156,
+    cutoff: 2950,
+    bassGain: 0.084,
+    leadGain: 0.046,
+    arpGain: 0.025,
+    arpWave: 'sawtooth',
+    vibratoDepth: 1.010,
+    // Stride carnival showman bass with tritone (44 = G#2) & dominant (45 = A2) tension
+    bass: [
+      // Bar 1 (Dm)
+      38, 50, 45, 50, 38, 50, 45, 50,
+      38, 50, 44, 56, 45, 57, 43, 55,
+      // Bar 2 (Gm -> Dm)
+      43, 55, 50, 55, 44, 56, 50, 56,
+      38, 50, 45, 50, 46, 45, 44, 45,
+      // Bar 3 (Bb7 -> A7)
+      46, 58, 53, 58, 44, 56, 50, 56,
+      45, 57, 49, 57, 52, 57, 49, 45,
+      // Bar 4 (Diminished tension run -> D Harmonic Minor resolution)
+      38, 50, 41, 53, 44, 56, 47, 59,
+      45, 44, 45, 37, 38, null, 50, null
+    ],
+    // High-stakes carnival showman lead in D Harmonic Minor (D, E, F, G#, A, Bb, C#, D)
+    lead: [
+      // Bar 1
+      74, null, 73, 74, 77, null, 74, null,
+      80, null, 81, 80, 77, null, 74, null,
+      // Bar 2
+      79, null, 77, 75, 74, null, 70, null,
+      69, 70, 73, 74, 77, null, 81, null,
+      // Bar 3
+      82, null, 81, 77, 80, null, 77, 74,
+      73, null, 76, 79, 81, null, 85, null,
+      // Bar 4
+      86, 85, 82, 81, 80, 77, 74, 73,
+      74, null, 81, 85, 86, null, null, null
+    ],
+    // Whirling 16th-note roulette wheel arpeggio
+    arp: [
+      // Bar 1
+      62, 65, 69, 74, 77, 74, 69, 65,
+      62, 68, 74, 80, 81, 77, 74, 69,
+      // Bar 2
+      67, 70, 74, 79, 80, 74, 70, 68,
+      62, 65, 69, 74, 70, 69, 68, 69,
+      // Bar 3
+      70, 74, 77, 82, 80, 77, 74, 68,
+      69, 73, 76, 81, 85, 81, 76, 73,
+      // Bar 4
+      62, 65, 68, 71, 74, 77, 80, 83,
+      81, 80, 81, 85, 86, 81, 77, 74
+    ],
+    // Syncopated brass stabs
+    stab: [
+      62, null, null, 65, null, 69, null, null,
+      68, null, null, 69, null, null, 67, null,
+      67, null, null, 70, 68, null, null, null,
+      62, null, 69, null, 70, 69, 68, 69,
+      70, null, null, 74, 68, null, null, null,
+      69, null, null, 73, null, 76, null, null,
+      62, null, 65, null, 68, null, 71, null,
+      69, 68, 69, 73, 74, null, null, null
+    ],
+    // Upbeat showman snare & kick groove
+    drums: [
+      'K', 'H', 'S', 'H', 'K', 'H', 'S', 'H',
+      'K', 'K', 'S', 'H', 'K', 'S', 'S', 'H',
+      'K', 'H', 'S', 'H', 'K', 'H', 'S', 'H',
+      'K', 'S', 'K', 'S', 'K', 'S', 'S', 'S',
+      'K', 'H', 'S', 'H', 'K', 'H', 'S', 'H',
+      'K', 'K', 'S', 'H', 'K', 'S', 'H', 'K',
+      'K', 'S', 'K', 'S', 'K', 'S', 'K', 'S',
+      'K', 'K', 'S', 'S', 'K', null, 'S', null
+    ]
+  };
+
+  bgmEngine.isSpinOverdrive = false;
+
+  // Upgrade resolveModeName to support 'bazaar' and 'roulette'
+  const origResolveModeName = bgmEngine.resolveModeName.bind(bgmEngine);
+  bgmEngine.resolveModeName = function (modeOrFloor) {
+    if (modeOrFloor === 'bazaar' || modeOrFloor === 'roulette') {
+      return modeOrFloor;
+    }
+    return origResolveModeName(modeOrFloor);
+  };
+
+  // Upgrade getActiveTrack to return bazaarTrack / rouletteTrack
+  const origGetActiveTrack = bgmEngine.getActiveTrack.bind(bgmEngine);
+  bgmEngine.getActiveTrack = function () {
+    if (this.currentMode === 'bazaar') return this.bazaarTrack;
+    if (this.currentMode === 'roulette') return this.rouletteTrack;
+    return origGetActiveTrack();
+  };
+
+  // Dynamically calculate BPM (accelerates from 132 -> 156 BPM while the Roulette ball is spinning!)
+  bgmEngine.getEffectiveBpm = function (track) {
+    if (this.currentMode === 'roulette' && this.isSpinOverdrive && track.spinBpm) {
+      return track.spinBpm;
+    }
+    return track.bpm || 112;
+  };
+
+  bgmEngine.restartLoopTimer = function () {
+    if (this.timerId) clearInterval(this.timerId);
+    const activeTrack = this.getActiveTrack();
+    const bpm = this.getEffectiveBpm(activeTrack);
+    const stepMs = Math.round((60 / bpm / 4) * 1000);
+    this.timerId = setInterval(() => this.tickStep(), stepMs);
+  };
+
+  // Upgrade tickStep to support variable track lengths (32, 64, or 128 steps) & Roulette Spin Overdrive
+  bgmEngine.tickStep = function () {
+    if (!this.isPlaying || this.isPausedForModal || !userSettings.musicEnabled) {
+      return;
+    }
+
+    // Check if the Roulette wheel just started or finished spinning to shift BPM
+    if (this.currentMode === 'roulette' && typeof rouletteSim !== 'undefined') {
+      const spinningNow = !!rouletteSim.isSpinning;
+      if (spinningNow !== this.isSpinOverdrive) {
+        this.isSpinOverdrive = spinningNow;
+        this.restartLoopTimer();
+      }
+    } else if (this.isSpinOverdrive) {
+      this.isSpinOverdrive = false;
+    }
+
+    const ctx = this.ctx;
+    if (!ctx) return;
+
+    const track = this.getActiveTrack();
+    const bpm = this.getEffectiveBpm(track);
+    const stepDur = 60 / bpm / 4;
+    const now = ctx.currentTime;
+    const trackLen = (track.bass && track.bass.length) ? track.bass.length : 32;
+    const idx = this.stepIndex % trackLen;
+    const isBoss = this.isBossMode();
+
+    // Slight +2 semitone pitch & filter excitement when the Roulette ball is in orbit
+    const pitchShift = (this.currentMode === 'roulette' && this.isSpinOverdrive) ? 2 : 0;
+    const cutoffBoost = (this.currentMode === 'roulette' && this.isSpinOverdrive) ? 650 : 0;
+    const effectiveCutoff = (track.cutoff || 2400) + cutoffBoost;
+
+    // 1. Triangle Sub-Bass Channel (plus sawtooth grit on Boss 2/3 & Roulette Overdrive)
+    const bassNote = track.bass[idx];
+    if (bassNote) {
+      const bFreq = this.midiToFreq(bassNote + pitchShift);
+      this.playChipTone(
+        bFreq,
+        'triangle',
+        now,
+        stepDur * 0.92,
+        track.bassGain || 0.08,
+        false,
+        effectiveCutoff
+      );
+      if (this.currentMode === 'boss2' || this.currentMode === 'boss3' || (this.currentMode === 'roulette' && this.isSpinOverdrive)) {
+        this.playChipTone(
+          bFreq,
+          'sawtooth',
+          now,
+          stepDur * 0.72,
+          this.currentMode === 'boss3' ? 0.032 : 0.020,
+          false,
+          1150
+        );
+      }
+    }
+
+    // 2. Square Wave Lead Channel
+    const leadNote = track.lead[idx];
+    if (leadNote) {
+      this.playChipTone(
+        this.midiToFreq(leadNote + pitchShift),
+        'square',
+        now,
+        stepDur * 1.65,
+        track.leadGain || 0.045,
+        true,
+        effectiveCutoff,
+        track.vibratoDepth || 1.008
+      );
+    }
+
+    // 3. Arpeggio Channel
+    const arpNote = track.arp[idx];
+    if (arpNote) {
+      this.playChipTone(
+        this.midiToFreq(arpNote + pitchShift),
+        track.arpWave || (isBoss ? 'sawtooth' : 'square'),
+        now,
+        stepDur * 0.65,
+        track.arpGain || 0.022,
+        false,
+        effectiveCutoff
+      );
+    }
+
+    // 4. Harmonic Counter-Stab / Shop Organ Channel
+    if (track.stab && track.stab[idx]) {
+      const stabWave = this.currentMode === 'bazaar' ? 'triangle' : 'sawtooth';
+      const stabGain = this.currentMode === 'bazaar'
+        ? 0.028
+        : (this.currentMode === 'boss3' ? 0.034 : 0.025);
+      this.playChipTone(
+        this.midiToFreq(track.stab[idx] + pitchShift),
+        stabWave,
+        now,
+        stepDur * (this.currentMode === 'bazaar' ? 1.35 : 0.85),
+        stabGain,
+        this.currentMode !== 'bazaar',
+        effectiveCutoff,
+        1.010
+      );
+    }
+
+    // 5. 8-Bit Percussion Channel
+    const drum = track.drums[idx];
+    if (drum) {
+      this.playChipDrum(drum, now);
+    }
+
+    this.stepIndex = (this.stepIndex + 1) % trackLen;
+  };
+
+  // Automatic Modal Watcher: Switches between Floor Track <-> Bazaar Outpost <-> Roulette Wheel
+  function syncBgmWithActiveModals() {
+    const rouletteModal = document.getElementById('roulette-modal');
+    const bazaarModal = document.getElementById('bazaar-modal');
+    const bossChestModal = document.getElementById('boss-chest-modal');
+
+    const isRouletteOpen = rouletteModal && !rouletteModal.classList.contains('hidden');
+    const isBazaarOpen = bazaarModal && !bazaarModal.classList.contains('hidden');
+    const isBossChestOpen = bossChestModal && !bossChestModal.classList.contains('hidden');
+
+    if (isRouletteOpen) {
+      bgmEngine.setMode('roulette');
+    } else if (isBazaarOpen || isBossChestOpen) {
+      bgmEngine.setMode('bazaar');
+    } else if (bgmEngine.currentMode === 'bazaar' || bgmEngine.currentMode === 'roulette') {
+      // Restore appropriate cavern or boss track when returning to the board
+      const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
+      const isBoss = typeof isBossFloorIndex === 'function' ? isBossFloorIndex(fIdx) : ((fIdx + 1) % 3 === 0);
+      if (isBoss) {
+        bgmEngine.setMode(fIdx >= 8 ? 'boss3' : (fIdx >= 5 ? 'boss2' : 'boss1'));
+      } else {
+        bgmEngine.setMode('cavern');
+      }
+    }
+  }
+
+  function initModalMusicObserver() {
+    const modalIds = ['bazaar-modal', 'roulette-modal', 'boss-chest-modal'];
+    const observer = new MutationObserver(() => syncBgmWithActiveModals());
+    modalIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModalMusicObserver);
+  } else {
+    initModalMusicObserver();
+  }
+})(typeof bgm !== 'undefined' ? bgm : null);
