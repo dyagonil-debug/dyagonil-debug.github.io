@@ -56,6 +56,7 @@ function animate() {
   camera.position.z = camState.baseRadius * Math.sin(camState.phi) * Math.cos(camState.theta);
   camera.lookAt(shakeX * 0.35, 0.25 + shakeY * 0.35, 0);
 
+  // Step active 3D Arcane Card, Reserve Token & Gambit VFX
   const nowMs = performance.now();
   for (let i = activeVFX.length - 1; i >= 0; i--) {
     const v = activeVFX[i];
@@ -83,6 +84,7 @@ function animate() {
     }
   });
 
+  // Pulse Enchanted Slot Rings
   enchantGroup.children.forEach((ring, i) => {
     const s = 1.0 + Math.sin(elapsed * 4.0 + i) * 0.08;
     ring.scale.set(s, s, 1);
