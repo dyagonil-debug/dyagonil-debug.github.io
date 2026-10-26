@@ -1,0 +1,84 @@
+// ============================================================================
+// SERVICE WORKER: OFFLINE CACHING & INSTANT BOOT (sw.js)
+// ============================================================================
+const CACHE_NAME = 'subterranean-ascension-v1.21';
+
+const PRECACHE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './assets/images/dyagonil-logo.png',
+  './css/main.css',
+  './css/animations.css',
+  './css/overlays.css',
+  './js/config/constants.js',
+  './js/config/topologies.js',
+  './js/config/catalogs.js',
+  './js/config/difficulty.js',
+  './js/state/settings.js',
+  './js/state/gameState.js',
+  './js/audio/sfx.js',
+  './js/audio/bgm.js',
+  './js/engine/ai.js',
+  './js/engine/boardLogic.js',
+  './js/engine/rouletteSim.js',
+  './js/graphics/scene3d.js',
+  './js/graphics/vfx3d.js',
+  './js/graphics/loop.js',
+  './js/ui/notifications.js',
+  './js/ui/hud.js',
+  './js/ui/modals.js',
+  './js/ui/input.js',
+  './js/ui/introSequence.js',
+  './js/ui/tutorial.js',
+  './js/ui/debugMenu.js',
+  './js/main.js'
+];
+
+// Install: Precache all core local game files
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
+  );
+  self.skipWaiting();
+});
+
+// Activate: Clean up outdated caches when CACHE_NAME is bumped
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch: Stale-While-Revalidate for fast offline-first loading + background updates
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const networkFetch = fetch(event.request)
+        .then((networkResponse) => {
+          if (
+            networkResponse &&
+            (networkResponse.status === 200 || networkResponse.type === 'opaque')
+          ) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
+      return cachedResponse || networkFetch;
+    })
+  );
+});
