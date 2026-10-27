@@ -1,7 +1,7 @@
 // ============================================================================
 // SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v1.25';
+const CACHE_NAME = 'subterranean-ascension-v1.26';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
