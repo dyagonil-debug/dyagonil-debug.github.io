@@ -529,9 +529,8 @@ class SubterraneanChiptuneEngine {
       this.stepIndex = 0;
       this.isSpinOverdrive = false;
     }
-    // Always ensure playback starts if music is enabled and not in Settings
-    if (userSettings.musicEnabled && !this.isPausedForModal) {
-      this.hasStartedAfterDifficulty = true;
+    // Only play/switch if the post-splash BGM trigger has already occurred!
+    if (this.hasStartedAfterDifficulty && userSettings.musicEnabled && !this.isPausedForModal) {
       if (!this.isPlaying) {
         this.play();
       } else if (modeChanged) {
