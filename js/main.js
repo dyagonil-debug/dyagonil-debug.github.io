@@ -5,18 +5,9 @@ if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
   lucide.createIcons();
 }
 
-function deepFreezeConfig(obj) {
-  if (!obj || typeof obj !== 'object' || Object.isFrozen(obj)) return obj;
-  Object.freeze(obj);
-  for (const key of Object.keys(obj)) {
-    deepFreezeConfig(obj[key]);
-  }
-  return obj;
-}
-
 // Expose structured global namespace for inspection and extensibility
 window.C4 = {
-  config: deepFreezeConfig({
+  config: {
     ROWS,
     COLS,
     TOTAL_FLOORS,
@@ -28,7 +19,7 @@ window.C4 = {
     ENCHANT_TYPES,
     BOSS_POOLS_BY_ACT,
     ROULETTE_WEDGES
-  }),
+  },
   settings: userSettings,
   state,
   sfx,
@@ -58,11 +49,11 @@ function bootGame() {
     state.difficulty = 'MEDIUM';
   }
 
-  // Snapshot any existing mid-run save BEFORE initNewRun() resets state to Floor 1
+  // 1. Capture & lock any existing checkpoint BEFORE initNewRun() resets state to Floor 1
   const hadPriorSavedRun =
     typeof runPersistence !== 'undefined' &&
     runPersistence &&
-    runPersistence.hasSavedRun();
+    runPersistence.captureBootCheckpointBeforeInit();
 
   syncSettingsUI();
   updateCameraAspect();
@@ -74,7 +65,6 @@ function bootGame() {
   if (typeof runPersistence !== 'undefined' && runPersistence) {
     runPersistence.installAutoSaveHooks();
     if (hadPriorSavedRun) {
-      // Present the Resume Delve prompt after boot initialization
       setTimeout(() => {
         runPersistence.promptResumeIfAvailable();
       }, 650);
