@@ -1,15 +1,19 @@
 // ============================================================================
-// MID-RUN SAVE & RESUME PERSISTENCE ENGINE (js/state/persistence.js)
+// MID-RUN SAVE & RESUME PERSISTENCE ENGINE v2 (js/state/persistence.js)
 // ============================================================================
-// Automatically serializes active run state to localStorage after each turn,
-// card play, reserve token action, floor transition, and page hide event.
-// Rehydrates catalog references and reconstructs the 3D board & HUD on resume.
+// Fixes:
+// 1. Auto-save gate lock: Prevents bootGame()'s initNewRun() and Title Screen
+//    initialization from overwriting an existing checkpoint in localStorage.
+// 2. Title/Splash Screen integration: Intercepts post-boot initNewRun() calls
+//    and dismisses any lingering title/intro overlays on resume.
+// 3. Direct Three.js tokensGroup & enchantGroup mesh serialization/restoration
+//    so 3D tokens always reappear on the board even without a native rebuild helper.
 // ============================================================================
 
 const RUN_SAVE_STORAGE_KEY = 'c4_subterranean_saved_run_v1';
-const RUN_SAVE_SCHEMA_VERSION = 1;
+const RUN_SAVE_SCHEMA_VERSION = 2;
 
-// Keys on `state` that represent transient UI/animation locks or non-serializable refs
+// Keys on `state` that represent transient UI/animation locks or timer IDs
 const TRANSIENT_STATE_KEYS = new Set([
   'isAnimating',
   'aiThinking',
@@ -49,8 +53,15 @@ const SAFE_TRANSIENT_DEFAULTS = {
   selectedReserveIndex: null
 };
 
-// Build a lookup map of all catalog entries in window.C4.config so rehydration
-// restores functions, prototypes, and frozen references after JSON.parse.
+// Gate lock: when a prior save exists at boot, block all auto-saves until the
+// player explicitly chooses "Resume Delve" or "Abandon & Start Floor 1".
+let _saveGateLocked = false;
+let _bootCachedPayload = null;
+let _isRestoringRun = false;
+
+// ----------------------------------------------------------------------------
+// 1. CATALOG LOOKUP & STATE SERIALIZATION
+// ----------------------------------------------------------------------------
 function buildCatalogLookupMap() {
   const map = new Map();
   const cfg = (window.C4 && window.C4.config) ? window.C4.config : {};
@@ -61,8 +72,10 @@ function buildCatalogLookupMap() {
       for (const item of col) {
         if (item && typeof item === 'object') {
           const id = item.id || item.key || item.code || item.name;
-          if (id) map.set(`${prefix}:${id}`, item);
-          if (id) map.set(`any:${id}`, item);
+          if (id) {
+            map.set(`${prefix}:${id}`, item);
+            map.set(`any:${id}`, item);
+          }
         }
       }
     } else {
@@ -97,7 +110,6 @@ function buildCatalogLookupMap() {
   return map;
 }
 
-// Safely clone serializable state while stripping Three.js objects, DOM nodes, & timers
 function sanitizeForSerialization(value, seen = new WeakSet()) {
   if (value === null || value === undefined) return value;
   const t = typeof value;
@@ -106,7 +118,6 @@ function sanitizeForSerialization(value, seen = new WeakSet()) {
 
   if (t === 'object') {
     if (seen.has(value)) return undefined;
-    // Skip DOM elements, Three.js Object3D / Material / Geometry / Scene / WebGL objects
     if (
       value.nodeType ||
       value.isObject3D ||
@@ -115,7 +126,7 @@ function sanitizeForSerialization(value, seen = new WeakSet()) {
       value.isTexture ||
       value.isScene ||
       value.isCamera ||
-      value instanceof HTMLElement
+      (typeof HTMLElement !== 'undefined' && value instanceof HTMLElement)
     ) {
       return undefined;
     }
@@ -147,7 +158,6 @@ function sanitizeForSerialization(value, seen = new WeakSet()) {
   return undefined;
 }
 
-// Rehydrate catalog objects (restoring any non-JSON functions/methods from config catalogs)
 function rehydrateFromCatalogs(value, catalogMap) {
   if (!value || typeof value !== 'object') return value;
 
@@ -158,7 +168,6 @@ function rehydrateFromCatalogs(value, catalogMap) {
   const candidateId = value.id || value.key || value.code || value.topologyId || value.bossId;
   if (candidateId && catalogMap.has(`any:${candidateId}`)) {
     const template = catalogMap.get(`any:${candidateId}`);
-    // Merge template methods/defaults with saved instance properties (e.g. cooldowns, charges, upgraded flags)
     const rehydrated = Object.assign({}, template);
     for (const [k, v] of Object.entries(value)) {
       rehydrated[k] = rehydrateFromCatalogs(v, catalogMap);
@@ -173,57 +182,253 @@ function rehydrateFromCatalogs(value, catalogMap) {
   return out;
 }
 
-// Check whether the current state represents an active, mid-progress run worth saving
+// ----------------------------------------------------------------------------
+// 2. THREE.JS 3D TOKEN & ENCHANT MESH SNAPSHOTTING
+// ----------------------------------------------------------------------------
+function serializeThreeObject(obj) {
+  if (!obj || !obj.isObject3D) return null;
+
+  const node = {
+    isMesh: !!obj.isMesh,
+    name: obj.name || '',
+    visible: obj.visible !== false,
+    pos: [obj.position.x, obj.position.y, obj.position.z],
+    rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+    scale: [obj.scale.x, obj.scale.y, obj.scale.z],
+    userData: sanitizeForSerialization(obj.userData || {}),
+    children: []
+  };
+
+  if (obj.isMesh && obj.geometry && obj.material) {
+    const g = obj.geometry;
+    node.geom = {
+      type: g.type || 'CylinderGeometry',
+      params: g.parameters ? sanitizeForSerialization(g.parameters) : null
+    };
+
+    const m = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+    if (m) {
+      node.mat = {
+        type: m.type || 'MeshStandardMaterial',
+        color: (m.color && typeof m.color.getHex === 'function') ? m.color.getHex() : 0xffffff,
+        emissive: (m.emissive && typeof m.emissive.getHex === 'function') ? m.emissive.getHex() : 0x000000,
+        emissiveIntensity: typeof m.emissiveIntensity === 'number' ? m.emissiveIntensity : 1,
+        roughness: typeof m.roughness === 'number' ? m.roughness : 0.4,
+        metalness: typeof m.metalness === 'number' ? m.metalness : 0.3,
+        transparent: !!m.transparent,
+        opacity: typeof m.opacity === 'number' ? m.opacity : 1,
+        wireframe: !!m.wireframe,
+        side: typeof m.side === 'number' ? m.side : 0
+      };
+    }
+  }
+
+  if (Array.isArray(obj.children)) {
+    for (const child of obj.children) {
+      // Skip temporary particle/ripple effects inside tokens
+      const serializedChild = serializeThreeObject(child);
+      if (serializedChild) node.children.push(serializedChild);
+    }
+  }
+
+  return node;
+}
+
+function reconstructThreeObject(node) {
+  if (!node || typeof THREE === 'undefined') return null;
+
+  let obj3d = null;
+  if (node.isMesh && node.geom && node.mat) {
+    let geometry = null;
+    const p = node.geom.params || {};
+    const gType = node.geom.type;
+
+    try {
+      if (gType === 'CylinderGeometry' || gType === 'CylinderBufferGeometry') {
+        geometry = new THREE.CylinderGeometry(
+          p.radiusTop ?? 0.42,
+          p.radiusBottom ?? 0.42,
+          p.height ?? 0.25,
+          p.radialSegments ?? 32,
+          p.heightSegments ?? 1,
+          p.openEnded ?? false
+        );
+      } else if (gType === 'SphereGeometry' || gType === 'SphereBufferGeometry') {
+        geometry = new THREE.SphereGeometry(
+          p.radius ?? 0.42,
+          p.widthSegments ?? 24,
+          p.heightSegments ?? 16
+        );
+      } else if (gType === 'BoxGeometry' || gType === 'BoxBufferGeometry') {
+        geometry = new THREE.BoxGeometry(
+          p.width ?? 0.8,
+          p.height ?? 0.8,
+          p.depth ?? 0.25
+        );
+      } else if (gType === 'TorusGeometry' || gType === 'TorusBufferGeometry') {
+        geometry = new THREE.TorusGeometry(
+          p.radius ?? 0.38,
+          p.tube ?? 0.08,
+          p.radialSegments ?? 16,
+          p.tubularSegments ?? 32
+        );
+      } else if (gType === 'RingGeometry' || gType === 'RingBufferGeometry') {
+        geometry = new THREE.RingGeometry(
+          p.innerRadius ?? 0.25,
+          p.outerRadius ?? 0.42,
+          p.thetaSegments ?? 32
+        );
+      } else if (gType === 'OctahedronGeometry' || gType === 'OctahedronBufferGeometry') {
+        geometry = new THREE.OctahedronGeometry(p.radius ?? 0.4, p.detail ?? 0);
+      } else if (gType === 'IcosahedronGeometry' || gType === 'IcosahedronBufferGeometry') {
+        geometry = new THREE.IcosahedronGeometry(p.radius ?? 0.4, p.detail ?? 0);
+      } else if (gType === 'ConeGeometry' || gType === 'ConeBufferGeometry') {
+        geometry = new THREE.ConeGeometry(p.radius ?? 0.4, p.height ?? 0.6, p.radialSegments ?? 24);
+      } else if (typeof THREE[gType] === 'function') {
+        geometry = new THREE[gType]();
+      }
+    } catch (e) {}
+
+    if (!geometry) {
+      geometry = new THREE.CylinderGeometry(0.42, 0.42, 0.25, 32);
+    }
+
+    const MatClass = (typeof THREE[node.mat.type] === 'function')
+      ? THREE[node.mat.type]
+      : THREE.MeshStandardMaterial;
+
+    const matConfig = {
+      color: node.mat.color ?? 0xffffff,
+      transparent: !!node.mat.transparent,
+      opacity: node.mat.opacity ?? 1,
+      wireframe: !!node.mat.wireframe
+    };
+    if (MatClass !== THREE.MeshBasicMaterial) {
+      matConfig.emissive = node.mat.emissive ?? 0x000000;
+      matConfig.emissiveIntensity = node.mat.emissiveIntensity ?? 1;
+      if ('roughness' in node.mat) matConfig.roughness = node.mat.roughness;
+      if ('metalness' in node.mat) matConfig.metalness = node.mat.metalness;
+    }
+
+    const material = new MatClass(matConfig);
+    obj3d = new THREE.Mesh(geometry, material);
+    obj3d.castShadow = true;
+    obj3d.receiveShadow = true;
+  } else {
+    obj3d = new THREE.Group();
+  }
+
+  obj3d.name = node.name || '';
+  obj3d.visible = node.visible !== false;
+  if (Array.isArray(node.pos)) obj3d.position.set(node.pos[0], node.pos[1], node.pos[2]);
+  if (Array.isArray(node.rot)) obj3d.rotation.set(node.rot[0], node.rot[1], node.rot[2]);
+  if (Array.isArray(node.scale)) obj3d.scale.set(node.scale[0], node.scale[1], node.scale[2]);
+  if (node.userData && typeof node.userData === 'object') {
+    obj3d.userData = Object.assign({}, node.userData);
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const childNode of node.children) {
+      const childObj = reconstructThreeObject(childNode);
+      if (childObj) obj3d.add(childObj);
+    }
+  }
+
+  return obj3d;
+}
+
+function serializeGroupChildren(group) {
+  if (!group || !Array.isArray(group.children)) return [];
+  const out = [];
+  for (const child of group.children) {
+    const serialized = serializeThreeObject(child);
+    if (serialized) out.push(serialized);
+  }
+  return out;
+}
+
+function restoreGroupChildren(group, serializedList) {
+  if (!group || !Array.isArray(serializedList)) return;
+  while (group.children.length > 0) {
+    group.remove(group.children[0]);
+  }
+  for (const item of serializedList) {
+    const obj = reconstructThreeObject(item);
+    if (obj) group.add(obj);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 3. PROGRESS DETECTION & CHECKPOINT SAVING
+// ----------------------------------------------------------------------------
+function getZeroBasedFloorIndex(s) {
+  if (!s) return 0;
+  if (typeof s.floorIndex === 'number') return s.floorIndex;
+  if (typeof s.currentFloorIndex === 'number') return s.currentFloorIndex;
+  if (typeof s.floor === 'number') {
+    return s.floor > 0 ? s.floor - 1 : 0;
+  }
+  return 0;
+}
+
+function countPlayerOrAiTokensOnBoard(s) {
+  if (!s || !Array.isArray(s.board)) return 0;
+  let count = 0;
+  for (const row of s.board) {
+    if (!Array.isArray(row)) continue;
+    for (const cell of row) {
+      if (cell === PLAYER || cell === AI || cell === WILD) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+// Only consider a run saveable if the player has actually dropped at least 1 token
+// OR advanced past Floor 1 (floorIdx > 0), preventing blank Floor 1 overwrites!
 function isRunSaveable() {
+  if (_saveGateLocked || _isRestoringRun) return false;
   if (typeof state === 'undefined' || !state) return false;
   if (state.runOver || state.isGameOver || state.gameOver || state.victory || state.runComplete) {
     return false;
   }
 
-  const floorIdx = getFloorIndexFromState(state);
-  const hasBoardMove = Array.isArray(state.board) && state.board.some(
-    (row) => Array.isArray(row) && row.some((cell) => cell === PLAYER || cell === AI || cell === WILD)
-  );
-  const hasLoadoutProgress =
-    (Array.isArray(state.gambits) && state.gambits.length > 0) ||
-    (Array.isArray(state.activeGambits) && state.activeGambits.length > 0) ||
-    (typeof state.turnCount === 'number' && state.turnCount > 0) ||
-    (typeof state.movesPlayed === 'number' && state.movesPlayed > 0);
+  const floorIdx = getZeroBasedFloorIndex(state);
+  const droppedTokens = countPlayerOrAiTokensOnBoard(state);
 
-  return floorIdx > 0 || hasBoardMove || hasLoadoutProgress;
-}
-
-function getFloorIndexFromState(s) {
-  if (!s) return 0;
-  if (typeof s.floorIndex === 'number') return s.floorIndex;
-  if (typeof s.currentFloorIndex === 'number') return s.currentFloorIndex;
-  if (typeof s.floor === 'number') {
-    // Handle either 0-indexed (0..8) or 1-indexed (1..9) conventions
-    return s.floor;
-  }
-  return 0;
+  return floorIdx > 0 || droppedTokens > 0;
 }
 
 function saveCurrentRun(force = false) {
   try {
+    if (_isRestoringRun) return false;
+    if (!force && (_saveGateLocked || !isRunSaveable())) return false;
     if (typeof state === 'undefined' || !state) return false;
-    if (!force && !isRunSaveable()) return false;
 
     const cleanState = sanitizeForSerialization(state);
     if (!cleanState || typeof cleanState !== 'object') return false;
 
-    // Normalize mid-turn state so resuming always lands on a playable state
     for (const [k, defaultVal] of Object.entries(SAFE_TRANSIENT_DEFAULTS)) {
       if (k in state) {
         cleanState[k] = defaultVal;
       }
     }
 
+    const tGroup = (typeof tokensGroup !== 'undefined' && tokensGroup)
+      ? tokensGroup
+      : (window.C4 && window.C4.scene3d ? window.C4.scene3d.tokensGroup : null);
+
+    const eGroup = (typeof enchantGroup !== 'undefined' && enchantGroup)
+      ? enchantGroup
+      : (window.C4 && window.C4.scene3d ? window.C4.scene3d.enchantGroup : null);
+
     const payload = {
       schemaVersion: RUN_SAVE_SCHEMA_VERSION,
       savedAt: Date.now(),
       summary: {
-        floorIndex: getFloorIndexFromState(state),
+        floorIndex: getZeroBasedFloorIndex(state),
+        tokensOnBoard: countPlayerOrAiTokensOnBoard(state),
         difficulty: state.difficulty || 'MEDIUM',
         gambitCount: Array.isArray(state.gambits)
           ? state.gambits.length
@@ -235,10 +440,14 @@ function saveCurrentRun(force = false) {
           ? state.reserves.length
           : (Array.isArray(state.reserveTokens) ? state.reserveTokens.length : 0)
       },
-      stateSnapshot: cleanState
+      stateSnapshot: cleanState,
+      tokens3DSnapshot: serializeGroupChildren(tGroup),
+      enchant3DSnapshot: serializeGroupChildren(eGroup)
     };
 
     localStorage.setItem(RUN_SAVE_STORAGE_KEY, JSON.stringify(payload));
+    _bootCachedPayload = payload;
+    updateCheckpointPillUI(true);
     return true;
   } catch (e) {
     return false;
@@ -248,19 +457,18 @@ function saveCurrentRun(force = false) {
 function loadSavedRunPayload() {
   try {
     const raw = localStorage.getItem(RUN_SAVE_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) return _bootCachedPayload || null;
     const parsed = JSON.parse(raw);
     if (
       !parsed ||
-      parsed.schemaVersion !== RUN_SAVE_SCHEMA_VERSION ||
       !parsed.stateSnapshot ||
       typeof parsed.stateSnapshot !== 'object'
     ) {
-      return null;
+      return _bootCachedPayload || null;
     }
     return parsed;
   } catch (e) {
-    return null;
+    return _bootCachedPayload || null;
   }
 }
 
@@ -269,111 +477,78 @@ function hasSavedRun() {
 }
 
 function clearSavedRun() {
+  _bootCachedPayload = null;
+  _saveGateLocked = false;
   try {
     localStorage.removeItem(RUN_SAVE_STORAGE_KEY);
   } catch (e) {}
+  updateCheckpointPillUI(false);
 }
 
-// Rebuilds the 3D scene and 2D HUD to match the restored `state`
-function syncSceneAndHudAfterRestore() {
-  // 1. Trigger whichever 3D board & token rebuild helpers exist injs/graphics/scene3d.js or boardLogic.js
-  const boardRebuildFns = [
-    'rebuild3DBoard',
-    'build3DBoard',
-    'rebuildBoard3D',
-    'buildBoard3D',
-    'init3DBoard',
-    'sync3DBoard',
-    'render3DBoard'
+// ----------------------------------------------------------------------------
+// 4. RESTORING THE SAVED RUN (STATE + 3D SCENE + HUD + OVERLAY CLEANUP)
+// ----------------------------------------------------------------------------
+function dismissAnyTitleOrSplashOverlays() {
+  // Hide any full-screen intro/title/splash gate elements that might still be open
+  const candidateIds = [
+    'title-screen',
+    'title-modal',
+    'title-overlay',
+    'splash-screen',
+    'splash-overlay',
+    'intro-overlay',
+    'intro-screen',
+    'boot-gate',
+    'terminal-gate',
+    'crt-gate',
+    'opening-overlay'
   ];
-  for (const fnName of boardRebuildFns) {
-    if (typeof window[fnName] === 'function') {
-      try {
-        window[fnName]();
-        break;
-      } catch (e) {}
+  for (const id of candidateIds) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+      el.style.pointerEvents = 'none';
     }
   }
 
-  // 2. Sync 3D Enchantment slots if a dedicated helper exists
-  const enchantSyncFns = [
-    'rebuildEnchantMeshes',
-    'renderEnchantSlots',
-    'syncEnchantGroup',
-    'buildEnchantSlots3D',
-    'updateEnchantVisuals'
-  ];
-  for (const fnName of enchantSyncFns) {
-    if (typeof window[fnName] === 'function') {
-      try {
-        window[fnName]();
-        break;
-      } catch (e) {}
+  // Also check any fixed full-screen overlay containing title tokens or CRT boot text
+  const allFixed = document.querySelectorAll('.fixed.inset-0, [style*="position: fixed"]');
+  allFixed.forEach((el) => {
+    if (el.id === 'webgl-container' || el.id === 'c4-resume-delve-modal') return;
+    const txt = (el.innerText || '').toUpperCase();
+    if (
+      el.querySelector('.title-token-piece') ||
+      (txt.includes('SUBTERRANEAN ASCENSION') && (txt.includes('BEGIN') || txt.includes('START') || txt.includes('ASCEND') || txt.includes('ENTER')))
+    ) {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+      el.style.pointerEvents = 'none';
     }
+  });
+  document.body.classList.remove('modal-occluded');
+}
+
+function syncSceneAndHudAfterRestore(payload) {
+  const tGroup = (typeof tokensGroup !== 'undefined' && tokensGroup)
+    ? tokensGroup
+    : (window.C4 && window.C4.scene3d ? window.C4.scene3d.tokensGroup : null);
+
+  const eGroup = (typeof enchantGroup !== 'undefined' && enchantGroup)
+    ? enchantGroup
+    : (window.C4 && window.C4.scene3d ? window.C4.scene3d.enchantGroup : null);
+
+  // Restore 3D tokens directly into tokensGroup if snapshot meshes exist
+  if (tGroup && payload && Array.isArray(payload.tokens3DSnapshot) && payload.tokens3DSnapshot.length > 0) {
+    restoreGroupChildren(tGroup, payload.tokens3DSnapshot);
   }
 
-  // 3. Reconstruct 3D tokens on the board
-  const tokenSyncFns = [
-    'rebuildTokens3D',
-    'syncTokens3D',
-    'rebuild3DTokens',
-    'renderTokens3D'
-  ];
-  let tokensRebuiltByHelper = false;
-  for (const fnName of tokenSyncFns) {
-    if (typeof window[fnName] === 'function') {
-      try {
-        window[fnName]();
-        tokensRebuiltByHelper = true;
-        break;
-      } catch (e) {}
-    }
+  // Restore 3D enchant meshes if snapshot exists
+  if (eGroup && payload && Array.isArray(payload.enchant3DSnapshot) && payload.enchant3DSnapshot.length > 0) {
+    restoreGroupChildren(eGroup, payload.enchant3DSnapshot);
   }
 
-  // Fallback token spawner if the codebase spawns tokens incrementally during drops
-  if (!tokensRebuiltByHelper && Array.isArray(state.board)) {
-    try {
-      if (typeof tokensGroup !== 'undefined' && tokensGroup && typeof tokensGroup.clear === 'function') {
-        tokensGroup.clear();
-      } else if (typeof tokensGroup !== 'undefined' && tokensGroup && Array.isArray(tokensGroup.children)) {
-        while (tokensGroup.children.length > 0) {
-          tokensGroup.remove(tokensGroup.children[0]);
-        }
-      }
-
-      const singleTokenSpawners = [
-        'spawnTokenMeshAt',
-        'createTokenMesh',
-        'addTokenToScene',
-        'spawn3DToken',
-        'placeToken3D'
-      ];
-      let spawner = null;
-      for (const fnName of singleTokenSpawners) {
-        if (typeof window[fnName] === 'function') {
-          spawner = window[fnName];
-          break;
-        }
-      }
-
-      if (spawner) {
-        for (let r = 0; r < state.board.length; r++) {
-          const row = state.board[r];
-          if (!Array.isArray(row)) continue;
-          for (let c = 0; c < row.length; c++) {
-            const cell = row[c];
-            if (cell && cell !== EMPTY && cell !== VOID_CELL) {
-              try {
-                spawner(r, c, cell, false);
-              } catch (e) {}
-            }
-          }
-        }
-      }
-    } catch (e) {}
-  }
-
-  // 4. Refresh all HUD & UI panels
+  // Call any global HUD refresh functions defined in js/ui/hud.js or notifications.js
   const hudSyncFns = [
     'syncHUD',
     'updateHUD',
@@ -381,11 +556,14 @@ function syncSceneAndHudAfterRestore() {
     'refreshHUD',
     'renderCardsHUD',
     'renderHand',
+    'renderArcaneCards',
     'renderReservesHUD',
     'renderReserves',
+    'renderReserveTokens',
     'renderGambitsHUD',
     'renderGambits',
     'updateFloorBanner',
+    'updateHeaderHUD',
     'updateTurnIndicator',
     'syncSettingsUI'
   ];
@@ -398,59 +576,76 @@ function syncSceneAndHudAfterRestore() {
   }
 }
 
-// Restores a saved run into `state`, rebuilds the current floor's 3D board, and syncs the HUD
 function resumeSavedRun() {
   const payload = loadSavedRunPayload();
-  if (!payload) return false;
+  if (!payload || !payload.stateSnapshot) return false;
 
-  const catalogMap = buildCatalogLookupMap();
-  const restored = rehydrateFromCatalogs(payload.stateSnapshot, catalogMap);
+  _isRestoringRun = true;
+  _saveGateLocked = false;
 
-  // Phase 1: Apply run-level & floor-level properties first
-  Object.assign(state, restored);
+  try {
+    const catalogMap = buildCatalogLookupMap();
+    const restoredPhase1 = rehydrateFromCatalogs(payload.stateSnapshot, catalogMap);
 
-  // Let startFloorMatch initialize the floor's 3D cavern topology, lighting, and boss banner
-  if (typeof startFloorMatch === 'function') {
-    try {
-      startFloorMatch(false);
-    } catch (e) {}
-  }
+    // 1. Apply floor/topology/boss state first
+    Object.assign(state, restoredPhase1);
 
-  // Phase 2: Re-apply the exact mid-floor snapshot (board tokens, hand, reserves, turn, enchants)
-  Object.assign(state, rehydrateFromCatalogs(payload.stateSnapshot, catalogMap));
-  for (const [k, defaultVal] of Object.entries(SAFE_TRANSIENT_DEFAULTS)) {
-    if (k in state) {
-      state[k] = defaultVal;
+    // 2. Let startFloorMatch build the 3D cavern board geometry & lighting for this floor
+    if (typeof startFloorMatch === 'function') {
+      try {
+        startFloorMatch(false);
+      } catch (e) {}
     }
-  }
 
-  syncSceneAndHudAfterRestore();
+    // 3. Re-apply the exact mid-floor snapshot (board matrix, hand, reserves, gambits, turn)
+    const restoredPhase2 = rehydrateFromCatalogs(payload.stateSnapshot, catalogMap);
+    Object.assign(state, restoredPhase2);
 
-  // If the game was saved while it was the AI's turn, nudge the AI solver to act
-  if (state.turn === AI || state.currentTurn === AI) {
-    const aiTriggerFns = ['triggerAiTurn', 'executeAiTurn', 'runAiTurn', 'scheduleAiMove'];
-    setTimeout(() => {
-      for (const fnName of aiTriggerFns) {
-        if (typeof window[fnName] === 'function') {
-          try {
-            window[fnName]();
-            break;
-          } catch (e) {}
-        }
+    for (const [k, defaultVal] of Object.entries(SAFE_TRANSIENT_DEFAULTS)) {
+      if (k in state) {
+        state[k] = defaultVal;
       }
-    }, 450);
-  }
+    }
 
-  if (typeof showToast === 'function') {
-    try {
-      showToast('SUBTERRANEAN DELVE RESUMED');
-    } catch (e) {}
+    // 4. Reconstruct 3D token meshes, enchantment slots, and HUD
+    syncSceneAndHudAfterRestore(payload);
+    dismissAnyTitleOrSplashOverlays();
+
+    // Ensure localStorage still holds the restored payload
+    localStorage.setItem(RUN_SAVE_STORAGE_KEY, JSON.stringify(payload));
+    _bootCachedPayload = payload;
+    updateCheckpointPillUI(true);
+
+    // 5. If it was the AI's turn when saved, trigger AI move
+    if (state.turn === AI || state.currentTurn === AI) {
+      const aiTriggerFns = ['triggerAiTurn', 'executeAiTurn', 'runAiTurn', 'scheduleAiMove', 'aiMove'];
+      setTimeout(() => {
+        for (const fnName of aiTriggerFns) {
+          if (typeof window[fnName] === 'function') {
+            try {
+              window[fnName]();
+              break;
+            } catch (e) {}
+          }
+        }
+      }, 450);
+    }
+
+    if (typeof showToast === 'function') {
+      try {
+        showToast('CHECKPOINT RESTORED');
+      } catch (e) {}
+    }
+  } finally {
+    _isRestoringRun = false;
   }
 
   return true;
 }
 
-// Format relative time for the Resume Modal
+// ----------------------------------------------------------------------------
+// 5. RESUME MODAL & HUD CHECKPOINT PILL
+// ----------------------------------------------------------------------------
 function formatRelativeSaveTime(timestamp) {
   if (!timestamp) return 'Recently';
   const diffSec = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
@@ -463,7 +658,6 @@ function formatRelativeSaveTime(timestamp) {
   return `${diffDays}d ago`;
 }
 
-// Presents a non-intrusive cavern-styled modal allowing the player to Resume or Start Fresh
 function promptResumeIfAvailable() {
   const payload = loadSavedRunPayload();
   if (!payload) return false;
@@ -472,14 +666,11 @@ function promptResumeIfAvailable() {
   if (existing) existing.remove();
 
   const summary = payload.summary || {};
-  const rawFloor = typeof summary.floorIndex === 'number' ? summary.floorIndex : 0;
-  // Display 1-indexed floor number (1..9)
-  const displayFloor = Math.min(
-    TOTAL_FLOORS,
-    Math.max(1, rawFloor < TOTAL_FLOORS ? rawFloor + 1 : rawFloor)
-  );
+  const rawFloorIdx = typeof summary.floorIndex === 'number' ? summary.floorIndex : 0;
+  const displayFloor = Math.min(TOTAL_FLOORS, Math.max(1, rawFloorIdx + 1));
   const actNum = Math.ceil(displayFloor / 3);
   const diffLabel = summary.difficulty || 'MEDIUM';
+  const tokensCount = summary.tokensOnBoard || 0;
   const timeAgo = formatRelativeSaveTime(payload.savedAt);
 
   const overlay = document.createElement('div');
@@ -487,26 +678,27 @@ function promptResumeIfAvailable() {
   overlay.style.cssText = [
     'position: fixed',
     'inset: 0',
-    'z-index: 95',
+    'z-index: 2147483647',
     'display: flex',
     'align-items: center',
     'justify-content: center',
     'padding: 1.25rem',
-    'background: rgba(7, 6, 9, 0.82)',
-    'backdrop-filter: blur(10px)',
-    '-webkit-backdrop-filter: blur(10px)',
+    'background: rgba(7, 6, 9, 0.86)',
+    'backdrop-filter: blur(12px)',
+    '-webkit-backdrop-filter: blur(12px)',
     'opacity: 0',
-    'transition: opacity 0.25s ease-out'
+    'transition: opacity 0.22s ease-out',
+    'pointer-events: auto'
   ].join(';');
 
   overlay.innerHTML = `
     <div class="cavern-panel" style="
       width: 100%;
-      max-width: 380px;
+      max-width: 390px;
       border-radius: 1rem;
       padding: 1.35rem 1.25rem;
-      border: 1px solid rgba(245, 158, 11, 0.42);
-      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.88), 0 0 24px rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(45, 212, 191, 0.55);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.92), 0 0 28px rgba(45, 212, 191, 0.18);
       color: #f8fafc;
       text-align: center;
     ">
@@ -514,28 +706,28 @@ function promptResumeIfAvailable() {
         font-size: 0.7rem;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: #fbbf24;
+        color: #2dd4bf;
         margin-bottom: 0.35rem;
-      ">// ACTIVE DELVE TELEMETRY DETECTED //</div>
+      ">// CHECKPOINT TELEMETRY DETECTED //</div>
 
       <h2 class="font-display" style="
         margin: 0 0 0.4rem 0;
-        font-size: 1.3rem;
+        font-size: 1.32rem;
         font-weight: 700;
         letter-spacing: 0.02em;
         color: #f8fafc;
-      ">RESUME ASCENSION?</h2>
+      ">RESUME SAVED DELVE?</h2>
 
       <p style="
         margin: 0 0 1rem 0;
         font-size: 0.82rem;
         color: #94a3b8;
         line-height: 1.45;
-      ">An unfinished subterranean run was recorded ${timeAgo}.</p>
+      ">Checkpoint recorded ${timeAgo} (${tokensCount} tokens on board).</p>
 
       <div class="font-mono-code" style="
-        background: rgba(7, 6, 9, 0.72);
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(7, 6, 9, 0.78);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 0.65rem;
         padding: 0.75rem;
         margin-bottom: 1.15rem;
@@ -566,16 +758,16 @@ function promptResumeIfAvailable() {
       <div style="display: flex; flex-direction: column; gap: 0.6rem;">
         <button id="c4-btn-resume-delve" class="font-display" style="
           width: 100%;
-          padding: 0.78rem 1rem;
+          padding: 0.8rem 1rem;
           border-radius: 0.65rem;
           border: 1px solid #2dd4bf;
-          background: linear-gradient(135deg, rgba(13, 148, 136, 0.38), rgba(15, 118, 110, 0.65));
+          background: linear-gradient(135deg, rgba(13, 148, 136, 0.45), rgba(15, 118, 110, 0.75));
           color: #f0fdfa;
-          font-size: 0.9rem;
+          font-size: 0.92rem;
           font-weight: 700;
           letter-spacing: 0.06em;
           cursor: pointer;
-          box-shadow: 0 6px 20px rgba(45, 212, 191, 0.25);
+          box-shadow: 0 6px 20px rgba(45, 212, 191, 0.28);
         ">RESUME DELVE</button>
 
         <button id="c4-btn-abandon-delve" class="font-mono-code" style="
@@ -594,15 +786,13 @@ function promptResumeIfAvailable() {
   `;
 
   document.body.appendChild(overlay);
-  document.body.classList.add('modal-occluded');
   requestAnimationFrame(() => {
     overlay.style.opacity = '1';
   });
 
   const closePrompt = () => {
     overlay.style.opacity = '0';
-    document.body.classList.remove('modal-occluded');
-    setTimeout(() => overlay.remove(), 240);
+    setTimeout(() => overlay.remove(), 220);
   };
 
   const resumeBtn = document.getElementById('c4-btn-resume-delve');
@@ -631,37 +821,102 @@ function promptResumeIfAvailable() {
   return true;
 }
 
-// Automatically hook lifecycle & turn-mutation functions to save or clear runs seamlessly
+// Subtle floating checkpoint pill so you can visually see & test saves anytime
+function mountCheckpointPillUI() {
+  if (document.getElementById('c4-checkpoint-pill')) return;
+  const pill = document.createElement('button');
+  pill.id = 'c4-checkpoint-pill';
+  pill.className = 'font-mono-code';
+  pill.title = 'Click to manually save or restore checkpoint';
+  pill.style.cssText = [
+    'position: fixed',
+    'bottom: max(0.55rem, env(safe-area-inset-bottom))',
+    'right: 0.65rem',
+    'z-index: 49',
+    'padding: 0.28rem 0.55rem',
+    'border-radius: 999px',
+    'font-size: 0.62rem',
+    'letter-spacing: 0.06em',
+    'background: rgba(14, 12, 18, 0.88)',
+    'border: 1px solid rgba(45, 212, 191, 0.35)',
+    'color: #94a3b8',
+    'cursor: pointer',
+    'display: flex',
+    'align-items: center',
+    'gap: 0.35rem',
+    'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6)'
+  ].join(';');
+
+  pill.innerHTML = `<span id="c4-cp-dot" style="width:6px;height:6px;border-radius:50%;background:#64748b;display:inline-block;"></span><span id="c4-cp-label">CP: READY</span>`;
+
+  pill.addEventListener('click', () => {
+    if (_saveGateLocked && hasSavedRun()) {
+      promptResumeIfAvailable();
+      return;
+    }
+    const ok = saveCurrentRun(true);
+    if (ok) {
+      if (typeof showToast === 'function') {
+        try { showToast('CHECKPOINT SAVED'); } catch (e) {}
+      }
+    } else if (hasSavedRun()) {
+      promptResumeIfAvailable();
+    }
+  });
+
+  document.body.appendChild(pill);
+  updateCheckpointPillUI(hasSavedRun());
+}
+
+function updateCheckpointPillUI(saved) {
+  const dot = document.getElementById('c4-cp-dot');
+  const label = document.getElementById('c4-cp-label');
+  if (!dot || !label) return;
+  if (saved) {
+    dot.style.background = '#2dd4bf';
+    dot.style.boxShadow = '0 0 8px #2dd4bf';
+    label.style.color = '#ccfbf1';
+    label.textContent = 'CP: SAVED';
+  } else {
+    dot.style.background = '#64748b';
+    dot.style.boxShadow = 'none';
+    label.style.color = '#94a3b8';
+    label.textContent = 'CP: EMPTY';
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 6. LIFECYCLE & AUTO-SAVE HOOKS
+// ----------------------------------------------------------------------------
+function captureBootCheckpointBeforeInit() {
+  const existing = loadSavedRunPayload();
+  if (existing && existing.stateSnapshot) {
+    _bootCachedPayload = existing;
+    _saveGateLocked = true;
+    return true;
+  }
+  return false;
+}
+
 function installAutoSaveHooks() {
   if (installAutoSaveHooks.installed) return;
   installAutoSaveHooks.installed = true;
 
-  // Wrap known global gameplay functions if present so saves trigger immediately after actions
-  const actionFunctionsToSaveAfter = [
-    'startFloorMatch',
-    'advanceToNextFloor',
-    'nextFloor',
-    'playArcaneCard',
-    'useArcaneCard',
-    'activateCard',
-    'useReserveToken',
-    'selectReserveToken',
-    'claimGambitReward',
-    'applyRouletteOutcome',
-    'finishRouletteSpin'
-  ];
+  mountCheckpointPillUI();
 
-  for (const fnName of actionFunctionsToSaveAfter) {
-    if (typeof window[fnName] === 'function' && !window[fnName]._c4SaveWrapped) {
-      const originalFn = window[fnName];
-      const wrapped = function (...args) {
-        const result = originalFn.apply(this, args);
-        setTimeout(() => saveCurrentRun(), 60);
-        return result;
-      };
-      wrapped._c4SaveWrapped = true;
-      window[fnName] = wrapped;
-    }
+  // If the Title Screen "Start" button calls initNewRun() while a checkpoint is
+  // still waiting to be resumed, intercept it and show the Resume Modal!
+  if (typeof window.initNewRun === 'function' && !window.initNewRun._c4InterceptWrapped) {
+    const origInitNewRun = window.initNewRun;
+    const wrappedInit = function (...args) {
+      if (_saveGateLocked && _bootCachedPayload && !_isRestoringRun) {
+        setTimeout(() => promptResumeIfAvailable(), 80);
+        return;
+      }
+      return origInitNewRun.apply(this, args);
+    };
+    wrappedInit._c4InterceptWrapped = true;
+    window.initNewRun = wrappedInit;
   }
 
   // Clear saved run automatically when a run finishes in defeat or final victory
@@ -684,10 +939,11 @@ function installAutoSaveHooks() {
     }
   }
 
-  // Lightweight state-fingerprint poller: catches async AI drops, gravity cascades, & roulette resolutions
+  // Poll every 750ms for settled board/floor changes
   let lastFingerprint = '';
   setInterval(() => {
     if (typeof state === 'undefined' || !state) return;
+    if (_saveGateLocked || _isRestoringRun) return;
 
     if (state.runOver || state.isGameOver || state.gameOver || state.victory || state.runComplete) {
       if (lastFingerprint !== 'TERMINAL') {
@@ -697,12 +953,12 @@ function installAutoSaveHooks() {
       return;
     }
 
-    // Wait until animations settle before snapshotting
     if (state.isAnimating || state.aiThinking || state.isAiThinking) return;
+    if (!isRunSaveable()) return;
 
     try {
       const boardSig = Array.isArray(state.board) ? JSON.stringify(state.board) : '';
-      const floorSig = getFloorIndexFromState(state);
+      const floorSig = getZeroBasedFloorIndex(state);
       const turnSig = state.turn || state.currentTurn || 0;
       const handSig = Array.isArray(state.hand)
         ? state.hand.length
@@ -720,9 +976,8 @@ function installAutoSaveHooks() {
         saveCurrentRun();
       }
     } catch (e) {}
-  }, 800);
+  }, 750);
 
-  // Save immediately when switching mobile apps, locking screen, or closing tab
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       saveCurrentRun();
@@ -738,6 +993,7 @@ function installAutoSaveHooks() {
 
 const runPersistence = {
   STORAGE_KEY: RUN_SAVE_STORAGE_KEY,
+  captureBootCheckpointBeforeInit,
   saveRun: saveCurrentRun,
   loadRun: loadSavedRunPayload,
   hasSavedRun,
