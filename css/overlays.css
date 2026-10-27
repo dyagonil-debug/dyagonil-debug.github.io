@@ -6,236 +6,224 @@
    DYAGONIL SPLASH SCREEN & ANIMATED TITLE OPENER STYLES
    ============================================================================ */
 #intro-sequence-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    background: radial-gradient(circle at 50% 42%, #130f1c 0%, #070609 75%, #030204 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: radial-gradient(circle at 50% 42%, #130f1c 0%, #070609 75%, #030204 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dyagonil-logo-glow {
-    filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.48)) drop-shadow(0 0 38px rgba(45, 212, 191, 0.22));
-    transition: filter 0.45s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.48)) drop-shadow(0 0 38px rgba(45, 212, 191, 0.22));
+  transition: filter 0.45s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15);
 }
 .dyagonil-logo-peak {
-    filter: drop-shadow(0 0 28px rgba(253, 224, 71, 0.95)) drop-shadow(0 0 56px rgba(45, 212, 191, 0.65)) !important;
-    transform: scale(1.06) !important;
+  filter: drop-shadow(0 0 28px rgba(253, 224, 71, 0.95)) drop-shadow(0 0 56px rgba(45, 212, 191, 0.65)) !important;
+  transform: scale(1.06) !important;
 }
 .dyagonil-wordmark {
-    font-family: 'Space Grotesk', sans-serif;
-    letter-spacing: 0.34em;
-    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 45%, #2dd4bf 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 8px 28px rgba(245, 158, 11, 0.28);
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.34em;
+  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 45%, #2dd4bf 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 8px 28px rgba(245, 158, 11, 0.28);
 }
 #dyagonil-splash-stage {
-    opacity: 0;
-    transform: scale(0.92) translateY(8px);
-    transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1), transform 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transform: scale(0.92) translateY(8px);
+  transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1), transform 1.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #dyagonil-splash-stage.splash-visible {
-    opacity: 1;
-    transform: scale(1) translateY(0);
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 #dyagonil-splash-stage.splash-fadeout {
-    opacity: 0;
-    transform: scale(1.05) translateY(-6px);
-    transition: opacity 0.95s cubic-bezier(0.4, 0, 0.2, 1), transform 0.95s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transform: scale(1.05) translateY(-6px);
+  transition: opacity 0.95s cubic-bezier(0.4, 0, 0.2, 1), transform 0.95s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Animated Title Opener Elements */
 .title-token-slot {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 9999px;
-    border: 2px solid rgba(245, 158, 11, 0.35);
-    background: rgba(15, 13, 20, 0.85);
-    box-shadow: inset 0 3px 8px rgba(0,0,0,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(245, 158, 11, 0.35);
+  background: rgba(15, 13, 20, 0.85);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 .title-token-piece {
-    width: 2.35rem;
-    height: 2.35rem;
-    border-radius: 9999px;
-    transform: translateY(-190px) scale(0.85);
-    opacity: 0;
-    transition: transform 0.34s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.18s ease-out, box-shadow 0.3s ease;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 9999px;
+  transform: translateY(-190px) scale(0.85);
+  opacity: 0;
+  transition: transform 0.34s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.18s ease-out, box-shadow 0.3s ease;
 }
 .title-token-piece.token-landed {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 .title-token-piece.token-ignited {
-    box-shadow: 0 0 22px #fde047, 0 0 40px #f59e0b, inset 0 0 10px #ffffff !important;
-    transform: translateY(0) scale(1.1);
+  box-shadow: 0 0 22px #fde047, 0 0 40px #f59e0b, inset 0 0 10px #ffffff !important;
+  transform: translateY(0) scale(1.1);
 }
 .title-slam-element {
-    opacity: 0;
-    transform: translateY(18px) scale(0.94);
-    transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transform: translateY(18px) scale(0.94);
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .title-slam-element.slam-in {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 /* Interactive state enabled only after the title opener animation completes */
 .title-token-slot.slot-interactive {
-    cursor: pointer;
-    transition: border-color 0.2s ease, transform 0.15s ease;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
 }
 .title-token-slot.slot-interactive:hover {
-    border-color: rgba(253, 224, 71, 0.75);
+  border-color: rgba(253, 224, 71, 0.75);
 }
-
-
 .title-token-piece.token-tap-boing {
-    animation: titleTokenTapBoing 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+  animation: titleTokenTapBoing 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
-
 .title-slot-ripple-ring {
-    position: absolute;
-    inset: -2px;
-    border-radius: 9999px;
-    border: 2px solid #fde047;
-    pointer-events: none;
-    animation: titleSlotRipple 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid #fde047;
+  pointer-events: none;
+  animation: titleSlotRipple 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
 .title-token-piece.token-secret-unlocked {
-    animation: secretUnlockPulse 0.55s ease-in-out 2 !important;
+  animation: secretUnlockPulse 0.55s ease-in-out 2 !important;
 }
 
 /* ============================================================================
    LEVEL / FLOOR INTRO FADE-IN & FADE-OUT TRANSITION OVERLAY
    ============================================================================ */
 #floor-intro-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 160;
-    background: radial-gradient(circle at 50% 45%, rgba(22, 17, 32, 0.96) 0%, rgba(7, 6, 9, 0.99) 80%);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  background: radial-gradient(circle at 50% 45%, rgba(22, 17, 32, 0.96) 0%, rgba(7, 6, 9, 0.99) 80%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #floor-intro-overlay.floor-intro-active {
-    opacity: 1;
-    pointer-events: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 #floor-intro-card {
-    transform: translateY(18px) scale(0.94);
-    opacity: 0;
-    transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
+  transform: translateY(18px) scale(0.94);
+  opacity: 0;
+  transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
 }
 #floor-intro-overlay.floor-intro-active #floor-intro-card {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-}
-#floor-intro-overlay.floor-intro-fadeout {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.58s cubic-bezier(0.4, 0, 0.2, 1);
-}
-#floor-intro-overlay.floor-intro-fadeout #floor-intro-card {
-    transform: translateY(-12px) scale(1.04);
-    opacity: 0;
-    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.48s ease-in;
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 /* ============================================================================
-   STAGE 0: RETRO CRT TERMINAL "START APP" BOOT GATE
+   RETRO CRT TERMINAL BOOT GATE ("START APP" AUDIO UNLOCK SCREEN)
    ============================================================================ */
 .terminal-crt-box {
-    background: rgba(8, 10, 14, 0.96);
-    border: 1px solid rgba(45, 212, 191, 0.45);
-    box-shadow: 0 0 42px rgba(20, 184, 166, 0.16), inset 0 0 24px rgba(245, 158, 11, 0.08);
-    position: relative;
-    overflow: hidden;
-    transition: opacity 0.36s cubic-bezier(0.4, 0, 0.2, 1), transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(180deg, rgba(12, 16, 20, 0.96) 0%, rgba(7, 9, 12, 0.99) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.4);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.9),
+    0 0 32px rgba(45, 212, 191, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
 }
 .terminal-crt-box::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.22),
-        rgba(0, 0, 0, 0.22) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-    pointer-events: none;
-    z-index: 2;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.18) 0px,
+    rgba(0, 0, 0, 0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 2;
 }
 .terminal-cursor-blink {
-    display: inline-block;
-    width: 0.55rem;
-    height: 1rem;
-    background-color: #fbbf24;
-    vertical-align: middle;
-    animation: termBlink 0.9s steps(2, start) infinite;
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background-color: #2dd4bf;
+  vertical-align: middle;
+  animation: termBlink 1s steps(2, start) infinite;
 }
-
 .mech-keycap-btn {
-    background: linear-gradient(180deg, #292524 0%, #1c1917 100%);
-    border: 1px solid rgba(251, 191, 36, 0.65);
-    border-bottom: 4px solid #b45309;
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    transition: transform 0.08s ease, border-bottom-width 0.08s ease, box-shadow 0.08s ease;
+  background: linear-gradient(180deg, #292524 0%, #1c1917 100%);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  box-shadow:
+    0 5px 0 #0c0a09,
+    0 8px 20px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
 }
-.mech-keycap-btn:active, .mech-keycap-btn.key-pressed {
-    transform: translateY(3px);
-    border-bottom-width: 1px;
-    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4), inset 0 1px 4px rgba(0, 0, 0, 0.6);
+.mech-keycap-btn:active,
+.mech-keycap-btn.key-pressed {
+  transform: translateY(4px);
+  box-shadow:
+    0 1px 0 #0c0a09,
+    0 3px 10px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* ============================================================================
-   INTERACTIVE HUD TUTORIAL SPOTLIGHT & CALLOUT OVERLAY
+   INTERACTIVE STEP-BY-STEP HUD TUTORIAL SPOTLIGHT OVERLAY
    ============================================================================ */
 #tutorial-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 220;
-    pointer-events: auto;
-    overflow: hidden;
-    user-select: none;
+  position: fixed;
+  inset: 0;
+  z-index: 185;
+  pointer-events: auto;
+  overflow: hidden;
 }
-
 #tutorial-spotlight {
-    position: fixed;
-    pointer-events: none;
-    border-radius: 1rem;
-    border: 2px solid #fbbf24;
-    box-shadow:
-        0 0 0 9999px rgba(5, 4, 9, 0.82),
-        0 0 26px rgba(251, 191, 36, 0.75),
-        inset 0 0 16px rgba(45, 212, 191, 0.35);
-    transition:
-        top 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-        left 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-        width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-        height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-        border-radius 0.38s ease;
-    animation: tutorialPulseBorder 1.8s ease-in-out infinite;
+  position: fixed;
+  border-radius: 1.15rem;
+  border: 2px solid #fbbf24;
+  box-shadow:
+    0 0 0 9999px rgba(5, 4, 9, 0.82),
+    0 0 26px rgba(251, 191, 36, 0.75),
+    inset 0 0 14px rgba(251, 191, 36, 0.3);
+  pointer-events: none;
+  transition:
+    top 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: tutorialPulseBorder 2.2s infinite ease-in-out;
 }
-
 #tutorial-callout-card {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(92vw, 26rem);
-    z-index: 225;
-    transition: top 0.38s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 24rem);
+  z-index: 190;
+  transition: top 0.38s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
