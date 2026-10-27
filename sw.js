@@ -1,7 +1,7 @@
 // ============================================================================
 // SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v1.24';
+const CACHE_NAME = 'subterranean-ascension-v1.25';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -35,7 +35,6 @@ const PRECACHE_ASSETS = [
   './js/main.js'
 ];
 
-// Install: Precache all core local game files
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
@@ -43,7 +42,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: Clean up outdated caches when CACHE_NAME is bumped
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -57,7 +55,6 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network-First so new GitHub Pages commits load immediately, falling back to Cache when offline
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
