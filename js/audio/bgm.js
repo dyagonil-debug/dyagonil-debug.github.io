@@ -2,11 +2,57 @@
 // RETRO 8-BIT CHIPTUNE SOUNDTRACK ENGINE (CAVERN, BOSS, BAZAAR & ROULETTE) (js/audio/bgm.js)
 // ============================================================================
 
+// Ensure #floor-intro-overlay and #floor-intro-card always have their fixed full-screen
+// transition styles even if css/overlays.css is missing or cached.
+(function ensureLevelTransitionStyles() {
+  if (document.getElementById('c4-level-intro-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'c4-level-intro-styles';
+  style.textContent = `
+    #floor-intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 160;
+      background: radial-gradient(circle at 50% 45%, rgba(22, 17, 32, 0.96) 0%, rgba(7, 6, 9, 0.99) 80%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #floor-intro-overlay.hidden {
+      display: none !important;
+    }
+    #floor-intro-overlay.floor-intro-active {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    #floor-intro-overlay.floor-intro-fadeout {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    #floor-intro-card {
+      transform: translateY(18px) scale(0.94);
+      opacity: 0;
+      transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
+    }
+    #floor-intro-overlay.floor-intro-active #floor-intro-card {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 class SubterraneanChiptuneEngine {
   constructor(sfxInstance) {
     this.sfx = sfxInstance;
     this.isPlaying = false;
     this.isPausedForModal = false;
+    this.isPausedForLevelIntro = false;
     this.hasStartedAfterDifficulty = false;
     this.currentMode = 'cavern'; // 'cavern' | 'boss1' | 'boss2' | 'boss3' | 'bazaar' | 'roulette'
     this.isSpinOverdrive = false;
@@ -529,8 +575,12 @@ class SubterraneanChiptuneEngine {
       this.stepIndex = 0;
       this.isSpinOverdrive = false;
     }
-    // Only play/switch if the post-splash BGM trigger has already occurred!
-    if (this.hasStartedAfterDifficulty && userSettings.musicEnabled && !this.isPausedForModal) {
+    if (
+      this.hasStartedAfterDifficulty &&
+      userSettings.musicEnabled &&
+      !this.isPausedForModal &&
+      !this.isPausedForLevelIntro
+    ) {
       if (!this.isPlaying) {
         this.play();
       } else if (modeChanged) {
@@ -543,13 +593,39 @@ class SubterraneanChiptuneEngine {
     this.hasStartedAfterDifficulty = true;
     this.currentMode = this.resolveModeName(isBossFloor);
     this.isPausedForModal = false;
+    this.isPausedForLevelIntro = false;
     if (userSettings.musicEnabled) {
       this.play();
     }
   }
 
+  // Called by playFloorIntroTransition() in introSequence.js when the Floor Intro card opens
+  pauseForLevelIntro(targetBgmMode) {
+    if (targetBgmMode !== undefined) {
+      this.currentMode = this.resolveModeName(targetBgmMode);
+    }
+    this.stepIndex = 0;
+    this.isSpinOverdrive = false;
+    this.isPausedForLevelIntro = true;
+    this.stop();
+  }
+
+  // Called by playFloorIntroTransition() in introSequence.js when the Floor Intro card fades out
+  resumeAfterLevelIntro() {
+    this.isPausedForLevelIntro = false;
+    this.hasStartedAfterDifficulty = true;
+    if (userSettings.musicEnabled && !this.isPausedForModal) {
+      this.play();
+    }
+  }
+
   play() {
-    if (!this.hasStartedAfterDifficulty || !userSettings.musicEnabled || this.isPausedForModal) {
+    if (
+      !this.hasStartedAfterDifficulty ||
+      !userSettings.musicEnabled ||
+      this.isPausedForModal ||
+      this.isPausedForLevelIntro
+    ) {
       return;
     }
     this.sfx.init();
@@ -573,7 +649,7 @@ class SubterraneanChiptuneEngine {
 
   resumeFromSettings() {
     this.isPausedForModal = false;
-    if (this.hasStartedAfterDifficulty && userSettings.musicEnabled) {
+    if (this.hasStartedAfterDifficulty && userSettings.musicEnabled && !this.isPausedForLevelIntro) {
       this.play();
     }
   }
@@ -587,7 +663,12 @@ class SubterraneanChiptuneEngine {
   }
 
   tickStep() {
-    if (!this.isPlaying || this.isPausedForModal || !userSettings.musicEnabled) {
+    if (
+      !this.isPlaying ||
+      this.isPausedForModal ||
+      this.isPausedForLevelIntro ||
+      !userSettings.musicEnabled
+    ) {
       return;
     }
 
@@ -782,16 +863,24 @@ const bgm = new SubterraneanChiptuneEngine(sfx);
     const rouletteModal = document.getElementById('roulette-modal');
     const bazaarModal = document.getElementById('bazaar-modal');
     const bossChestModal = document.getElementById('boss-chest-modal');
+    const floorIntroOverlay = document.getElementById('floor-intro-overlay');
 
     const isRouletteOpen = rouletteModal && !rouletteModal.classList.contains('hidden');
     const isBazaarOpen = bazaarModal && !bazaarModal.classList.contains('hidden');
     const isBossChestOpen = bossChestModal && !bossChestModal.classList.contains('hidden');
+    const isFloorIntroOpen = floorIntroOverlay && !floorIntroOverlay.classList.contains('hidden');
 
     if (isRouletteOpen) {
+      bgm.isPausedForLevelIntro = false;
       bgm.setMode('roulette');
     } else if (isBazaarOpen || isBossChestOpen) {
+      bgm.isPausedForLevelIntro = false;
       bgm.setMode('bazaar');
-    } else if (bgm.currentMode === 'bazaar' || bgm.currentMode === 'roulette') {
+    } else if (
+      !isFloorIntroOpen &&
+      !bgm.isPausedForLevelIntro &&
+      (bgm.currentMode === 'bazaar' || bgm.currentMode === 'roulette')
+    ) {
       const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
       const isBoss = typeof isBossFloorIndex === 'function' ? isBossFloorIndex(fIdx) : ((fIdx + 1) % 3 === 0);
       if (isBoss) {
