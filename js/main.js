@@ -50,10 +50,9 @@ function bootGame() {
   }
 
   // 1. Capture & lock any existing checkpoint BEFORE initNewRun() resets state to Floor 1
-  const hadPriorSavedRun =
-    typeof runPersistence !== 'undefined' &&
-    runPersistence &&
+  if (typeof runPersistence !== 'undefined' && runPersistence) {
     runPersistence.captureBootCheckpointBeforeInit();
+  }
 
   syncSettingsUI();
   updateCameraAspect();
@@ -62,13 +61,10 @@ function bootGame() {
   animate();
   runOpeningSplashAndTitleSequence();
 
+  // 2. Install hooks on `#title-start-game-btn` ("Start Game") and auto-save observers.
+  //    The Resume Delve modal will appear ONLY after the user clicks "Start Game".
   if (typeof runPersistence !== 'undefined' && runPersistence) {
     runPersistence.installAutoSaveHooks();
-    if (hadPriorSavedRun) {
-      setTimeout(() => {
-        runPersistence.promptResumeIfAvailable();
-      }, 650);
-    }
   }
 }
 
