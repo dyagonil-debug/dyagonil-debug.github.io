@@ -44,6 +44,71 @@
 })();
 
 // ============================================================================
+// 0. FLOOR-START LOADOUT CHECKPOINT SYSTEM (Preserves Loadout on Floor Retry)
+// ============================================================================
+function saveFloorStartCheckpoint() {
+  if (typeof state === 'undefined') return;
+  state.floorStartSnapshot = {
+    floorIdx: state.floorIdx,
+    gold: state.gold,
+    maxMana: state.maxMana,
+    handSize: state.handSize,
+    maxGambitSlots: state.maxGambitSlots,
+    persistentEnchantCount: state.persistentEnchantCount,
+    reservePouchUnlocked: state.reservePouchUnlocked,
+    highTierCardsUnlocked: state.highTierCardsUnlocked,
+    masterDeck: Array.isArray(state.masterDeck) ? [...state.masterDeck] : [],
+    reservePouch: Array.isArray(state.reservePouch) ? [...state.reservePouch] : [],
+    gambits: Array.isArray(state.gambits) ? [...state.gambits] : [],
+    nextFloorModifiers: state.nextFloorModifiers
+      ? { ...state.nextFloorModifiers }
+      : {
+          bonusMana: 0,
+          bonusStability: 0,
+          bonusEnchantSlots: 0,
+          caveInStones: 0,
+          aiHeadstartTokens: 0
+        }
+  };
+}
+
+function restoreFloorStartCheckpoint() {
+  if (typeof state === 'undefined' || !state.floorStartSnapshot) return false;
+  const snap = state.floorStartSnapshot;
+
+  state.floorIdx = snap.floorIdx;
+  state.gold = snap.gold;
+  state.maxMana = snap.maxMana;
+  state.handSize = snap.handSize;
+  state.maxGambitSlots = snap.maxGambitSlots;
+  state.persistentEnchantCount = snap.persistentEnchantCount;
+  state.reservePouchUnlocked = snap.reservePouchUnlocked;
+  state.highTierCardsUnlocked = snap.highTierCardsUnlocked;
+  state.masterDeck = [...snap.masterDeck];
+  state.reservePouch = [...snap.reservePouch];
+  state.gambits = [...snap.gambits];
+  state.nextFloorModifiers = { ...snap.nextFloorModifiers };
+  return true;
+}
+
+// Wrap startFloorMatch so every floor entry automatically snapshots the pre-floor loadout
+(function hookStartFloorMatchForCheckpoints() {
+  if (typeof window.startFloorMatch !== 'function' || window.startFloorMatch._checkpointHooked) return;
+  const origStartFloorMatch = window.startFloorMatch;
+
+  window.startFloorMatch = function (showIntro = true) {
+    if (state._isRetryingFloor) {
+      restoreFloorStartCheckpoint();
+      state._isRetryingFloor = false;
+    }
+    // Capture the snapshot right before startFloorMatch consumes nextFloorModifiers or draws cards
+    saveFloorStartCheckpoint();
+    return origStartFloorMatch.call(this, showIntro);
+  };
+  window.startFloorMatch._checkpointHooked = true;
+})();
+
+// ============================================================================
 // 1. DIFFICULTY TIER UI & SELECTION MODAL
 // ============================================================================
 function updateDifficultyUI() {
@@ -577,7 +642,6 @@ function generateBazaarStock() {
     (id, c, t) => t > 0 && !isStackableCurseCard(id) && (typeof playerOwnsCard === 'function' ? !playerOwnsCard(id) : true),
     1
   );
-  // If using singleton card rule and all cards in allowed tiers are already in deck, allow any non-curse card <= maxTier
   if (!chosenCardId) {
     chosenCardId = pickTieredId(
       CARD_CATALOG,
@@ -647,7 +711,7 @@ function generateBazaarStock() {
       bought: false
     });
   } else {
-    // If all Gambits in the current Act's tier are already equipped, offer an extra Tier-appropriate Reserve Token or Card
+    // If all Gambits in the current Act's tier are already equipped, offer an extra Tier-appropriate Reserve Token
     const bonusReserveId = pickTieredId(
       RESERVE_CATALOG,
       (id) => !items.some((it) => it.type === 'reserve' && it.id === id),
@@ -1047,7 +1111,11 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 
 document.getElementById('retry-floor-btn').addEventListener('click', () => {
   document.getElementById('gameover-modal').classList.add('hidden');
+  dismissAllActiveNotifications();
+  state._isRetryingFloor = true;
+  restoreFloorStartCheckpoint();
   startFloorMatch(true);
+  showToast("Floor Reset — Start-of-Floor Loadout Restored!", "🔄");
 });
 
 document.getElementById('new-ascension-btn').addEventListener('click', () => {
