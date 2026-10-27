@@ -1,8 +1,7 @@
 // ============================================================================
 // SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v1.22';
-
+const CACHE_NAME = 'subterranean-ascension-v1.23';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -61,6 +60,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  let url;
+  try {
+    url = new URL(event.request.url);
+  } catch (e) {
+    return;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -70,11 +77,22 @@ self.addEventListener('fetch', (event) => {
         ) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseClone).catch(() => {});
           });
         }
         return networkResponse;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') {
+          const fallbackDoc = await caches.match('./index.html');
+          if (fallbackDoc) return fallbackDoc;
+        }
+        return new Response('Offline', {
+          status: 503,
+          statusText: 'Service Unavailable (Offline)'
+        });
+      })
   );
 });
