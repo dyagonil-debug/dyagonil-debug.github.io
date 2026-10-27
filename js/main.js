@@ -35,6 +35,7 @@ window.C4 = {
   bgm,
   aiEngine,
   rouletteSim,
+  persistence: typeof runPersistence !== 'undefined' ? runPersistence : null,
   scene3d: {
     scene,
     camera,
@@ -57,12 +58,28 @@ function bootGame() {
     state.difficulty = 'MEDIUM';
   }
 
+  // Snapshot any existing mid-run save BEFORE initNewRun() resets state to Floor 1
+  const hadPriorSavedRun =
+    typeof runPersistence !== 'undefined' &&
+    runPersistence &&
+    runPersistence.hasSavedRun();
+
   syncSettingsUI();
   updateCameraAspect();
   initNewRun();
   startFloorMatch(false);
   animate();
   runOpeningSplashAndTitleSequence();
+
+  if (typeof runPersistence !== 'undefined' && runPersistence) {
+    runPersistence.installAutoSaveHooks();
+    if (hadPriorSavedRun) {
+      // Present the Resume Delve prompt after boot initialization
+      setTimeout(() => {
+        runPersistence.promptResumeIfAvailable();
+      }, 650);
+    }
+  }
 }
 
 if (document.readyState === 'loading') {
