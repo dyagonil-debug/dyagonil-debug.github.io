@@ -1,4 +1,4 @@
-# Connect 4: Subterranean Ascension // Gambonanza Edition
+# Connect 4: Subterranean Ascension
 
 A 3D roguelike deckbuilder Connect 4 experience crafted by **Dyagonil**, featuring a Grandmaster Negamax AI solver, procedural cavern board topologies, consumable Arcane Cards, Tactical Reserve Tokens, Synergistic Gambit relics, a 2D physics Roulette Wheel of Subterranean Fate, and an 8-bit Web Audio chiptune synthesizer.
 
