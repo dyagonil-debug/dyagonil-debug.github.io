@@ -1,97 +1,97 @@
 // ============================================================================
 // 14. PLAYABLE INTERACTIVE TUTORIAL ENGINE (js/ui/tutorial.js)
-// Replaces the passive 9-step tour with a guided, playable "Training Grotto"
+// Realistic Tactical Puzzle: AI blocks every threat; Player wins via Same-Turn Combo
 // ============================================================================
 
 const PLAYABLE_TUTORIAL_STEPS = [
   {
-    id: 'drop_enchanted_slot',
+    id: 'step1_gilded_threat',
     icon: '🪙',
-    badge: 'TRAINING GROTTO • OBJECTIVE 1 OF 4',
-    title: 'Aim & Claim a Gilded Slot',
-    targetSelector: null, // Spotlights the 3D board while allowing pass-through clicks
+    badge: 'TACTICAL TRAINING • STEP 1 OF 4',
+    title: 'Claim a Gilded Slot & Build Pressure',
+    targetSelector: null,
     calloutPosition: 'top',
-    promptText: '👉 Drop in Col 2',
+    promptText: '👉 Drop in Col 4',
     expectedAction: {
       type: 'DROP_STANDARD',
-      col: 1, // 0-indexed Column 2
-      wrongColToast: 'Aim for Column 2 to land on the glowing Gold Ring (+$3 Gold)!'
+      col: 3, // 0-indexed Column 4 -> lands at (r=1, c=3) on Gilded Slot
+      wrongColToast: 'Drop your token into Column 4 to claim the glowing Gilded Slot (+$3 Gold)!'
     },
     body: `
-      <p>You have two <strong>Amber Tokens</strong> at the bottom of Columns 1 &amp; 2, and a glowing <strong class="text-amber-300">Gilded Slot (+$3 Gold)</strong> sits right above Column 2.</p>
-      <p class="text-teal-300 font-semibold">🎯 Action: Tap or drag to <strong>Column 2</strong> on the 3D board and drop your token into the Gold Ring!</p>
+      <p>Two <strong>Petrified Stones</strong> in <strong>Column 3</strong> split the center of the board. A glowing <strong class="text-amber-300">🪙 Gilded Slot (+$3 Gold)</strong> sits in <strong>Column 4</strong> above your Amber token.</p>
+      <p class="text-teal-300 font-semibold">🎯 Action: Drop a token into <strong>Column 4</strong> to claim <strong>+$3 Gold</strong> and stack a vertical threat! Watch the AI immediately cap your column to block you.</p>
     `
   },
   {
-    id: 'cast_pickaxe_card',
-    icon: '⛏️',
-    badge: 'TRAINING GROTTO • OBJECTIVE 2 OF 4',
-    title: 'Cast an Arcane Card (Free Action!)',
-    targetSelector: '#hand-container',
-    calloutPosition: 'top',
-    promptText: '👉 Cast Pickaxe on Col 3',
-    expectedAction: {
-      type: 'CAST_CARD',
-      cardId: 'pickaxe',
-      col: 2, // 0-indexed Column 3
-      wrongCardToast: 'Select ⛏️ Spelunker\'s Pickaxe from your hand first!',
-      wrongColToast: 'Cast ⛏️ Spelunker\'s Pickaxe on Column 3 to shatter the Petrified Stone!'
-    },
-    body: `
-      <p>A neutral <strong>Petrified Stone</strong> in <strong>Column 3</strong> is blocking your horizontal 4-in-a-row! Casting Arcane Cards costs <strong>⚡ Mana</strong> and <em>does not end your turn</em>.</p>
-      <p class="text-teal-300 font-semibold">🎯 Action: Tap <strong>⛏️ Spelunker's Pickaxe</strong> in your bottom hand, then tap <strong>Column 3</strong> to shatter the stone!</p>
-    `
-  },
-  {
-    id: 'deploy_anvil_reserve',
+    id: 'step2_anvil_crush',
     icon: '⚓',
-    badge: 'TRAINING GROTTO • OBJECTIVE 3 OF 4',
-    title: 'Deploy a Tactical Reserve Token',
+    badge: 'TACTICAL TRAINING • STEP 2 OF 4',
+    title: 'Crush the AI Stack with Heavy Anvil',
     targetSelector: '#reserve-pouch-container',
     calloutPosition: 'top',
-    promptText: '👉 Drop Anvil in Col 4',
+    promptText: '👉 Anvil on Col 5',
     expectedAction: {
       type: 'DROP_RESERVE',
       reserveId: 'anvil',
-      col: 3, // 0-indexed Column 4
-      wrongReserveToast: 'Tap the ⚓ Heavy Anvil Token in your Reserve Pouch above your hand!',
-      wrongColToast: 'Drop the ⚓ Heavy Anvil into Column 4 to crush the AI token at the bottom!'
+      col: 4, // 0-indexed Column 5 -> crushes AI at (r=1, c=4) and takes Row 2!
+      wrongReserveToast: 'Tap the ⚓ Heavy Anvil in your Reserve Pouch above your hand first!',
+      wrongColToast: 'Drop the ⚓ Heavy Anvil into Column 5 to crush the AI\'s Row 2 token!'
     },
     body: `
-      <p>Notice how shattering that stone triggered your <strong class="text-amber-300">🐈‍⬛ Obsidian Cat Gambit (+$2 Gold)</strong>! Next, an AI token in <strong>Column 4</strong> is blocking your bottom line.</p>
-      <p class="text-rose-300 font-semibold">🎯 Action: Tap the <strong>⚓ Heavy Anvil</strong> in your Reserve Pouch, then drop it into <strong>Column 4</strong> to crush the AI token beneath it!</p>
+      <p>The AI capped Column 4! Now look at <strong>Column 5</strong>: the AI has two stacked Teal tokens guarding Row 2 and building a vertical threat of its own.</p>
+      <p class="text-rose-300 font-semibold">🎯 Action: Tap <strong>⚓ Heavy Anvil</strong> in your Reserve Pouch, then drop it into <strong>Column 5</strong> to crush the top AI token and claim Row 2!</p>
     `
   },
   {
-    id: 'win_connect_four',
+    id: 'step3_pickaxe_combo',
+    icon: '⛏️',
+    badge: 'TACTICAL TRAINING • STEP 3 OF 4',
+    title: 'Execute a Same-Turn Arcane Combo!',
+    targetSelector: '#hand-container',
+    calloutPosition: 'top',
+    promptText: '👉 Pickaxe on Col 3',
+    expectedAction: {
+      type: 'CAST_CARD',
+      cardId: 'pickaxe',
+      col: 2, // 0-indexed Column 3 -> shatters BOTH Stones at (0,2) & (1,2)!
+      wrongCardToast: 'Tap ⛏️ Spelunker\'s Pickaxe in your hand dock!',
+      wrongColToast: 'Cast ⛏️ Spelunker\'s Pickaxe on Column 3 to shatter the Petrified Stones!'
+    },
+    body: `
+      <p>The AI blocked Column 6 so you can't extend right! Look at <strong>Row 2</strong>: you hold <strong>Cols 2, 4, and 5</strong>, with only the Petrified Stones in <strong>Column 3</strong> standing in your way.</p>
+      <p class="text-teal-300 font-semibold">🎯 Action: Casting cards <em>does not end your turn</em>! Tap <strong>⛏️ Spelunker's Pickaxe</strong> and cast it on <strong>Column 3</strong> to shatter both stones at once!</p>
+    `
+  },
+  {
+    id: 'step4_winning_drop',
     icon: '🏆',
-    badge: 'TRAINING GROTTO • OBJECTIVE 4 OF 4',
-    title: 'Complete Your Connect 4!',
+    badge: 'TACTICAL TRAINING • STEP 4 OF 4',
+    title: 'Finish the Combo Before the AI Moves!',
     targetSelector: null,
     calloutPosition: 'top',
     promptText: '👉 Drop in Col 3 to Win!',
     expectedAction: {
       type: 'ANY_DROP_WIN',
-      col: 2, // 0-indexed Column 3
-      wrongColToast: 'Drop your token into Column 3 to connect 4 across the bottom row!'
+      col: 2, // 0-indexed Column 3 -> lands at newly opened (r=1, c=2)!
+      wrongColToast: 'Drop your token into Column 3 to complete your Row 2 Connect 4!'
     },
     body: `
-      <p>Your Heavy Anvil crushed the AI blocker and claimed the bottom of Column 4! You now hold <strong>Columns 1, 2, and 4</strong> along the bottom row.</p>
-      <p class="text-amber-300 font-semibold">🎯 Action: Drop your token (or 💎 Wild Token) into <strong>Column 3</strong> to score Connect 4 and clear the floor!</p>
+      <p>Shattering those two stones triggered <strong class="text-amber-300">🐈‍⬛ Obsidian Cat (+$4 Gold)</strong> and dropped your top Column 3 token to the bottom—opening <strong>Row 2, Column 3</strong> while <strong>it is still your turn!</strong></p>
+      <p class="text-amber-300 font-semibold">🎯 Action: Drop your token into <strong>Column 3</strong> right now to connect 4 across Row 2 (Cols 2–5) for an unstoppable win!</p>
     `
   },
   {
     id: 'tutorial_complete',
     icon: '🎉',
     badge: 'TRAINING COMPLETE • READY FOR DELVE',
-    title: 'Grotto Cleared & Stability Bonus!',
+    title: 'Grandmaster Outsmarted!',
     targetSelector: ['#gold-badge', '#stability-info-btn'],
     calloutPosition: 'bottom',
     promptText: 'Start Real Run →',
-    expectedAction: null, // Tap card or button to finish
+    expectedAction: null,
     body: `
-      <p><strong>Victory!</strong> Every remaining turn on your <strong class="text-orange-300">🌋 Seismic Stability</strong> timer converts into <strong>+$1 Speed Bonus Gold</strong> for the <strong>Underground Bazaar</strong>.</p>
-      <p class="text-teal-300 font-semibold">Watch out on <strong>Floors 3, 6 &amp; 9</strong>: Multi-HP Bosses calcify your winning token into Stone and keep fighting until all Boss HP hearts are depleted!</p>
+      <p><strong>Unstoppable Combo!</strong> Even when the Grandmaster AI blocks every standard threat, chaining a free-action <strong>Arcane Card</strong> into your token drop lets you open and win a line on the exact same turn.</p>
+      <p class="text-teal-300 font-semibold">Your remaining <strong class="text-orange-300">🌋 Seismic Stability</strong> turns converted into <strong>+$1 Speed Bonus Gold</strong> each. Tap below to start your real run!</p>
     `
   }
 ];
@@ -123,41 +123,51 @@ function setupPlayableTutorialBoard() {
   state.selectedCardIdx = null;
   state.selectedReserveIdx = null;
 
-  // Clear random tokens and place our deterministic Training Grotto puzzle
   while (tokensGroup.children.length > 0) {
     tokensGroup.remove(tokensGroup.children[0]);
   }
   state.board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
   state.meshes = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-  // Initial puzzle pieces:
-  // Row 0: Col 1 = PLAYER, Col 2 = PLAYER, Col 3 = STONE (blocker), Col 4 = AI (blocker), Col 6 = AI
+  // Realistic Mid-Game Setup:
+  // • Col 1 (c=0): (0,0)=AI, (1,0)=AI
+  // • Col 2 (c=1): (0,1)=PLAYER, (1,1)=PLAYER
+  // • Col 3 (c=2): (0,2)=STONE, (1,2)=STONE, (2,2)=PLAYER  <-- Pickaxe shatters both Stones, dropping (2,2) to (0,2)!
+  // • Col 4 (c=3): (0,3)=PLAYER                           <-- Step 1 drops at (1,3) Gilded; AI caps at (2,3)!
+  // • Col 5 (c=4): (0,4)=AI, (1,4)=AI                     <-- Step 2 Anvil crushes (1,4) -> Player claims (1,4)!
+  // • Col 6 (c=5): (0,5)=PLAYER                           <-- After Step 2, AI blocks Row 2 right side at (1,5)!
   const initialPieces = [
-    [0, 0, PLAYER],
+    [0, 0, AI],
+    [1, 0, AI],
     [0, 1, PLAYER],
+    [1, 1, PLAYER],
     [0, 2, STONE],
-    [0, 3, AI],
-    [0, 5, AI]
+    [1, 2, STONE],
+    [2, 2, PLAYER],
+    [0, 3, PLAYER],
+    [0, 4, AI],
+    [1, 4, AI],
+    [0, 5, PLAYER]
   ];
+
   initialPieces.forEach(([r, c, type]) => {
     spawnTokenMesh(r, c, type);
-    if (state.meshes[r] && state.meshes[r][c]) {
+    if (state.meshes[r][c]) {
       state.meshes[r][c].position.y = state.meshes[r][c].userData.targetY;
       state.meshes[r][c].userData.velY = 0;
     }
   });
 
-  // Place a Gilded Slot at Row 1, Col 2 (c = 1) for Step 1, plus visual slots higher up
   state.enchantGrid = Array.from({ length: ROWS }, () => Array(COLS).fill(ENCHANT_TYPES.NONE));
-  state.enchantGrid[1][1] = ENCHANT_TYPES.GILDED;
+  state.enchantGrid[1][3] = ENCHANT_TYPES.GILDED;    // Step 1 target in Col 4
   state.enchantGrid[2][4] = ENCHANT_TYPES.SPICE;
-  state.enchantGrid[2][5] = ENCHANT_TYPES.AMPLIFIER;
+  state.enchantGrid[2][1] = ENCHANT_TYPES.AMPLIFIER;
   rebuildEnchantmentRings();
 
   updateHUD();
   updateTelemetryBadges();
-  updateColumnPreviewVisual(1); // Highlight Column 2 for Step 1
-  setStatusBanner(true, "TRAINING STEP 1: Drop your token into Column 2 (Gilded Slot)!");
+  updateColumnPreviewVisual(3); // Highlight Column 4 for Step 1
+  setStatusBanner(true, "TRAINING STEP 1: Drop your token into Column 4 (Gilded Slot)!");
 }
 
 function computeTutorialTargetRect(targetSelector) {
@@ -217,8 +227,6 @@ function renderTutorialStep() {
 
   const isPlayableStep = !!step.expectedAction;
 
-  // CRITICAL: Let pointer events pass through #tutorial-overlay during playable steps
-  // so the player can interact directly with the 3D board, cards, and reserve pouch!
   if (tutOverlay) {
     tutOverlay.style.pointerEvents = isPlayableStep ? 'none' : 'auto';
   }
@@ -226,7 +234,6 @@ function renderTutorialStep() {
     card.style.pointerEvents = 'auto';
   }
 
-  // Lighten the spotlight backdrop shadow during board interaction so the 3D board stays bright
   if (spotlight) {
     spotlight.style.boxShadow = isPlayableStep
       ? '0 0 0 9999px rgba(5, 4, 9, 0.42), 0 0 26px rgba(251, 191, 36, 0.85), inset 0 0 16px rgba(45, 212, 191, 0.35)'
@@ -244,7 +251,6 @@ function renderTutorialStep() {
   titleEl.textContent = step.title;
   bodyEl.innerHTML = step.body;
 
-  // Hide Back button in playable mode (replace with Reset Step if needed)
   if (prevBtn) {
     prevBtn.style.visibility = 'hidden';
   }
@@ -262,7 +268,6 @@ function renderTutorialStep() {
     ? 'px-3 py-1.5 rounded-xl bg-teal-500/25 border border-teal-400/60 text-teal-200 font-mono-code font-bold text-[10px] uppercase tracking-wider shadow-md'
     : 'px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-stone-950 font-mono-code font-bold text-[10px] uppercase tracking-wider shadow-md animate-pulse cursor-pointer';
 
-  // Position Callout Card cleanly out of the way of the active board & dock
   requestAnimationFrame(() => {
     const cardH = card.offsetHeight || 195;
     if (step.calloutPosition === 'top') {
@@ -276,13 +281,12 @@ function renderTutorialStep() {
   });
 }
 
-// Scripted AI response for the Training Grotto so the puzzle stays 100% deterministic
-function runScriptedTutorialAIResponse(aiTargetCol, nextStepDelayMs = 650) {
+function runRealisticTutorialAIBlock(aiTargetCol, blockReasonToast, nextStepDelayMs = 720) {
   state.turn = AI;
   state.busy = true;
   clearActionSelection();
   updateColumnPreviewVisual(-1);
-  setStatusBanner(false, "Training Sentinel is responding...");
+  setStatusBanner(false, "Grandmaster AI is calculating optimal block...");
 
   setTimeout(() => {
     if (!tutorialActive) return;
@@ -290,6 +294,10 @@ function runScriptedTutorialAIResponse(aiTargetCol, nextStepDelayMs = 650) {
     if (r !== -1) {
       sfx.playWoodClack(false);
       spawnTokenMesh(r, aiTargetCol, AI);
+      spawn3DShockwaveRing(r, aiTargetCol, 0x14b8a6, 2.0, 420);
+    }
+    if (blockReasonToast) {
+      showToast(blockReasonToast, "🤖", 4200, "border-teal-400/70 text-teal-100");
     }
     state.stability = Math.max(1, state.stability - 1);
 
@@ -302,30 +310,28 @@ function runScriptedTutorialAIResponse(aiTargetCol, nextStepDelayMs = 650) {
       updateTelemetryBadges();
       advanceTutorialStep();
     }, nextStepDelayMs);
-  }, 480);
+  }, 520);
 }
 
 function installPlayableTutorialHooksOnce() {
   if (tutorialHooksInstalled) return;
   tutorialHooksInstalled = true;
 
-  // 1. Wrap toggleSelectCard to guide card selection during Step 2
   const _origToggleSelectCard = window.toggleSelectCard || toggleSelectCard;
   window.toggleSelectCard = toggleSelectCard = function(idx) {
     if (tutorialActive) {
       const step = PLAYABLE_TUTORIAL_STEPS[tutorialStepIdx];
       const exp = step && step.expectedAction;
       if (!exp || exp.type !== 'CAST_CARD') {
-        showToast("Hold onto your cards for the next training objective!", "🃏");
+        showToast("Save your Arcane Cards for Step 3's combo!", "🃏");
         return;
       }
       const clickedCardId = state.hand[idx];
       if (clickedCardId !== exp.cardId) {
-        showToast(exp.wrongCardToast || "Select ⛏️ Spelunker's Pickaxe for this step!", "⛏️");
+        showToast(exp.wrongCardToast || "Tap ⛏️ Spelunker's Pickaxe for this combo!", "⛏️");
         return;
       }
       _origToggleSelectCard(idx);
-      // Spotlight the 3D board & highlight Column 3 once Pickaxe is armed
       const spotlight = document.getElementById('tutorial-spotlight');
       if (spotlight) {
         const boardRect = computeTutorialTargetRect(null);
@@ -335,20 +341,19 @@ function installPlayableTutorialHooksOnce() {
         spotlight.style.height = `${boardRect.height}px`;
       }
       updateColumnPreviewVisual(exp.col);
-      setStatusBanner(true, "Now tap Column 3 on the 3D board to swing Spelunker's Pickaxe!");
+      setStatusBanner(true, "Now tap Column 3 on the 3D board to shatter both Petrified Stones!");
       return;
     }
     return _origToggleSelectCard(idx);
   };
 
-  // 2. Wrap toggleSelectReserveToken to guide Reserve Token selection during Step 3
   const _origToggleSelectReserve = window.toggleSelectReserveToken || toggleSelectReserveToken;
   window.toggleSelectReserveToken = toggleSelectReserveToken = function(idx) {
     if (tutorialActive) {
       const step = PLAYABLE_TUTORIAL_STEPS[tutorialStepIdx];
       const exp = step && step.expectedAction;
       if (!exp || (exp.type !== 'DROP_RESERVE' && exp.type !== 'ANY_DROP_WIN')) {
-        showToast("Save your Reserve Tokens for Objective 3!", "🎒");
+        showToast("Follow the current training step first!", "🎒");
         return;
       }
       const clickedReserveId = state.reservePouch[idx];
@@ -366,13 +371,12 @@ function installPlayableTutorialHooksOnce() {
         spotlight.style.height = `${boardRect.height}px`;
       }
       updateColumnPreviewVisual(exp.col);
-      setStatusBanner(true, `Now tap Column ${exp.col + 1} on the board to deploy your Reserve Token!`);
+      setStatusBanner(true, `Now tap Column ${exp.col + 1} on the board to crush the AI's token!`);
       return;
     }
     return _origToggleSelectReserve(idx);
   };
 
-  // 3. Wrap commitColumnAction to validate each playable tutorial objective
   const _origCommitColumnAction = window.commitColumnAction || commitColumnAction;
   window.commitColumnAction = commitColumnAction = function(col) {
     if (!tutorialActive) {
@@ -383,7 +387,6 @@ function installPlayableTutorialHooksOnce() {
     const exp = step && step.expectedAction;
     if (!exp) return;
 
-    // Validate Target Column
     if (col !== exp.col) {
       sfx.playHoverTick();
       showToast(exp.wrongColToast || `Aim for Column ${exp.col + 1}!`, "🎯");
@@ -391,7 +394,8 @@ function installPlayableTutorialHooksOnce() {
       return;
     }
 
-    // STEP 1: Standard Token Drop into Column 2 (Gilded Slot)
+    // STEP 1: Drop in Col 4 (c=3) -> hits Gilded Slot at (1, 3).
+    // AI immediately blocks on top of your vertical stack at Col 4 (r=2, c=3)!
     if (exp.type === 'DROP_STANDARD') {
       if (state.selectedCardIdx !== null || state.selectedReserveIdx !== null) {
         clearActionSelection();
@@ -403,28 +407,16 @@ function installPlayableTutorialHooksOnce() {
       checkPlayerDropGambits(col);
       updateColumnPreviewVisual(-1);
 
-      // Run scripted AI move in Col 6 (index 5) and advance to Step 2
-      runScriptedTutorialAIResponse(5, 700);
+      runRealisticTutorialAIBlock(
+        3, // Col 4 (r=2, c=3) — AI immediately caps your vertical stack in Col 4!
+        "🤖 AI capped Column 4 to block your vertical stack!",
+        750
+      );
       return;
     }
 
-    // STEP 2: Cast Spelunker's Pickaxe on Column 3 (free action, stays Player's turn)
-    if (exp.type === 'CAST_CARD') {
-      if (state.selectedCardIdx === null || state.hand[state.selectedCardIdx] !== exp.cardId) {
-        showToast(exp.wrongCardToast, "⛏️");
-        return;
-      }
-      castCardOnColumn(state.selectedCardIdx, col);
-      // Wait for the 420ms 3D Pickaxe swing animation to shatter the stone, then advance to Step 3
-      setTimeout(() => {
-        if (!tutorialActive) return;
-        advanceTutorialStep();
-        setStatusBanner(true, "TRAINING STEP 3: Arm ⚓ Heavy Anvil from your Reserve Pouch & drop in Col 4!");
-      }, 620);
-      return;
-    }
-
-    // STEP 3: Deploy Heavy Anvil Reserve Token in Column 4
+    // STEP 2: Deploy Heavy Anvil in Col 5 (c=4) -> crushes AI at (1, 4), placing Player at (1, 4).
+    // AI sees you building on Row 2 ((1,3) & (1,4)) and immediately blocks at Col 6 (r=1, c=5)!
     if (exp.type === 'DROP_RESERVE') {
       if (state.selectedReserveIdx === null || state.reservePouch[state.selectedReserveIdx] !== exp.reserveId) {
         showToast(exp.wrongReserveToast, "⚓");
@@ -439,12 +431,31 @@ function installPlayableTutorialHooksOnce() {
       checkPlayerDropGambits(col);
       updateColumnPreviewVisual(-1);
 
-      // Run scripted AI move in Col 7 (index 6) and advance to Step 4
-      runScriptedTutorialAIResponse(6, 700);
+      runRealisticTutorialAIBlock(
+        5, // Col 6 (r=1, c=5) — AI immediately blocks your Row 2 expansion on the right!
+        "🤖 AI blocked Column 6 to cut off your Row 2 line!",
+        750
+      );
       return;
     }
 
-    // STEP 4: Winning Connect-4 Drop in Column 3!
+    // STEP 3: Cast Spelunker's Pickaxe on Column 3 (c=2) -> shatters BOTH Stones at (0,2) & (1,2),
+    // compacting Player's (2,2) token down to (0,2) and leaving (1,2) wide open on the SAME turn!
+    if (exp.type === 'CAST_CARD') {
+      if (state.selectedCardIdx === null || state.hand[state.selectedCardIdx] !== exp.cardId) {
+        showToast(exp.wrongCardToast, "⛏️");
+        return;
+      }
+      castCardOnColumn(state.selectedCardIdx, col);
+      setTimeout(() => {
+        if (!tutorialActive) return;
+        advanceTutorialStep();
+        setStatusBanner(true, "TRAINING STEP 4: It's still your turn! Drop in Column 3 to score Connect 4!");
+      }, 650);
+      return;
+    }
+
+    // STEP 4: Winning Drop in Column 3 (c=2) -> lands at (1, 2) to connect Row 2: (1,1)-(1,2)-(1,3)-(1,4)!
     if (exp.type === 'ANY_DROP_WIN') {
       const r = aiEngine.getAvailableRow(state.board, col);
       sfx.playWoodClack(true);
@@ -525,7 +536,6 @@ function advanceTutorialStep() {
 }
 
 function stepBackTutorial() {
-  // Retained for global API compatibility
   if (!tutorialActive) return;
 }
 
@@ -555,7 +565,6 @@ function finishTutorialSequence(returnToTitle = false) {
   }
 }
 
-// Bind Tutorial Overlay Skip, Graduation Click & Resize listeners
 (function bindTutorialEvents() {
   const tutOverlay = document.getElementById('tutorial-overlay');
   const card = document.getElementById('tutorial-callout-card');
@@ -566,7 +575,6 @@ function finishTutorialSequence(returnToTitle = false) {
     tutOverlay.addEventListener('click', (e) => {
       if (e.target.closest('#tutorial-skip-btn')) return;
       const step = PLAYABLE_TUTORIAL_STEPS[tutorialStepIdx];
-      // Only tap-to-advance on the final graduation summary card
       if (step && !step.expectedAction) {
         advanceTutorialStep();
       }
