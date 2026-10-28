@@ -16,7 +16,6 @@ const BOOLEAN_SETTING_KEYS = [
 ];
 
 const userSettings = {
-  simplifiedText: true,
   slotCalloutsEnabled: true,
   floatingPopsEnabled: true,
   notificationSpeed: 'normal', // 'fast' (2500ms) | 'normal' (4800ms) | 'extended' (7000ms)
@@ -31,9 +30,6 @@ function loadUserSettings() {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw);
-    userSettings.simplifiedText = (typeof parsed.simplifiedText === 'boolean')
-      ? parsed.simplifiedText
-      : true;
     if (!parsed || typeof parsed !== 'object') return;
 
     for (const key of BOOLEAN_SETTING_KEYS) {
