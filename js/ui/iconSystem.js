@@ -93,8 +93,6 @@ const C4_ICON_MANIFEST = {
   }
 };
 
-const C4_ROULETTE_IMAGE_CACHE = new Map();
-
 const C4_INLINE_SVG_URIS = {
   "cards": {
     "abyssal_upheaval": "data:image/svg+xml;utf8,%3Csvg%20version%3D%221.1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22none%22%3E%20%3Cdefs%3E%20%3CradialGradient%20id%3D%22bg-cards-abyssal_upheaval%22%20cx%3D%2250%25%22%20cy%3D%2238%25%22%20r%3D%2265%25%22%3E%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23231c2e%22/%3E%20%3Cstop%20offset%3D%2270%25%22%20stop-color%3D%22%23110e17%22/%3E%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23070609%22/%3E%20%3C/radialGradient%3E%20%3ClinearGradient%20id%3D%22grad-cards-abyssal_upheaval%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23c084fc%22/%3E%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23f43f5e%22/%3E%20%3C/linearGradient%3E%20%3Cfilter%20id%3D%22glow-cards-abyssal_upheaval%22%20x%3D%22-20%25%22%20y%3D%22-20%25%22%20width%3D%22140%25%22%20height%3D%22140%25%22%3E%20%3CfeGaussianBlur%20in%3D%22SourceAlpha%22%20stdDeviation%3D%222%22%20result%3D%22blur%22/%3E%20%3CfeOffset%20in%3D%22blur%22%20dx%3D%220%22%20dy%3D%221.5%22%20result%3D%22offsetBlur%22/%3E%20%3CfeFlood%20flood-color%3D%22%23c084fc%22%20flood-opacity%3D%220.45%22%20result%3D%22offsetColor%22/%3E%20%3CfeComposite%20in%3D%22offsetColor%22%20in2%3D%22offsetBlur%22%20operator%3D%22in%22%20result%3D%22offsetGlow%22/%3E%20%3CfeMerge%3E%20%3CfeMergeNode%20in%3D%22offsetGlow%22/%3E%20%3CfeMergeNode%20in%3D%22SourceGraphic%22/%3E%20%3C/feMerge%3E%20%3C/filter%3E%20%3C/defs%3E%20%3C%21--%20Subterranean%20Carved%20Obsidian%20Medallion%20Base%20--%3E%20%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%2256%22%20height%3D%2256%22%20rx%3D%2214%22%20fill%3D%22url%28%23bg-cards-abyssal_upheaval%29%22%20stroke%3D%22%23a855f7%22%20stroke-width%3D%222.2%22/%3E%20%3Crect%20x%3D%227.5%22%20y%3D%227.5%22%20width%3D%2249%22%20height%3D%2249%22%20rx%3D%2210.5%22%20stroke%3D%22%23c084fc%22%20stroke-opacity%3D%220.22%22%20stroke-width%3D%221%22/%3E%20%3C%21--%20Corner%20Brass%20Rivets%20--%3E%20%3Ccircle%20cx%3D%2211%22%20cy%3D%2211%22%20r%3D%221.3%22%20fill%3D%22%23a855f7%22%20opacity%3D%220.7%22/%3E%20%3Ccircle%20cx%3D%2253%22%20cy%3D%2211%22%20r%3D%221.3%22%20fill%3D%22%23a855f7%22%20opacity%3D%220.7%22/%3E%20%3Ccircle%20cx%3D%2211%22%20cy%3D%2253%22%20r%3D%221.3%22%20fill%3D%22%23a855f7%22%20opacity%3D%220.7%22/%3E%20%3Ccircle%20cx%3D%2253%22%20cy%3D%2253%22%20r%3D%221.3%22%20fill%3D%22%23a855f7%22%20opacity%3D%220.7%22/%3E%20%3C%21--%20Foreground%20Emblem%20--%3E%20%3Cg%20filter%3D%22url%28%23glow-cards-abyssal_upheaval%29%22%3E%20%3Crect%20x%3D%2220%22%20y%3D%2220%22%20width%3D%2224%22%20height%3D%2224%22%20rx%3D%224%22%20fill%3D%22%231e1b24%22%20stroke%3D%22url%28%23grad-cards-abyssal_upheaval%29%22%20stroke-width%3D%222.2%22%20transform%3D%22rotate%2815%2032%2032%29%22/%3E%20%3Cpath%20d%3D%22M14%2028%20A18%2018%200%200%201%2048%2022%22%20stroke%3D%22%2338bdf8%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22/%3E%20%3Cpolygon%20points%3D%2249%2C17%2051%2C25%2043%2C24%22%20fill%3D%22%2338bdf8%22/%3E%20%3Cpath%20d%3D%22M50%2036%20A18%2018%200%200%201%2016%2042%22%20stroke%3D%22%23fbbf24%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22/%3E%20%3Cpolygon%20points%3D%2215%2C47%2013%2C39%2021%2C40%22%20fill%3D%22%23fbbf24%22/%3E%20%3C/g%3E%20%3C/svg%3E",
@@ -183,6 +181,8 @@ const C4_INLINE_SVG_URIS = {
   }
 };
 
+const C4_ROULETTE_IMAGE_CACHE = new Map();
+
 function getC4IconUrl(category, id, preferInlineDataUri = true) {
   if (preferInlineDataUri && C4_INLINE_SVG_URIS[category] && C4_INLINE_SVG_URIS[category][id]) {
     return C4_INLINE_SVG_URIS[category][id];
@@ -201,108 +201,38 @@ function renderC4IconHTML(category, id, sizeClass = '', altText = '') {
 
 function preloadRouletteWheelIcons() {
   if (!C4_ICON_MANIFEST.wheel) return;
-  Object.entries(C4_ICON_MANIFEST.wheel).forEach(([wedgeId, url]) => {
+  Object.keys(C4_ICON_MANIFEST.wheel).forEach((wedgeId) => {
     const img = new Image();
-    img.src = url;
+    img.src = getC4IconUrl('wheel', wedgeId, true);
     C4_ROULETTE_IMAGE_CACHE.set(wedgeId, img);
   });
 }
 
-function patchGameCatalogsWithSVGIcons() {
-  // 1. Patch CARD_CATALOG
-  if (typeof CARD_CATALOG !== 'undefined' && CARD_CATALOG) {
-    Object.values(CARD_CATALOG).forEach((card) => {
-      card.rawEmoji = card.icon;
-      card.iconUrl = getC4IconUrl('cards', card.id);
-      card.icon = renderC4IconHTML('cards', card.id, '', card.name);
-    });
-  }
+function patchRouletteInstanceOrPrototype() {
+  // Patch either the global rouletteSim instance or SubterraneanRouletteSimulator.prototype
+  const targetProto = (typeof SubterraneanRouletteSimulator !== 'undefined' && SubterraneanRouletteSimulator.prototype)
+    ? SubterraneanRouletteSimulator.prototype
+    : (typeof rouletteSim !== 'undefined' && rouletteSim ? Object.getPrototypeOf(rouletteSim) : null);
 
-  // 2. Patch RESERVE_CATALOG
-  if (typeof RESERVE_CATALOG !== 'undefined' && RESERVE_CATALOG) {
-    Object.values(RESERVE_CATALOG).forEach((res) => {
-      res.rawEmoji = res.icon;
-      res.iconUrl = getC4IconUrl('reserves', res.id);
-      res.icon = renderC4IconHTML('reserves', res.id, '', res.name);
-    });
-  }
-
-  // 3. Patch GAMBIT_CATALOG
-  if (typeof GAMBIT_CATALOG !== 'undefined' && GAMBIT_CATALOG) {
-    Object.values(GAMBIT_CATALOG).forEach((gambit) => {
-      gambit.rawEmoji = gambit.icon;
-      gambit.iconUrl = getC4IconUrl('gambits', gambit.id);
-      gambit.icon = renderC4IconHTML('gambits', gambit.id, '', gambit.name);
-    });
-  }
-
-  // 4. Patch BOARD_TOPOLOGIES
-  if (typeof BOARD_TOPOLOGIES !== 'undefined' && Array.isArray(BOARD_TOPOLOGIES)) {
-    BOARD_TOPOLOGIES.forEach((topo) => {
-      topo.rawEmoji = topo.icon;
-      topo.iconUrl = getC4IconUrl('topologies', topo.id);
-      topo.icon = renderC4IconHTML('topologies', topo.id, 'c4-item-icon-sm', topo.name);
-    });
-  }
-
-  // 5. Patch BOSS_POOLS_BY_ACT & BOSS_ARCHETYPES
-  if (typeof BOSS_ARCHETYPES !== 'undefined' && Array.isArray(BOSS_ARCHETYPES)) {
-    BOSS_ARCHETYPES.forEach((boss) => {
-      boss.rawEmoji = boss.icon;
-      boss.iconUrl = getC4IconUrl('bosses', boss.id);
-      boss.icon = renderC4IconHTML('bosses', boss.id, '', boss.name);
-    });
-  }
-
-  // 6. Patch ROULETTE_WEDGES + Canvas 2D renderer support
-  if (typeof ROULETTE_WEDGES !== 'undefined' && Array.isArray(ROULETTE_WEDGES)) {
-    preloadRouletteWheelIcons();
-    ROULETTE_WEDGES.forEach((wedge) => {
-      wedge.rawEmoji = wedge.icon;
-      wedge.iconUrl = getC4IconUrl('wheel', wedge.id);
-      wedge.icon = renderC4IconHTML('wheel', wedge.id, '', wedge.name);
-    });
-  }
-
-  // 7. Upgrade Inspector & Modal Icon Containers so HTML <img> strings render cleanly
-  // even when existing code assigns .textContent = item.icon
-  const iconElementIds = [
-    'inspector-icon',
-    'sheet-icon',
-    'floor-intro-icon-wrap',
-    'roulette-center-icon',
-    'gameover-emoji',
-    'tutorial-step-icon'
-  ];
-
-  iconElementIds.forEach((elId) => {
-    const el = document.getElementById(elId);
-    if (!el || el._c4IconPatched) return;
-    el._c4IconPatched = true;
-    Object.defineProperty(el, 'textContent', {
-      get() {
-        return this.innerHTML;
-      },
-      set(val) {
-        if (typeof val === 'string' && val.trim().startsWith('<img')) {
-          this.innerHTML = val;
-        } else {
-          this.innerHTML = '';
-          this.appendChild(document.createTextNode(val ?? ''));
-        }
+  if (targetProto && !targetProto._c4WheelPatched) {
+    targetProto._c4WheelPatched = true;
+    const _origRender = targetProto.render;
+    targetProto.render = function() {
+      // 1. Temporarily blank out wedge.icon so _origRender's ctx.fillText(wedge.icon, 0, -3)
+      // does NOT print the raw <img src="data:image/svg+xml..."> HTML string across the wheel!
+      const savedIcons = this.wedges.map((w) => w.icon);
+      for (let i = 0; i < this.wedges.length; i++) {
+        this.wedges[i].icon = '';
       }
-    });
-  });
 
-  // 8. Patch SubterraneanRouletteSimulator.prototype.render to draw preloaded SVG images on the 2D wheel canvas
-  if (typeof SubterraneanRouletteSimulator !== 'undefined' && SubterraneanRouletteSimulator.prototype) {
-    const _origRender = SubterraneanRouletteSimulator.prototype.render;
-    SubterraneanRouletteSimulator.prototype.render = function() {
-      // Temporarily swap wedge.icon to rawEmoji during base render, then overlay crisp SVG icons
-      this.wedges.forEach((w) => { if (w.rawEmoji) w._savedHtmlIcon = w.icon; w.icon = ''; });
       _origRender.call(this);
-      this.wedges.forEach((w) => { if (w._savedHtmlIcon) w.icon = w._savedHtmlIcon; });
 
+      // Restore HTML <img> icons for DOM badges, toasts & legend pills
+      for (let i = 0; i < this.wedges.length; i++) {
+        this.wedges[i].icon = savedIcons[i];
+      }
+
+      // 2. Draw the preloaded SVG medallion images cleanly inside each spinning wedge pocket
       const ctx = this.ctx;
       const cx = this.canvas.width / 2;
       const cy = this.canvas.height / 2;
@@ -311,13 +241,18 @@ function patchGameCatalogsWithSVGIcons() {
       ctx.rotate(this.wheelAngle);
       for (let i = 0; i < this.numWedges; i++) {
         const wedge = this.wedges[i];
-        const img = C4_ROULETTE_IMAGE_CACHE.get(wedge.id);
+        let img = C4_ROULETTE_IMAGE_CACHE.get(wedge.id);
+        if (!img) {
+          img = new Image();
+          img.src = getC4IconUrl('wheel', wedge.id, true);
+          C4_ROULETTE_IMAGE_CACHE.set(wedge.id, img);
+        }
         const mid = (i + 0.5) * this.arc;
         ctx.save();
-        ctx.translate(Math.cos(mid) * 63, Math.sin(mid) * 63);
+        ctx.translate(Math.cos(mid) * 62, Math.sin(mid) * 62);
         ctx.rotate(mid + Math.PI / 2);
         if (img && img.complete && img.naturalWidth > 0) {
-          ctx.drawImage(img, -11, -13, 22, 22);
+          ctx.drawImage(img, -12, -13, 24, 24);
         } else if (wedge.rawEmoji) {
           ctx.font = '14px sans-serif';
           ctx.textAlign = 'center';
@@ -329,19 +264,120 @@ function patchGameCatalogsWithSVGIcons() {
       ctx.restore();
     };
   }
+
+  // Re-populate the Roulette Legend Grid if rouletteSim already ran populateLegend() before iconSystem loaded
+  if (typeof rouletteSim !== 'undefined' && rouletteSim && typeof rouletteSim.populateLegend === 'function') {
+    rouletteSim.populateLegend();
+  }
+}
+
+function patchGameCatalogsWithSVGIcons() {
+  preloadRouletteWheelIcons();
+
+  // 1. Patch CARD_CATALOG
+  if (typeof CARD_CATALOG !== 'undefined' && CARD_CATALOG) {
+    Object.values(CARD_CATALOG).forEach((card) => {
+      if (!card.rawEmoji) card.rawEmoji = card.icon;
+      card.iconUrl = getC4IconUrl('cards', card.id);
+      card.icon = renderC4IconHTML('cards', card.id, '', card.name);
+    });
+  }
+
+  // 2. Patch RESERVE_CATALOG
+  if (typeof RESERVE_CATALOG !== 'undefined' && RESERVE_CATALOG) {
+    Object.values(RESERVE_CATALOG).forEach((res) => {
+      if (!res.rawEmoji) res.rawEmoji = res.icon;
+      res.iconUrl = getC4IconUrl('reserves', res.id);
+      res.icon = renderC4IconHTML('reserves', res.id, '', res.name);
+    });
+  }
+
+  // 3. Patch GAMBIT_CATALOG
+  if (typeof GAMBIT_CATALOG !== 'undefined' && GAMBIT_CATALOG) {
+    Object.values(GAMBIT_CATALOG).forEach((gambit) => {
+      if (!gambit.rawEmoji) gambit.rawEmoji = gambit.icon;
+      gambit.iconUrl = getC4IconUrl('gambits', gambit.id);
+      gambit.icon = renderC4IconHTML('gambits', gambit.id, '', gambit.name);
+    });
+  }
+
+  // 4. Patch BOARD_TOPOLOGIES
+  if (typeof BOARD_TOPOLOGIES !== 'undefined' && Array.isArray(BOARD_TOPOLOGIES)) {
+    BOARD_TOPOLOGIES.forEach((topo) => {
+      if (!topo.rawEmoji) topo.rawEmoji = topo.icon;
+      topo.iconUrl = getC4IconUrl('topologies', topo.id);
+      topo.icon = renderC4IconHTML('topologies', topo.id, 'c4-item-icon-sm', topo.name);
+    });
+  }
+
+  // 5. Patch BOSS_ARCHETYPES
+  if (typeof BOSS_ARCHETYPES !== 'undefined' && Array.isArray(BOSS_ARCHETYPES)) {
+    BOSS_ARCHETYPES.forEach((boss) => {
+      if (!boss.rawEmoji) boss.rawEmoji = boss.icon;
+      boss.iconUrl = getC4IconUrl('bosses', boss.id);
+      boss.icon = renderC4IconHTML('bosses', boss.id, '', boss.name);
+    });
+  }
+
+  // 6. Patch ROULETTE_WEDGES
+  if (typeof ROULETTE_WEDGES !== 'undefined' && Array.isArray(ROULETTE_WEDGES)) {
+    ROULETTE_WEDGES.forEach((wedge) => {
+      if (!wedge.rawEmoji) wedge.rawEmoji = wedge.icon;
+      wedge.iconUrl = getC4IconUrl('wheel', wedge.id);
+      wedge.icon = renderC4IconHTML('wheel', wedge.id, '', wedge.name);
+    });
+  }
+
+  // 7. Upgrade Inspector, Modal & Roulette Result Title elements so HTML <img> strings
+  // render as real images even when game code sets .textContent = ...
+  const htmlAwareIds = [
+    'inspector-icon',
+    'sheet-icon',
+    'floor-intro-icon-wrap',
+    'floor-intro-topo-name',
+    'topology-badge',
+    'boss-name-label',
+    'roulette-center-icon',
+    'roulette-result-title',
+    'bazaar-swap-title',
+    'gameover-emoji',
+    'tutorial-step-icon'
+  ];
+
+  htmlAwareIds.forEach((elId) => {
+    const el = document.getElementById(elId);
+    if (!el || el._c4IconPatched) return;
+    el._c4IconPatched = true;
+    Object.defineProperty(el, 'textContent', {
+      get() {
+        return this.innerHTML;
+      },
+      set(val) {
+        if (typeof val === 'string' && val.includes('<img')) {
+          this.innerHTML = val;
+        } else {
+          this.innerHTML = '';
+          this.appendChild(document.createTextNode(val ?? ''));
+        }
+      }
+    });
+  });
+
+  // 8. Patch Roulette Wheel 2D Canvas Renderer (and retry on load if rouletteSim.js loads after iconSystem.js)
+  patchRouletteInstanceOrPrototype();
+  window.addEventListener('DOMContentLoaded', patchRouletteInstanceOrPrototype);
+  window.addEventListener('load', patchRouletteInstanceOrPrototype);
 }
 
 if (typeof window !== 'undefined') {
   window.C4_ICONS = {
     manifest: C4_ICON_MANIFEST,
+    inlineUris: C4_INLINE_SVG_URIS,
     getUrl: getC4IconUrl,
     renderHTML: renderC4IconHTML,
-    patchAll: patchGameCatalogsWithSVGIcons
+    patchAll: patchGameCatalogsWithSVGIcons,
+    patchWheel: patchRouletteInstanceOrPrototype
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', patchGameCatalogsWithSVGIcons);
-  } else {
-    patchGameCatalogsWithSVGIcons();
-  }
+  patchGameCatalogsWithSVGIcons();
 }
