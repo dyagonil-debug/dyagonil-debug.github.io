@@ -1,5 +1,5 @@
 // ============================================================================
-// GRANDMASTER NEGAMAX AI ENGINE & OVERKILL COMBO ANALYZER (js/engine/ai.js)
+// 3. GRANDMASTER NEGAMAX AI ENGINE WITH OVERKILL CHECKER (js/engine/ai.js)
 // ============================================================================
 
 class GrandmasterConnect4AI {
@@ -10,6 +10,14 @@ class GrandmasterConnect4AI {
 
   getAvailableRow(board, col) {
     if (col < 0 || col >= COLS) return -1;
+    const gravFlipped = typeof state !== 'undefined' && state && state.gravityFlippedTurns > 0;
+    if (gravFlipped) {
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][col] === VOID_CELL) continue;
+        if (board[r][col] === EMPTY) return r;
+      }
+      return -1;
+    }
     for (let r = 0; r < ROWS; r++) {
       if (board[r][col] === VOID_CELL) continue;
       if (board[r][col] === EMPTY) return r;
@@ -47,205 +55,162 @@ class GrandmasterConnect4AI {
     return cell === actor || cell === WILD;
   }
 
-  // Fast zero-allocation boolean check for Negamax search nodes
-  hasWinningLine(board, actor) {
-    // Horizontal
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c <= COLS - 4; c++) {
-        if (
-          this.matchesActor(board[r][c], actor) &&
-          this.matchesActor(board[r][c + 1], actor) &&
-          this.matchesActor(board[r][c + 2], actor) &&
-          this.matchesActor(board[r][c + 3], actor)
-        ) {
-          return true;
-        }
-      }
-    }
-    // Vertical
-    for (let c = 0; c < COLS; c++) {
-      for (let r = 0; r <= ROWS - 4; r++) {
-        if (
-          this.matchesActor(board[r][c], actor) &&
-          this.matchesActor(board[r + 1][c], actor) &&
-          this.matchesActor(board[r + 2][c], actor) &&
-          this.matchesActor(board[r + 3][c], actor)
-        ) {
-          return true;
-        }
-      }
-    }
-    // Diagonal /
-    for (let r = 0; r <= ROWS - 4; r++) {
-      for (let c = 0; c <= COLS - 4; c++) {
-        if (
-          this.matchesActor(board[r][c], actor) &&
-          this.matchesActor(board[r + 1][c + 1], actor) &&
-          this.matchesActor(board[r + 2][c + 2], actor) &&
-          this.matchesActor(board[r + 3][c + 3], actor)
-        ) {
-          return true;
-        }
-      }
-    }
-    // Diagonal \
-    for (let r = 3; r < ROWS; r++) {
-      for (let c = 0; c <= COLS - 4; c++) {
-        if (
-          this.matchesActor(board[r][c], actor) &&
-          this.matchesActor(board[r - 1][c + 1], actor) &&
-          this.matchesActor(board[r - 2][c + 2], actor) &&
-          this.matchesActor(board[r - 3][c + 3], actor)
-        ) {
-          return true;
-        }
-      }
-    }
-    return null;
-  }
-
-  // Scans all 4 axes for maximal contiguous runs (>= 4) to detect Connect-5+ Overkills & Multi-Trap Forks
-  analyzeWinningCombo(board, actor) {
-    const directions = [
-      { dr: 0, dc: 1, name: 'Horizontal' },
-      { dr: 1, dc: 0, name: 'Vertical' },
-      { dr: 1, dc: 1, name: 'Ascending Diagonal' },
-      { dr: -1, dc: 1, name: 'Descending Diagonal' }
+  // Scans all 4 axes for contiguous runs of >= 4 tokens so 5/6/7-in-a-row
+  // and simultaneous multi-line Connect-4s are captured for Overkill bonuses
+  findAllWinningLines(board, actor) {
+    const dirs = [
+      [0, 1],  // Horizontal
+      [1, 0],  // Vertical
+      [1, 1],  // Diagonal /
+      [1, -1]  // Diagonal \
     ];
-
     const lines = [];
-    const cellSet = new Set();
-    const allCells = [];
-    let maxLineLength = 0;
 
-    for (const { dr, dc, name } of directions) {
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (!this.matchesActor(board[r][c], actor)) continue;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!this.matchesActor(board[r][c], actor)) continue;
 
-          // Only start a maximal line scan if the preceding cell along this axis does NOT match
+        for (const [dr, dc] of dirs) {
+          // Only start a run if the preceding cell along this axis is NOT a match
+          // (prevents counting a 5-in-a-row as two separate 4-in-a-row sub-segments)
           const prevR = r - dr;
           const prevC = c - dc;
           if (
-            prevR >= 0 &&
-            prevR < ROWS &&
-            prevC >= 0 &&
-            prevC < COLS &&
+            prevR >= 0 && prevR < ROWS &&
+            prevC >= 0 && prevC < COLS &&
             this.matchesActor(board[prevR][prevC], actor)
           ) {
             continue;
           }
 
-          const currentLine = [];
-          let currR = r;
-          let currC = c;
+          const run = [[r, c]];
+          let nr = r + dr;
+          let nc = c + dc;
           while (
-            currR >= 0 &&
-            currR < ROWS &&
-            currC >= 0 &&
-            currC < COLS &&
-            this.matchesActor(board[currR][currC], actor)
+            nr >= 0 && nr < ROWS &&
+            nc >= 0 && nc < COLS &&
+            this.matchesActor(board[nr][nc], actor)
           ) {
-            currentLine.push([currR, currC]);
-            currR += dr;
-            currC += dc;
+            run.push([nr, nc]);
+            nr += dr;
+            nc += dc;
           }
 
-          if (currentLine.length >= 4) {
-            lines.push({
-              direction: name,
-              length: currentLine.length,
-              cells: currentLine
-            });
-            if (currentLine.length > maxLineLength) {
-              maxLineLength = currentLine.length;
-            }
-            for (const [ cellR, cellC ] of currentLine) {
-              const key = `${cellR},${cellC}`;
-              if (!cellSet.has(key)) {
-                cellSet.add(key);
-                allCells.push([cellR, cellC]);
-              }
-            }
+          if (run.length >= 4) {
+            lines.push(run);
           }
         }
       }
     }
 
-    if (lines.length === 0) return null;
+    return lines;
+  }
 
-    const lineCount = lines.length;
-    const isOverkill = maxLineLength >= 5;
-    const isMultiTrap = lineCount >= 2;
+  // Full Overkill & Multi-Line Combo Analyzer
+  analyzeWinningCombo(board, actor) {
+    const lines = this.findAllWinningLines(board, actor);
+    if (lines.length === 0) {
+      return {
+        won: false,
+        isOverkill: false,
+        line: null,
+        lines: [],
+        allCells: [],
+        lineCount: 0,
+        maxLen: 0,
+        totalCells: 0,
+        extraTokens: 0,
+        extraLines: 0,
+        overkillCount: 0,
+        bonusGold: 0,
+        label: ''
+      };
+    }
 
-    let bonusGold = 0;
-    let bonusReserveId = null;
-    let crushDamage = 1;
-    let title = '';
-    let subtitle = '';
-    let icon = '⚡';
+    const cellMap = new Map();
+    let maxLen = 0;
+    let extraTokens = 0;
 
-    if (isOverkill && isMultiTrap) {
-      bonusGold = 9;
-      bonusReserveId = 'wild';
-      crushDamage = 3;
-      icon = '👑';
-      title = `GRANDMASTER CATACLYSM (${lineCount} Lines • Connect-${maxLineLength}!)`;
-      subtitle = `+$${bonusGold} Overkill Gold & +1 Wild Prismatic Token!`;
-    } else if (lineCount >= 3) {
-      bonusGold = 9;
-      bonusReserveId = 'wild';
-      crushDamage = 3;
-      icon = '🔱';
-      title = `TRIPLE-TRAP FORK MASTERY (${lineCount} Simultaneous Lines!)`;
-      subtitle = `+$${bonusGold} Combo Gold & +1 Wild Prismatic Token!`;
-    } else if (isMultiTrap) {
-      bonusGold = 5;
-      bonusReserveId = 'jalapeno_bomb';
-      crushDamage = 2;
-      icon = '⚔️';
-      title = `TWIN-4 MULTI-TRAP FORK (2 Intersecting Lines!)`;
-      subtitle = `+$${bonusGold} Combo Gold & +1 Jalapeño Core Bomb!`;
-    } else if (maxLineLength >= 6) {
-      bonusGold = 7;
-      bonusReserveId = 'wild';
-      crushDamage = 2;
-      icon = '🌋';
-      title = `CONNECT-${maxLineLength} CAVERN OVERKILL!`;
-      subtitle = `+$${bonusGold} Overkill Gold & +1 Wild Prismatic Token!`;
-    } else if (maxLineLength === 5) {
-      bonusGold = 4;
-      bonusReserveId = 'anvil';
-      crushDamage = 2;
-      icon = '💥';
-      title = `CONNECT-5 OVERKILL!`;
-      subtitle = `+$${bonusGold} Overkill Gold & +1 Heavy Anvil Token!`;
+    lines.forEach((run) => {
+      if (run.length > maxLen) maxLen = run.length;
+      if (run.length > 4) extraTokens += (run.length - 4);
+      run.forEach(([r, c]) => {
+        cellMap.set(`${r},${c}`, [r, c]);
+      });
+    });
+
+    const allCells = Array.from(cellMap.values());
+    const extraLines = Math.max(0, lines.length - 1);
+    const isOverkill = maxLen > 4 || lines.length > 1 || allCells.length > 4;
+    const overkillCount = extraTokens + extraLines * 2;
+    const bonusGold = isOverkill ? Math.max(2, extraTokens * 2 + extraLines * 3) : 0;
+
+    let label = 'Connect 4!';
+    if (lines.length > 1 && maxLen > 4) {
+      label = `OVERKILL! ${lines.length}x Lines (${maxLen}-in-a-Row)!`;
+    } else if (lines.length > 1) {
+      label = `OVERKILL! ${lines.length}x Simultaneous Connect-4s!`;
+    } else if (maxLen > 4) {
+      label = `OVERKILL! ${maxLen}-in-a-Row Combo!`;
     }
 
     return {
+      won: true,
+      isOverkill,
+      line: allCells, // Highlights every cell across all connected winning lines
+      primaryLine: lines[0],
       lines,
       allCells,
-      lineCount,
-      maxLineLength,
-      isOverkill,
-      isMultiTrap,
+      lineCount: lines.length,
+      maxLen,
+      totalCells: allCells.length,
+      extraTokens,
+      extraLines,
+      overkillCount,
       bonusGold,
-      bonusReserveId,
-      crushDamage,
-      title,
-      subtitle,
-      icon
+      label
     };
   }
 
-  // Returns all winning coordinates across all completed lines so 5+ Overkills & Twin-4s all glow gold
-  findWinningLine(board, actor) {
-    if (!this.hasWinningLine(board, actor)) return null;
-    const combo = this.analyzeWinningCombo(board, actor);
-    return combo ? combo.allCells : null;
+  hasWinningLine(board, actor) {
+    return this.findWinningLine(board, actor) !== null;
   }
 
-  scoreWindow(w, actor) {
+  findWinningLine(board, actor) {
+    const lines = this.findAllWinningLines(board, actor);
+    if (lines.length === 0) return null;
+    if (lines.length === 1) return lines[0];
+
+    // If multiple lines or 5+ Overkill occurred simultaneously, return all unique winning cells
+    const seen = new Set();
+    const merged = [];
+    for (const run of lines) {
+      for (const [r, c] of run) {
+        const key = `${r},${c}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push([r, c]);
+        }
+      }
+    }
+    return merged;
+  }
+
+  checkWinState(board, preferredWinner = PLAYER) {
+    const pCombo = this.analyzeWinningCombo(board, PLAYER);
+    const aCombo = this.analyzeWinningCombo(board, AI);
+
+    if (pCombo.won && aCombo.won) {
+      return preferredWinner === PLAYER
+        ? { winner: PLAYER, line: pCombo.line, combo: pCombo }
+        : { winner: AI, line: aCombo.line, combo: aCombo };
+    }
+    if (pCombo.won) return { winner: PLAYER, line: pCombo.line, combo: pCombo };
+    if (aCombo.won) return { winner: AI, line: aCombo.line, combo: aCombo };
+    return null;
+  }
+
+  scoreWindow(w, actor, diff = null) {
     const opp = actor === AI ? PLAYER : AI;
     let myCount = 0, oppCount = 0, emptyCount = 0;
     for (let i = 0; i < 4; i++) {
@@ -263,24 +228,36 @@ class GrandmasterConnect4AI {
       }
     }
     if (myCount > 0 && oppCount > 0 && myCount !== oppCount) return 0;
+
+    // On Easy mode, soften 2-in-a-row and 3-in-a-row heuristic weights so AI doesn't suffocate setups
+    const isEasy = diff && diff.id === 'EASY';
     if (myCount === 4) return 10000;
-    if (myCount === 3 && emptyCount === 1) return 140;
-    if (myCount === 2 && emptyCount === 2) return 24;
-    if (oppCount === 3 && emptyCount === 1) return -165;
-    if (oppCount === 2 && emptyCount === 2) return -28;
+    if (myCount === 3 && emptyCount === 1) return isEasy ? 55 : 140;
+    if (myCount === 2 && emptyCount === 2) return isEasy ? 10 : 24;
+    if (oppCount === 3 && emptyCount === 1) return isEasy ? -50 : -165;
+    if (oppCount === 2 && emptyCount === 2) return isEasy ? -8 : -28;
     return 0;
   }
 
-  evaluate(board, actor, enchantGrid) {
+  evaluate(board, actor, enchantGrid, diff = null) {
+    const activeDiff = diff || (typeof getActiveDifficulty === 'function' ? getActiveDifficulty() : null);
+    const centerScale = (activeDiff && typeof activeDiff.centerBiasScale === 'number')
+      ? activeDiff.centerBiasScale
+      : 1.0;
+    const ignoreEnchants = !!(activeDiff && activeDiff.ignoreEnchantSlots);
+
     let score = 0;
-    // Center column control preference
+
+    // Center column control preference (scaled down on Easy mode so AI leaves Col 4 open)
     for (let r = 0; r < ROWS; r++) {
-      if (board[r][3] === actor) score += 18;
-      else if (board[r][3] !== EMPTY && board[r][3] !== STONE && board[r][3] !== VOID_CELL) score -= 14;
+      if (board[r][3] === actor) score += Math.round(18 * centerScale);
+      else if (board[r][3] !== EMPTY && board[r][3] !== STONE && board[r][3] !== VOID_CELL) {
+        score -= Math.round(14 * centerScale);
+      }
     }
 
-    // Enchantment awareness
-    if (enchantGrid) {
+    // Enchantment awareness (disabled on Easy mode so AI leaves Gold/Amplifier slots for the player)
+    if (enchantGrid && !ignoreEnchants && typeof ENCHANT_TYPES !== 'undefined') {
       for (let c = 0; c < COLS; c++) {
         const availR = this.getAvailableRow(board, c);
         if (availR !== -1 && enchantGrid[availR] && enchantGrid[availR][c]) {
@@ -299,28 +276,28 @@ class GrandmasterConnect4AI {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c <= COLS - 4; c++) {
         win[0] = board[r][c]; win[1] = board[r][c + 1]; win[2] = board[r][c + 2]; win[3] = board[r][c + 3];
-        score += this.scoreWindow(win, actor);
+        score += this.scoreWindow(win, actor, activeDiff);
       }
     }
     // Vertical windows
     for (let c = 0; c < COLS; c++) {
       for (let r = 0; r <= ROWS - 4; r++) {
         win[0] = board[r][c]; win[1] = board[r + 1][c]; win[2] = board[r + 2][c]; win[3] = board[r + 3][c];
-        score += this.scoreWindow(win, actor);
+        score += this.scoreWindow(win, actor, activeDiff);
       }
     }
     // Diagonal /
     for (let r = 0; r <= ROWS - 4; r++) {
       for (let c = 0; c <= COLS - 4; c++) {
         win[0] = board[r][c]; win[1] = board[r + 1][c + 1]; win[2] = board[r + 2][c + 2]; win[3] = board[r + 3][c + 3];
-        score += this.scoreWindow(win, actor);
+        score += this.scoreWindow(win, actor, activeDiff);
       }
     }
     // Diagonal \
     for (let r = 3; r < ROWS; r++) {
       for (let c = 0; c <= COLS - 4; c++) {
         win[0] = board[r][c]; win[1] = board[r - 1][c + 1]; win[2] = board[r - 2][c + 2]; win[3] = board[r - 3][c + 3];
-        score += this.scoreWindow(win, actor);
+        score += this.scoreWindow(win, actor, activeDiff);
       }
     }
     return score;
@@ -337,11 +314,11 @@ class GrandmasterConnect4AI {
     return s;
   }
 
-  negamax(board, depth, alpha, beta, actor, enchantGrid) {
+  negamax(board, depth, alpha, beta, actor, enchantGrid, diff = null) {
     const opp = actor === AI ? PLAYER : AI;
-    if (this.hasWinningLine(board, opp)) return -(90000 + depth * 100);
+    if (this.findWinningLine(board, opp)) return -(90000 + depth * 100);
     if (this.isBoardFull(board)) return 0;
-    if (depth <= 0) return this.evaluate(board, actor, enchantGrid);
+    if (depth <= 0) return this.evaluate(board, actor, enchantGrid, diff);
 
     const key = this.hashBoard(board, actor);
     const cached = this.tt.get(key);
@@ -354,7 +331,7 @@ class GrandmasterConnect4AI {
       if (r === -1) continue;
 
       board[r][c] = actor;
-      const val = -this.negamax(board, depth - 1, -beta, -alpha, opp, enchantGrid);
+      const val = -this.negamax(board, depth - 1, -beta, -alpha, opp, enchantGrid, diff);
       board[r][c] = EMPTY;
 
       if (val > best) best = val;
@@ -367,56 +344,59 @@ class GrandmasterConnect4AI {
     return best;
   }
 
-  checkWinState(board, preferredWinner = PLAYER) {
-    const pLine = this.findWinningLine(board, PLAYER);
-    const aLine = this.findWinningLine(board, AI);
-    if (pLine && aLine) {
-      return preferredWinner === PLAYER
-        ? { winner: PLAYER, line: pLine }
-        : { winner: AI, line: aLine };
-    }
-    if (pLine) return { winner: PLAYER, line: pLine };
-    if (aLine) return { winner: AI, line: aLine };
-    return null;
-  }
-
   analyzeBoard(board, maxDepth = 4, enchantGrid = null, applyDifficultyVariance = false, isBossFloor = false) {
     this.tt.clear();
     const colScores = Array(COLS).fill(null);
     let bestCol = -1;
     let bestScore = -Infinity;
 
-    // 1. Check immediate AI 1-move win
+    const diff = typeof getActiveDifficulty === 'function' ? getActiveDifficulty() : null;
+    const curFloorIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
+
+    // 1. Check immediate AI 1-move wins (gated by missWinRate on Easy mode)
+    const missWinRate = (applyDifficultyVariance && diff && typeof diff.missWinRate === 'number')
+      ? diff.missWinRate
+      : 0;
+    const ignoreImmediateWin = missWinRate > 0 && Math.random() < missWinRate;
+    const aiWinningCols = [];
+
     for (const c of this.colOrder) {
       const r = this.getAvailableRow(board, c);
       if (r === -1) continue;
       board[r][c] = AI;
-      if (this.hasWinningLine(board, AI)) {
-        colScores[c] = 95000;
-        if (95000 > bestScore) { bestScore = 95000; bestCol = c; }
+      if (this.findWinningLine(board, AI)) {
+        aiWinningCols.push(c);
+        if (!ignoreImmediateWin) {
+          colScores[c] = 95000;
+          if (95000 > bestScore) {
+            bestScore = 95000;
+            bestCol = c;
+          }
+        }
       }
       board[r][c] = EMPTY;
     }
 
-    // 2. Check immediate 1-move Player win to block (using per-floor scaled missBlockRate)
-    const diff = getActiveDifficulty();
-    const curFloorIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
-    const missBlockArr = diff.missBlockByFloor || [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const effMissBlock = missBlockArr[Math.min(curFloorIdx, missBlockArr.length - 1)] ?? diff.missBlockChance;
-    const shouldBlockImmediate = !(applyDifficultyVariance && effMissBlock > 0 && !isBossFloor && Math.random() < effMissBlock);
-    let forcedBlockCol = -1;
-    if (shouldBlockImmediate && bestScore < 90000) {
-      for (const c of this.colOrder) {
-        const r = this.getAvailableRow(board, c);
-        if (r === -1) continue;
-        board[r][c] = PLAYER;
-        if (this.hasWinningLine(board, PLAYER)) {
-          forcedBlockCol = c;
-          board[r][c] = EMPTY;
-          break;
-        }
-        board[r][c] = EMPTY;
+    // 2. Check immediate 1-move Player threats to block (now allowed on ALL Easy floors, including Bosses!)
+    const missBlockArr = (diff && diff.missBlockByFloor) || [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const effMissBlock = missBlockArr[Math.min(curFloorIdx, missBlockArr.length - 1)] ?? (diff ? diff.missBlockChance : 0);
+    const bossBlockPenalty = (isBossFloor && diff && diff.id !== 'EASY') ? 0 : effMissBlock;
+    const didMissBlock = applyDifficultyVariance && bossBlockPenalty > 0 && Math.random() < bossBlockPenalty;
+
+    const playerWinningCols = [];
+    for (const c of this.colOrder) {
+      const r = this.getAvailableRow(board, c);
+      if (r === -1) continue;
+      board[r][c] = PLAYER;
+      if (this.findWinningLine(board, PLAYER)) {
+        playerWinningCols.push(c);
       }
+      board[r][c] = EMPTY;
+    }
+
+    let forcedBlockCol = -1;
+    if (!didMissBlock && bestScore < 90000 && playerWinningCols.length > 0) {
+      forcedBlockCol = playerWinningCols[0];
     }
 
     // 3. Full negamax evaluation per column
@@ -431,12 +411,25 @@ class GrandmasterConnect4AI {
 
       let webPenalty = 0;
       if (enchantGrid && enchantGrid[r] && enchantGrid[r][c] === ENCHANT_TYPES.WEB) {
-        webPenalty = -320;
+        webPenalty = (diff && diff.id === 'EASY') ? -40 : -320;
       }
 
       board[r][c] = AI;
-      const score = -this.negamax(board, maxDepth - 1, -Infinity, Infinity, PLAYER, enchantGrid) + webPenalty;
+      let score = -this.negamax(
+        board,
+        Math.max(0, maxDepth - 1),
+        -Infinity,
+        Infinity,
+        PLAYER,
+        enchantGrid,
+        applyDifficultyVariance ? diff : null
+      ) + webPenalty;
       board[r][c] = EMPTY;
+
+      // Add heuristic evaluation jitter on Easy/Medium so the AI doesn't play robotically
+      if (applyDifficultyVariance && diff && diff.evalNoiseRange > 0) {
+        score += Math.round((Math.random() * 2 - 1) * diff.evalNoiseRange);
+      }
 
       colScores[c] = score;
       rankedCols.push({ col: c, score });
@@ -446,18 +439,48 @@ class GrandmasterConnect4AI {
       }
     }
 
+    // 4. Resolve move selection with true missed blocks & softer blunders
     if (bestScore < 90000 && forcedBlockCol !== -1) {
       bestCol = forcedBlockCol;
+    } else if (applyDifficultyVariance && didMissBlock && playerWinningCols.length > 0) {
+      // CRITICAL FIX: When Easy AI rolls to miss a block, Negamax would otherwise still score the
+      // non-blocking columns at -90000 and pick the block anyway. Pick a non-blocking column here!
+      const nonBlocking = rankedCols.filter((item) => !playerWinningCols.includes(item.col));
+      if (nonBlocking.length > 0) {
+        const pick = nonBlocking[Math.floor(Math.random() * nonBlocking.length)];
+        bestCol = pick.col;
+        bestScore = pick.score;
+      }
     } else if (applyDifficultyVariance && bestScore < 50000 && rankedCols.length > 1) {
-      rankedCols.sort((a, b) => b.score - a.score);
-      const blunderArr = diff.blunderByFloor || [diff.blunderChance];
-      const baseFloorBlunder = blunderArr[Math.min(curFloorIdx, blunderArr.length - 1)] ?? diff.blunderChance;
-      const enrageMult = (isBossFloor && typeof state !== 'undefined' && state.bossMaxHp > 1 && state.bossHp === 1) ? 0.35 : 1.0;
-      const blunderRate = (isBossFloor ? baseFloorBlunder * 0.5 : baseFloorBlunder) * enrageMult;
-      if (blunderRate > 0 && Math.random() < blunderRate) {
-        const altIdx = Math.min(rankedCols.length - 1, Math.random() < 0.78 ? 1 : 2);
-        bestCol = rankedCols[altIdx].col;
-        bestScore = rankedCols[altIdx].score;
+      // Filter out ignored AI winning columns if missWinRate triggered
+      let poolCols = rankedCols;
+      if (ignoreImmediateWin && aiWinningCols.length > 0) {
+        const nonWinning = rankedCols.filter((item) => !aiWinningCols.includes(item.col));
+        if (nonWinning.length > 0) poolCols = nonWinning;
+      }
+
+      poolCols.sort((a, b) => b.score - a.score);
+      bestCol = poolCols[0].col;
+      bestScore = poolCols[0].score;
+
+      const blunderArr = (diff && diff.blunderByFloor) || [diff ? diff.blunderChance : 0];
+      const baseFloorBlunder = blunderArr[Math.min(curFloorIdx, blunderArr.length - 1)] ?? (diff ? diff.blunderChance : 0);
+      const isEasy = diff && diff.id === 'EASY';
+      const enrageMult = (!isEasy && isBossFloor && typeof state !== 'undefined' && state.bossMaxHp > 1 && state.bossHp === 1) ? 0.35 : 1.0;
+      const blunderRate = (isBossFloor && !isEasy ? baseFloorBlunder * 0.5 : baseFloorBlunder) * enrageMult;
+
+      if (blunderRate > 0 && Math.random() < blunderRate && poolCols.length > 1) {
+        if (isEasy) {
+          // On Easy, pick from any of the softer playable columns (not just #2)
+          const subOptimal = poolCols.slice(1);
+          const pick = subOptimal[Math.floor(Math.random() * subOptimal.length)];
+          bestCol = pick.col;
+          bestScore = pick.score;
+        } else {
+          const altIdx = Math.min(poolCols.length - 1, Math.random() < 0.78 ? 1 : 2);
+          bestCol = poolCols[altIdx].col;
+          bestScore = poolCols[altIdx].score;
+        }
       }
     }
 
@@ -477,127 +500,9 @@ class GrandmasterConnect4AI {
 
 const aiEngine = new GrandmasterConnect4AI();
 
-// ============================================================================
-// OVERKILL & MULTI-TRAP COMBO REWARDS HOOK
-// Automatically wraps handleFloorVictory & openUndergroundBazaar after load
-// ============================================================================
-(function attachOverkillAndMultiTrapSystem() {
-  function playOverkillFanfare() {
-    if (typeof sfx === 'undefined' || sfx.muted) return;
-    sfx.playSteppedSequence([
-      { freq: 587.33, dur: 0.045, gain: 0.14 }, // D5
-      { freq: 739.99, dur: 0.045, gain: 0.14 }, // F#5
-      { freq: 880.00, dur: 0.045, gain: 0.15 }, // A5
-      { freq: 1174.66, dur: 0.055, gain: 0.16 }, // D6
-      { freq: 1479.98, dur: 0.065, gain: 0.16 }, // F#6
-      { freq: 1760.00, dur: 0.075, gain: 0.17 }, // A6
-      { freq: 2349.32, dur: 0.280, gain: 0.18 }  // D7 Overkill Peak
-    ], 'square', 0.17, 4200);
-  }
-
-  function bindVictoryHooks() {
-    if (typeof window.handleFloorVictory !== 'function' || window.handleFloorVictory._overkillHooked) {
-      return;
-    }
-
-    const origHandleFloorVictory = window.handleFloorVictory;
-
-    window.handleFloorVictory = function (winLine) {
-      const combo = aiEngine.analyzeWinningCombo(state.board, PLAYER);
-      const fullWinCells = (combo && combo.allCells && combo.allCells.length > 0) ? combo.allCells : winLine;
-      state.lastOverkillCombo = null;
-
-      if (combo && (combo.isOverkill || combo.isMultiTrap)) {
-        state.lastOverkillCombo = combo;
-
-        // 1. Play 8-Bit Overkill Fanfare, Screen Shake & 3D Shockwaves on all combo cells
-        playOverkillFanfare();
-        if (typeof triggerBoardShake === 'function') triggerBoardShake(0.34);
-        if (typeof triggerHaptic === 'function') triggerHaptic([45, 25, 70, 25, 90]);
-
-        fullWinCells.forEach(([r, c], idx) => {
-          setTimeout(() => {
-            if (typeof spawn3DShockwaveRing === 'function') {
-              spawn3DShockwaveRing(r, c, 0xfde047, 2.7, 520);
-            }
-            if (typeof spawn3DParticleBurst === 'function') {
-              spawn3DParticleBurst(r, c, 0xf59e0b, 14, 0.13, 500, 'octa');
-            }
-          }, idx * 40);
-        });
-
-        // 2. Award Bonus Overkill Gold & Tactical Reserve Token
-        state.gold += combo.bonusGold;
-        if (combo.bonusReserveId && typeof RESERVE_CATALOG !== 'undefined' && RESERVE_CATALOG[combo.bonusReserveId]) {
-          state.reservePouchUnlocked = true;
-          state.reservePouch.push(combo.bonusReserveId);
-        }
-
-        // 3. Apply Crushing Blow Extra Boss HP Damage on Multi-HP Boss Floors
-        let bossCrushText = '';
-        if (typeof state.bossHp === 'number' && state.bossHp > 1 && combo.crushDamage > 1) {
-          const extraDmg = Math.min(state.bossHp - 1, combo.crushDamage - 1);
-          if (extraDmg > 0) {
-            state.bossHp -= extraDmg;
-            bossCrushText = ` • CRUSHING BLOW (-${extraDmg + 1} Boss HP!)`;
-          }
-        }
-
-        if (typeof spawnFloatingPop === 'function') {
-          spawnFloatingPop(
-            `${combo.icon} ${combo.title}: +$${combo.bonusGold} Gold!`,
-            'text-amber-200',
-            5600
-          );
-        }
-        if (typeof showToast === 'function') {
-          showToast(
-            `${combo.title}: ${combo.subtitle}${bossCrushText}`,
-            combo.icon,
-            6000,
-            'border-yellow-400/85 text-yellow-100'
-          );
-        }
-      }
-
-      // Invoke original Floor Victory handler with all participating combo cells
-      const result = origHandleFloorVictory.call(this, fullWinCells);
-
-      // Include combo bonus in pendingVictoryPayout so Boss Chest -> Bazaar transition preserves it
-      if (combo && (combo.isOverkill || combo.isMultiTrap) && state.pendingVictoryPayout) {
-        state.pendingVictoryPayout.totalEarned += combo.bonusGold;
-        state.pendingVictoryPayout.overkillBonus = combo.bonusGold;
-      }
-
-      return result;
-    };
-    window.handleFloorVictory._overkillHooked = true;
-
-    // Wrap openUndergroundBazaar so the Victory Breakdown Pill shows the Overkill/Combo bonus
-    if (typeof window.openUndergroundBazaar === 'function' && !window.openUndergroundBazaar._overkillHooked) {
-      const origOpenBazaar = window.openUndergroundBazaar;
-      window.openUndergroundBazaar = function (totalEarned, speedBonus) {
-        const res = origOpenBazaar.call(this, totalEarned, speedBonus);
-        const combo = state.lastOverkillCombo;
-        if (combo && (combo.isOverkill || combo.isMultiTrap)) {
-          const payoutEl = document.getElementById('bazaar-payout-amount');
-          const floorData = typeof getFloorConfig === 'function' ? getFloorConfig(state.floorIdx) : { isBoss: false };
-          const baseReward = floorData.isBoss ? 7 : 3;
-          if (payoutEl) {
-            payoutEl.textContent = `+$${totalEarned} ($${baseReward} Base + $${speedBonus} Speed + $${combo.bonusGold} Combo!)`;
-          }
-          state.lastOverkillCombo = null;
-        }
-        return res;
-      };
-      window.openUndergroundBazaar._overkillHooked = true;
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindVictoryHooks);
-  } else {
-    bindVictoryHooks();
-  }
-  window.addEventListener('load', bindVictoryHooks);
-})();
+if (typeof window !== 'undefined') {
+  Object.assign(window, {
+    GrandmasterConnect4AI,
+    aiEngine
+  });
+}
