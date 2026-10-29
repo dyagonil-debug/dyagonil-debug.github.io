@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <radialGradient id="bg-reserves-fools_penny" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#231c2e"/>
+      <stop offset="70%" stop-color="#110e17"/>
+      <stop offset="100%" stop-color="#070609"/>
+    </radialGradient>
+    <linearGradient id="grad-reserves-fools_penny" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#a16207"/>
+    </linearGradient>
+        <filter id="glow-reserves-fools_penny" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feOffset in="blur" dx="0" dy="1.5" result="offsetBlur"/>
+      <feFlood flood-color="#eab308" flood-opacity="0.45" result="offsetColor"/>
+      <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetGlow"/>
+      <feMerge>
+        <feMergeNode in="offsetGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Subterranean Carved Obsidian Medallion Base -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg-reserves-fools_penny)" stroke="#facc15" stroke-width="2.2"/>
+  <rect x="7.5" y="7.5" width="49" height="49" rx="10.5" stroke="#eab308" stroke-opacity="0.22" stroke-width="1"/>
+  <!-- Corner Brass Rivets -->
+  <circle cx="11" cy="11" r="1.3" fill="#facc15" opacity="0.7"/>
+  <circle cx="53" cy="11" r="1.3" fill="#facc15" opacity="0.7"/>
+  <circle cx="11" cy="53" r="1.3" fill="#facc15" opacity="0.7"/>
+  <circle cx="53" cy="53" r="1.3" fill="#facc15" opacity="0.7"/>
+  <!-- Foreground Emblem -->
+  <g filter="url(#glow-reserves-fools_penny)">
+    
+            <circle cx="32" cy="32" r="18" fill="url(#grad-reserves-fools_penny)" stroke="#fef08a" stroke-width="2.2"/>
+            <circle cx="32" cy="32" r="13" stroke="#713f12" stroke-width="1.5" stroke-dasharray="4 2" fill="none"/>
+            <polyline points="28,15 34,27 29,34 36,48" stroke="#422006" stroke-width="2.2" fill="none"/>
+            <text x="32" y="37" text-anchor="middle" fill="#fef9c3" font-family="monospace" font-weight="bold" font-size="15">¢</text>
+        
+  </g>
+</svg>

@@ -1,0 +1,38 @@
+/* ============================================================================
+   SUBTERRANEAN ASCENSION — CUSTOM VECTOR ICON SYSTEM (css/icons.css)
+   Replaces system emojis with crisp, resolution-independent subterranean SVGs
+   ============================================================================ */
+
+.c4-item-icon {
+  display: inline-block;
+  width: 1.35em;
+  height: 1.35em;
+  object-fit: contain;
+  vertical-align: -0.24em;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65));
+  transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.c4-item-icon-sm {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.18em;
+}
+
+.c4-item-icon-lg {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.c4-item-icon-xl {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+.arcane-card:hover .c4-item-icon,
+.reserve-token-pill:hover .c4-item-icon {
+  transform: scale(1.08);
+}

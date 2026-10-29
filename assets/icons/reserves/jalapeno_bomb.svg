@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <radialGradient id="bg-reserves-jalapeno_bomb" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#231c2e"/>
+      <stop offset="70%" stop-color="#110e17"/>
+      <stop offset="100%" stop-color="#070609"/>
+    </radialGradient>
+    <linearGradient id="grad-reserves-jalapeno_bomb" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+        <filter id="glow-reserves-jalapeno_bomb" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feOffset in="blur" dx="0" dy="1.5" result="offsetBlur"/>
+      <feFlood flood-color="#ef4444" flood-opacity="0.45" result="offsetColor"/>
+      <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetGlow"/>
+      <feMerge>
+        <feMergeNode in="offsetGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Subterranean Carved Obsidian Medallion Base -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg-reserves-jalapeno_bomb)" stroke="#f97316" stroke-width="2.2"/>
+  <rect x="7.5" y="7.5" width="49" height="49" rx="10.5" stroke="#ef4444" stroke-opacity="0.22" stroke-width="1"/>
+  <!-- Corner Brass Rivets -->
+  <circle cx="11" cy="11" r="1.3" fill="#f97316" opacity="0.7"/>
+  <circle cx="53" cy="11" r="1.3" fill="#f97316" opacity="0.7"/>
+  <circle cx="11" cy="53" r="1.3" fill="#f97316" opacity="0.7"/>
+  <circle cx="53" cy="53" r="1.3" fill="#f97316" opacity="0.7"/>
+  <!-- Foreground Emblem -->
+  <g filter="url(#glow-reserves-jalapeno_bomb)">
+    
+            <path d="M24 22 C20 30, 23 44, 34 49 C42 52, 46 45, 43 38 C39 31, 34 22, 24 22 Z" fill="url(#grad-reserves-jalapeno_bomb)" stroke="#fecaca" stroke-width="1.8"/>
+            <path d="M24 22 C22 17, 26 14, 31 15" stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <circle cx="34" cy="14" r="3" fill="#fde047"/>
+            <path d="M34 9 V19 M29 14 H39" stroke="#f97316" stroke-width="1.8" stroke-linecap="round"/>
+        
+  </g>
+</svg>

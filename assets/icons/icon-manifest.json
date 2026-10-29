@@ -1,0 +1,87 @@
+{
+  "cards": {
+    "pebble": "./assets/icons/cards/pebble.svg",
+    "oracle_peek": "./assets/icons/cards/oracle_peek.svg",
+    "petrified": "./assets/icons/cards/petrified.svg",
+    "pickaxe": "./assets/icons/cards/pickaxe.svg",
+    "sinkhole_chute": "./assets/icons/cards/sinkhole_chute.svg",
+    "inversion": "./assets/icons/cards/inversion.svg",
+    "transmute": "./assets/icons/cards/transmute.svg",
+    "hibachi": "./assets/icons/cards/hibachi.svg",
+    "echo_drop": "./assets/icons/cards/echo_drop.svg",
+    "abyssal_upheaval": "./assets/icons/cards/abyssal_upheaval.svg",
+    "jar_of_flies": "./assets/icons/cards/jar_of_flies.svg",
+    "brimstone_beam": "./assets/icons/cards/brimstone_beam.svg",
+    "dead_weight": "./assets/icons/cards/dead_weight.svg",
+    "tremor": "./assets/icons/cards/tremor.svg",
+    "stalactite": "./assets/icons/cards/stalactite.svg"
+  },
+  "reserves": {
+    "fools_penny": "./assets/icons/reserves/fools_penny.svg",
+    "anvil": "./assets/icons/reserves/anvil.svg",
+    "cave_bat": "./assets/icons/reserves/cave_bat.svg",
+    "wild": "./assets/icons/reserves/wild.svg",
+    "jalapeno_bomb": "./assets/icons/reserves/jalapeno_bomb.svg",
+    "midas_eye": "./assets/icons/reserves/midas_eye.svg"
+  },
+  "gambits": {
+    "butter_crust": "./assets/icons/gambits/butter_crust.svg",
+    "shrinking_shroom": "./assets/icons/gambits/shrinking_shroom.svg",
+    "dali_clock": "./assets/icons/gambits/dali_clock.svg",
+    "echo_bell": "./assets/icons/gambits/echo_bell.svg",
+    "coaster_apex": "./assets/icons/gambits/coaster_apex.svg",
+    "obsidian_cat": "./assets/icons/gambits/obsidian_cat.svg",
+    "jalapeno_overdrive": "./assets/icons/gambits/jalapeno_overdrive.svg",
+    "sacred_heart_prism": "./assets/icons/gambits/sacred_heart_prism.svg"
+  },
+  "bosses": {
+    "sentinel": "./assets/icons/bosses/sentinel.svg",
+    "spore_queen": "./assets/icons/bosses/spore_queen.svg",
+    "chronos_dali": "./assets/icons/bosses/chronos_dali.svg",
+    "petrifier_archon": "./assets/icons/bosses/petrifier_archon.svg",
+    "mirror_virtuoso": "./assets/icons/bosses/mirror_virtuoso.svg",
+    "magma_leviathan": "./assets/icons/bosses/magma_leviathan.svg",
+    "tectonic_behemoth": "./assets/icons/bosses/tectonic_behemoth.svg"
+  },
+  "topologies": {
+    "classic_grid": "./assets/icons/topologies/classic_grid.svg",
+    "step_ziggurat": "./assets/icons/topologies/step_ziggurat.svg",
+    "twin_spires": "./assets/icons/topologies/twin_spires.svg",
+    "stalactite_arch": "./assets/icons/topologies/stalactite_arch.svg",
+    "surrealist_chalice": "./assets/icons/topologies/surrealist_chalice.svg",
+    "sunken_caldera": "./assets/icons/topologies/sunken_caldera.svg",
+    "obsidian_citadel": "./assets/icons/topologies/obsidian_citadel.svg"
+  },
+  "slots": {
+    "gilded": "./assets/icons/slots/gilded.svg",
+    "spice": "./assets/icons/slots/spice.svg",
+    "web": "./assets/icons/slots/web.svg",
+    "amplifier": "./assets/icons/slots/amplifier.svg",
+    "cursed_spore": "./assets/icons/slots/cursed_spore.svg"
+  },
+  "wheel": {
+    "jackpot_hoard": "./assets/icons/wheel/jackpot_hoard.svg",
+    "pickpocket_gremlin": "./assets/icons/wheel/pickpocket_gremlin.svg",
+    "relic_vault": "./assets/icons/wheel/relic_vault.svg",
+    "cave_in_hazard": "./assets/icons/wheel/cave_in_hazard.svg",
+    "arcane_surge": "./assets/icons/wheel/arcane_surge.svg",
+    "hex_of_abyss": "./assets/icons/wheel/hex_of_abyss.svg",
+    "gilded_blessing": "./assets/icons/wheel/gilded_blessing.svg",
+    "ai_headstart": "./assets/icons/wheel/ai_headstart.svg",
+    "tectonic_reinforce": "./assets/icons/wheel/tectonic_reinforce.svg"
+  },
+  "hud": {
+    "coin": "./assets/icons/hud/coin.svg",
+    "stability": "./assets/icons/hud/stability.svg",
+    "mana": "./assets/icons/hud/mana.svg",
+    "trophy": "./assets/icons/hud/trophy.svg",
+    "skull": "./assets/icons/hud/skull.svg",
+    "heart_full": "./assets/icons/hud/heart_full.svg",
+    "heart_empty": "./assets/icons/hud/heart_empty.svg",
+    "wheel": "./assets/icons/hud/wheel.svg",
+    "chest": "./assets/icons/hud/chest.svg",
+    "reroll": "./assets/icons/hud/reroll.svg",
+    "lock": "./assets/icons/hud/lock.svg",
+    "warning": "./assets/icons/hud/warning.svg"
+  }
+}
