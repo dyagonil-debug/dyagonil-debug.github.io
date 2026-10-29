@@ -74,38 +74,3 @@ if (document.readyState === 'loading') {
   bootGame();
 }
 window.addEventListener('load', bootGame);
-
-// Auto-render inline SVG <img> icons if any UI handler assigns them via .textContent
-(function enableInlineSvgIconRendering() {
-  const TARGET_IDS = [
-    'floor-intro-boss-name',
-    'boss-name-label',
-    'floor-intro-topo-name',
-    'topology-badge',
-    'sheet-title'
-  ];
-
-  function upgradeTextToHtmlIfNeeded(el) {
-    if (!el) return;
-    const raw = el.textContent || '';
-    if (raw.includes('<img') && raw.includes('data:image/svg+xml')) {
-      el.innerHTML = raw;
-    }
-  }
-
-  function attachObserver() {
-    TARGET_IDS.forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      upgradeTextToHtmlIfNeeded(el);
-      const observer = new MutationObserver(() => upgradeTextToHtmlIfNeeded(el));
-      observer.observe(el, { childList: true, characterData: true, subtree: true });
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachObserver);
-  } else {
-    attachObserver();
-  }
-})();
