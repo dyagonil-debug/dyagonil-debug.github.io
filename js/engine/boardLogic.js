@@ -123,20 +123,6 @@ function startFloorMatch(showIntroScreen = true) {
             showToast(`☄️ Cave-In Hazard dropped ${totalStartStones} Petrified Stone(s)!`, "🪨");
         }
     }
-    if (false && mods.caveInStones > 0) {
-        for (let i = 0; i < mods.caveInStones; i++) {
-            const validCols = [];
-            for (let c = 0; c < COLS; c++) {
-                if (aiEngine.getAvailableRow(state.board, c) !== -1) validCols.push(c);
-            }
-            if (validCols.length > 0) {
-                const rc = validCols[Math.floor(Math.random() * validCols.length)];
-                const rr = aiEngine.getAvailableRow(state.board, rc);
-                spawnTokenMesh(rr, rc, STONE);
-            }
-        }
-        showToast(`☄️ Cave-In Hazard dropped ${mods.caveInStones} Petrified Stones!`, "🪨");
-    }
 
     // Apply Wheel of Fate AI Headstart Hazard + Abyssal Cataclysm Boss Headstart (Floors 6 & 9)
     const bossBonusHeadstart = (floorData.isBoss && state.floorIdx >= 5) ? (diff.bossHeadstartTokens || 0) : 0;
@@ -153,19 +139,6 @@ function startFloorMatch(showIntroScreen = true) {
             }
         }
         showToast(`🤖 Opponent Headstart: AI deployed ${dropped} opening token(s)!`, "⚠️");
-    }
-    if (false && mods.aiHeadstartTokens > 0) {
-        const startCols = [2, 4, 3, 1, 5];
-        let dropped = 0;
-        for (const sc of startCols) {
-            if (dropped >= mods.aiHeadstartTokens) break;
-            const rr = aiEngine.getAvailableRow(state.board, sc);
-            if (rr !== -1) {
-                spawnTokenMesh(rr, sc, AI);
-                dropped++;
-            }
-        }
-        showToast(`🤖 AI Headstart Curse: Opponent deployed ${dropped} opening tokens!`, "⚠️");
     }
 
     // Shuffle unspent stockpiled cards into the floor draw pile; draw up to state.handSize
@@ -1044,7 +1017,7 @@ function castCardOnColumn(handIdx, col) {
     if (!card || state.mana < effCost) return;
 
     // Highlight Surrealist Dalí Clock Gambit if it discounted this spell!
-    if (hasGambit('dali_clock') && (cardId === 'inversion' || cardId === 'transmute' || cardId === 'abyssal_upheaval')) {
+    if (hasGambit('dali_clock') && (cardId === 'inversion' || cardId === 'lodestone' || cardId === 'transmute' || cardId === 'abyssal_upheaval')) {
         sfx.playDaliClockTick();
         pulseGambitBadgeInHUD('dali_clock');
         spawnFloatingPop("🕰️ Dalí Clock: -1 Mana Discount!", "text-teal-300", 4200);
@@ -1070,6 +1043,164 @@ function castCardOnColumn(handIdx, col) {
         spawn3DParticleBurst(baseR, col, 0xd97706, 14, 0.11, 460, 'box');
         spawnFloatingPop("🪨 Pebble +$1 & +1 Stab!", "text-amber-300");
         showToast(`Cavern Pebble reinforced Col ${col + 1} (+1 Stability & +$1)!`, "🪨");
+    }
+    else if (cardId === 'tectonic_anchor') {
+        const availR = aiEngine.getAvailableRow(state.board, col);
+        state.stability += 3;
+        sfx.playPebbleTamp();
+        sfx.playCoinDing();
+        triggerHaptic([25, 20, 40]);
+        spawn3DColumnBeam(col, 0xfacc15, 0.38, 480, false);
+
+        if (availR !== -1 && state.enchantGrid && state.enchantGrid[availR]) {
+            const curEnchant = state.enchantGrid[availR][col];
+            if (curEnchant === ENCHANT_TYPES.GILDED) {
+                state.enchantGrid[availR][col] = ENCHANT_TYPES.AMPLIFIER;
+                rebuildEnchantmentRings();
+                spawn3DShockwaveRing(availR, col, 0x38bdf8, 2.4, 480);
+                spawnFloatingPop("⏳ +3 Stability & Amplifier Slot!", "text-sky-300", 4800);
+                showToast(`⏳ Tectonic Anchor added +3 Stability & upgraded Col ${col + 1} to a Wild Amplifier Slot!`, "💎");
+            } else {
+                state.enchantGrid[availR][col] = ENCHANT_TYPES.GILDED;
+                rebuildEnchantmentRings();
+                spawn3DShockwaveRing(availR, col, 0xfacc15, 2.4, 480);
+                spawn3DParticleBurst(availR, col, 0xfde047, 14, 0.12, 460, 'octa');
+                spawnFloatingPop("⏳ +3 Stability & Gilded Slot!", "text-amber-300", 4800);
+                showToast(`⏳ Tectonic Anchor reinforced +3 Stability & gilded the next slot in Col ${col + 1}!`, "⏳");
+            }
+        } else {
+            const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+            spawn3DShockwaveRing(topR, col, 0xfacc15, 2.2, 440);
+            spawnFloatingPop("⏳ +3 Seismic Stability!", "text-amber-300", 4800);
+            showToast(`⏳ Tectonic Anchor reinforced the cavern ceiling for +3 Seismic Stability!`, "⏳");
+        }
+    }
+    else if (cardId === 'lodestone') {
+        const occupiedRows = [];
+        const playerTokens = [];
+        const blockerTokens = [];
+
+        for (let r = 0; r < ROWS; r++) {
+            const cell = state.board[r][col];
+            if (cell !== EMPTY && cell !== VOID_CELL) {
+                occupiedRows.push(r);
+                if (cell === PLAYER || cell === WILD) {
+                    playerTokens.push(cell);
+                } else {
+                    blockerTokens.push(cell);
+                }
+            }
+        }
+
+        if (occupiedRows.length < 2 || playerTokens.length === 0 || blockerTokens.length === 0) {
+            showToast(`Col ${col + 1} needs both your tokens and AI/Stone pieces to polarize!`, "🧲");
+            return;
+        }
+
+        // Bottom-to-top: AI/Stone sink to the bottom, Player/Wild float to the top
+        const polarizedStack = [...blockerTokens, ...playerTokens];
+        let anyChanged = false;
+        for (let i = 0; i < occupiedRows.length; i++) {
+            if (state.board[occupiedRows[i]][col] !== polarizedStack[i]) {
+                anyChanged = true;
+                break;
+            }
+        }
+        if (!anyChanged) {
+            showToast(`Your tokens are already at the top of Col ${col + 1}!`, "🧲");
+            return;
+        }
+
+        sfx.playGravityVortex();
+        triggerHaptic([25, 25, 45]);
+        spawn3DColumnBeam(col, 0x38bdf8, 0.40, 500, true);
+
+        for (let i = 0; i < occupiedRows.length; i++) {
+            const rr = occupiedRows[i];
+            state.board[rr][col] = polarizedStack[i];
+        }
+        const highestR = occupiedRows[occupiedRows.length - 1];
+        state.lastPlayedCell = [highestR, col];
+
+        rebuildBoardMeshes([col]);
+        occupiedRows.forEach((rr) => {
+            if (state.meshes[rr] && state.meshes[rr][col]) {
+                state.meshes[rr][col].position.y = state.meshes[rr][col].userData.targetY + 0.38;
+                state.meshes[rr][col].userData.velY = 0;
+            }
+            if ((state.board[rr][col] === PLAYER || state.board[rr][col] === WILD) && state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE) {
+                triggerSlotEnchantment(rr, col, PLAYER);
+            }
+        });
+
+        spawn3DShockwaveRing(highestR, col, 0x2dd4bf, 2.4, 480);
+        spawn3DParticleBurst(highestR, col, 0xfbbf24, 16, 0.13, 480, 'octa');
+        spawnFloatingPop("🧲 Polarity Pulled Tokens Up!", "text-teal-300", 4800);
+        showToast(`🧲 Lodestone Polarity pulled your tokens to the top of Col ${col + 1}!`, "🧲");
+    }
+    else if (cardId === 'alchemy_crucible') {
+        let targetR = -1;
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (state.board[r][col] === AI || state.board[r][col] === STONE) {
+                targetR = r;
+                break;
+            }
+        }
+        if (targetR === -1) {
+            showToast(`Pick a column containing an AI or Petrified Stone token to smelt!`, "⚗️");
+            return;
+        }
+
+        sfx.playSurrealTransmute();
+        sfx.playCoinDing();
+        triggerHaptic([35, 25, 55]);
+        triggerBoardShake(0.22);
+
+        state.board[targetR][col] = EMPTY;
+        state.gold += 2;
+        applyColumnGravity(col);
+        rebuildBoardMeshes([col]);
+        onTokenShattered(1);
+
+        const enchantRow = aiEngine.getAvailableRow(state.board, col);
+        const slotRow = enchantRow !== -1 ? enchantRow : targetR;
+        if (state.enchantGrid && state.enchantGrid[slotRow]) {
+            state.enchantGrid[slotRow][col] = ENCHANT_TYPES.AMPLIFIER;
+            rebuildEnchantmentRings();
+        }
+
+        spawn3DColumnBeam(col, 0xe879f9, 0.40, 500, true);
+        spawn3DShockwaveRing(slotRow, col, 0x38bdf8, 2.6, 500);
+        spawn3DParticleBurst(slotRow, col, 0xfde047, 18, 0.14, 520, 'octa');
+        spawnFloatingPop("⚗️ Smelted: +$2 & Wild Slot!", "text-sky-300", 5000);
+        showToast(`⚗️ Alchemical Crucible smelted blocker in Col ${col + 1} for +$2 Gold & spawned a Wild Amplifier Slot!`, "⚗️");
+    }
+    else if (cardId === 'mirror_shard') {
+        const topR = aiEngine.getTopOccupiedRow(state.board, col);
+        const availR = aiEngine.getAvailableRow(state.board, col);
+        if (topR === -1 || (state.board[topR][col] !== PLAYER && state.board[topR][col] !== WILD)) {
+            showToast(`Top token in Col ${col + 1} must be your Amber or Wild token to reflect!`, "🪞");
+            return;
+        }
+        if (availR === -1) {
+            showToast(`Col ${col + 1} is already full!`, "⚠️");
+            return;
+        }
+
+        sfx.playWildPrismatic();
+        sfx.playEchoTwinDrop();
+        triggerHaptic([25, 30, 45]);
+
+        spawn3DColumnBeam(col, 0xe879f9, 0.40, 500, true);
+        spawnTokenMesh(availR, col, WILD);
+        state.lastPlayedCell = [availR, col];
+        spawn3DShockwaveRing(availR, col, 0x38bdf8, 2.6, 500);
+        spawn3DParticleBurst(availR, col, 0xe879f9, 18, 0.13, 520, 'octa');
+
+        triggerSlotEnchantment(availR, col, PLAYER);
+        checkPlayerDropGambits(col);
+        spawnFloatingPop("🪞 Reflected Wild Prismatic!", "text-sky-300", 4800);
+        showToast(`🪞 Prismatic Mirror Shard cloned your top token in Col ${col + 1} into a Wild Prismatic Token!`, "🪞");
     }
     else if (cardId === 'oracle_peek') {
         state.stability += 1;
