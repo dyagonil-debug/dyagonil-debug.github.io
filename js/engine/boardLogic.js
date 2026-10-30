@@ -2,6 +2,56 @@
 // CORE BOARD MECHANICS, CARD CASTING, RESERVE DROPS & BOSS ABILITIES (js/engine/boardLogic.js)
 // ============================================================================
 
+// Safe wrapper to invoke async or fire-and-forget 3D VFX helpers without ever hanging state.busy
+function runCardVFXWithCallback(vfxFn, argsWithoutCb, durationMs, onComplete) {
+    let completed = false;
+    const finish = () => {
+        if (completed) return;
+        completed = true;
+        if (typeof onComplete === 'function') onComplete();
+    };
+
+    if (typeof vfxFn === 'function') {
+        try {
+            vfxFn(...argsWithoutCb, finish);
+        } catch (err) {
+            console.warn('[C4 VFX] Fallback triggered for card VFX:', err);
+        }
+        setTimeout(finish, durationMs);
+    } else {
+        setTimeout(finish, Math.min(220, durationMs));
+    }
+}
+
+// Unified active-player-priority win/loss resolver after any card effect mutates the board
+function resolvePostCardWinState() {
+    if (typeof aiEngine.checkWinState === 'function') {
+        const winState = aiEngine.checkWinState(state.board, PLAYER);
+        if (winState) {
+            if (winState.winner === PLAYER) {
+                handleFloorVictory(winState.line);
+                return true;
+            } else if (winState.winner === AI) {
+                handleFloorDefeat(winState.line);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const pWin = aiEngine.findWinningLine(state.board, PLAYER);
+    if (pWin) {
+        handleFloorVictory(pWin);
+        return true;
+    }
+    const aWin = aiEngine.findWinningLine(state.board, AI);
+    if (aWin) {
+        handleFloorDefeat(aWin);
+        return true;
+    }
+    return false;
+}
+
 // Triggered whenever ANY token is shattered (cards, bombs, anvils, stalactite collapse)
 function onTokenShattered(count = 1) {
     sfx.playShatterCrunch();
@@ -184,6 +234,7 @@ function startFloorMatch(showIntroScreen = true) {
 
 // Trigger Slot Enchantment when a token lands on (r, c)
 function triggerSlotEnchantment(r, c, actor) {
+    if (!state.enchantGrid || !state.enchantGrid[r]) return;
     const eType = state.enchantGrid[r][c];
     if (!eType) return;
 
@@ -228,7 +279,7 @@ function triggerSlotEnchantment(r, c, actor) {
             state.mana += 1;
             let charredMsg = "Restored +1 Mana Crystal!";
             // Char 1 adjacent AI token
-            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+            const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
             for (const [dr, dc] of dirs) {
                 const nr = r + dr, nc = c + dc;
                 if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && state.board[nr][nc] === AI) {
@@ -372,6 +423,7 @@ function triggerSlotEnchantment(r, c, actor) {
             }
         }
     }
+
     // Sacred Prismatic Heart Gambit: Landing on ANY beneficial Enchanted Slot also draws 1 card & restores +1 Mana!
     if (actor === PLAYER && eType !== ENCHANT_TYPES.CURSED_SPORE && hasGambit('sacred_heart_prism')) {
         state.mana = Math.min(state.maxMana + 2, state.mana + 1);
@@ -626,7 +678,7 @@ function executeReserveTokenDrop(r, col, rType) {
         spawn3DParticleBurst(r, col, 0xf97316, 22, 0.16, 560, 'cone');
 
         let shattered = 0;
-        const dirs = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
         for (const [dr, dc] of dirs) {
             const nr = r + dr, nc = col + dc;
             if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && state.board[nr][nc] === AI) {
@@ -825,16 +877,7 @@ function triggerSinkholeTrapdoor(handIdx, effCost) {
             }
         }
 
-        const winState = aiEngine.checkWinState(state.board, PLAYER);
-        if (winState) {
-            if (winState.winner === PLAYER) {
-                handleFloorVictory(winState.line);
-                return;
-            } else {
-                handleFloorDefeat(winState.line);
-                return;
-            }
-        }
+        if (resolvePostCardWinState()) return;
 
         state.busy = false;
         updateHUD();
@@ -988,17 +1031,7 @@ function triggerAbyssalBoardFlip(handIdx, effCost) {
                 }
             }
 
-            // Active-player priority win check
-            const winState = aiEngine.checkWinState(state.board, PLAYER);
-            if (winState) {
-                if (winState.winner === PLAYER) {
-                    handleFloorVictory(winState.line);
-                    return;
-                } else {
-                    handleFloorDefeat(winState.line);
-                    return;
-                }
-            }
+            if (resolvePostCardWinState()) return;
 
             state.busy = false;
             updateHUD();
@@ -1017,7 +1050,10 @@ function castCardOnColumn(handIdx, col) {
     if (!card || state.mana < effCost) return;
 
     // Highlight Surrealist Dalí Clock Gambit if it discounted this spell!
-    if (hasGambit('dali_clock') && (cardId === 'inversion' || cardId === 'lodestone' || cardId === 'transmute' || cardId === 'abyssal_upheaval')) {
+    if (
+        hasGambit('dali_clock') &&
+        (cardId === 'inversion' || cardId === 'lodestone' || cardId === 'transmute' || cardId === 'abyssal_upheaval')
+    ) {
         sfx.playDaliClockTick();
         pulseGambitBadgeInHUD('dali_clock');
         spawnFloatingPop("🕰️ Dalí Clock: -1 Mana Discount!", "text-teal-300", 4200);
@@ -1046,31 +1082,43 @@ function castCardOnColumn(handIdx, col) {
     }
     else if (cardId === 'tectonic_anchor') {
         const availR = aiEngine.getAvailableRow(state.board, col);
+        const anchorRow = availR !== -1 ? availR : Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+
         state.stability += 3;
-        sfx.playPebbleTamp();
-        sfx.playCoinDing();
-        triggerHaptic([25, 20, 40]);
-        spawn3DColumnBeam(col, 0xfacc15, 0.38, 480, false);
+        if (typeof sfx.playTectonicAnchor === 'function') {
+            sfx.playTectonicAnchor();
+        } else {
+            sfx.playPebbleTamp();
+            setTimeout(() => sfx.playCoinDing(), 95);
+        }
+        triggerHaptic([30, 20, 45]);
+        triggerBoardShake(0.18);
+        spawn3DColumnBeam(col, 0xfacc15, 0.40, 500, false);
+
+        if (typeof playTectonicAnchorVFX === 'function') {
+            playTectonicAnchorVFX(col, anchorRow);
+        }
 
         if (availR !== -1 && state.enchantGrid && state.enchantGrid[availR]) {
             const curEnchant = state.enchantGrid[availR][col];
             if (curEnchant === ENCHANT_TYPES.GILDED) {
                 state.enchantGrid[availR][col] = ENCHANT_TYPES.AMPLIFIER;
                 rebuildEnchantmentRings();
-                spawn3DShockwaveRing(availR, col, 0x38bdf8, 2.4, 480);
+                spawn3DShockwaveRing(availR, col, 0x38bdf8, 2.5, 500);
+                spawn3DParticleBurst(availR, col, 0x38bdf8, 16, 0.13, 480, 'octa');
                 spawnFloatingPop("⏳ +3 Stability & Amplifier Slot!", "text-sky-300", 4800);
                 showToast(`⏳ Tectonic Anchor added +3 Stability & upgraded Col ${col + 1} to a Wild Amplifier Slot!`, "💎");
             } else {
                 state.enchantGrid[availR][col] = ENCHANT_TYPES.GILDED;
                 rebuildEnchantmentRings();
-                spawn3DShockwaveRing(availR, col, 0xfacc15, 2.4, 480);
-                spawn3DParticleBurst(availR, col, 0xfde047, 14, 0.12, 460, 'octa');
+                spawn3DShockwaveRing(availR, col, 0xfacc15, 2.5, 500);
+                spawn3DParticleBurst(availR, col, 0xfde047, 16, 0.13, 480, 'octa');
                 spawnFloatingPop("⏳ +3 Stability & Gilded Slot!", "text-amber-300", 4800);
                 showToast(`⏳ Tectonic Anchor reinforced +3 Stability & gilded the next slot in Col ${col + 1}!`, "⏳");
             }
         } else {
-            const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
-            spawn3DShockwaveRing(topR, col, 0xfacc15, 2.2, 440);
+            spawn3DShockwaveRing(anchorRow, col, 0xfacc15, 2.3, 460);
+            spawn3DParticleBurst(anchorRow, col, 0xfde047, 14, 0.11, 450, 'box');
             spawnFloatingPop("⏳ +3 Seismic Stability!", "text-amber-300", 4800);
             showToast(`⏳ Tectonic Anchor reinforced the cavern ceiling for +3 Seismic Stability!`, "⏳");
         }
@@ -1111,32 +1159,59 @@ function castCardOnColumn(handIdx, col) {
             return;
         }
 
-        sfx.playGravityVortex();
-        triggerHaptic([25, 25, 45]);
-        spawn3DColumnBeam(col, 0x38bdf8, 0.40, 500, true);
+        state.busy = true;
+        state.mana -= effCost;
+        consumeHandCardCopy(handIdx);
+        clearActionSelection();
+        updateColumnPreviewVisual(-1);
+        updateHUD();
 
-        for (let i = 0; i < occupiedRows.length; i++) {
-            const rr = occupiedRows[i];
-            state.board[rr][col] = polarizedStack[i];
+        if (typeof sfx.playLodestonePulse === 'function') {
+            sfx.playLodestonePulse();
+        } else if (typeof sfx.playLodestonePolarity === 'function') {
+            sfx.playLodestonePolarity();
+        } else {
+            sfx.playGravityVortex();
         }
-        const highestR = occupiedRows[occupiedRows.length - 1];
-        state.lastPlayedCell = [highestR, col];
+        triggerHaptic([25, 25, 45]);
+        spawn3DColumnBeam(col, 0x38bdf8, 0.42, 520, true);
 
-        rebuildBoardMeshes([col]);
-        occupiedRows.forEach((rr) => {
-            if (state.meshes[rr] && state.meshes[rr][col]) {
-                state.meshes[rr][col].position.y = state.meshes[rr][col].userData.targetY + 0.38;
-                state.meshes[rr][col].userData.velY = 0;
+        const vfxFn = typeof playLodestonePolarityVFX === 'function' ? playLodestonePolarityVFX : null;
+        runCardVFXWithCallback(vfxFn, [col, occupiedRows], 380, () => {
+            for (let i = 0; i < occupiedRows.length; i++) {
+                const rr = occupiedRows[i];
+                state.board[rr][col] = polarizedStack[i];
             }
-            if ((state.board[rr][col] === PLAYER || state.board[rr][col] === WILD) && state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE) {
-                triggerSlotEnchantment(rr, col, PLAYER);
-            }
+            const highestR = occupiedRows[occupiedRows.length - 1];
+            state.lastPlayedCell = [highestR, col];
+
+            rebuildBoardMeshes([col]);
+            occupiedRows.forEach((rr) => {
+                if (state.meshes[rr] && state.meshes[rr][col]) {
+                    const isRising = state.board[rr][col] === PLAYER || state.board[rr][col] === WILD;
+                    state.meshes[rr][col].position.y = state.meshes[rr][col].userData.targetY + (isRising ? -0.32 : 0.36);
+                    state.meshes[rr][col].userData.velY = 0;
+                }
+                if (
+                    (state.board[rr][col] === PLAYER || state.board[rr][col] === WILD) &&
+                    state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE
+                ) {
+                    triggerSlotEnchantment(rr, col, PLAYER);
+                }
+            });
+
+            spawn3DShockwaveRing(highestR, col, 0x2dd4bf, 2.4, 480);
+            spawn3DParticleBurst(highestR, col, 0xfbbf24, 16, 0.13, 480, 'octa');
+            spawnFloatingPop("🧲 Polarity Pulled Tokens Up!", "text-teal-300", 4800);
+            showToast(`🧲 Lodestone Polarity pulled your tokens to the top of Col ${col + 1}!`, "🧲");
+
+            if (resolvePostCardWinState()) return;
+
+            state.busy = false;
+            updateHUD();
+            updateTelemetryBadges();
         });
-
-        spawn3DShockwaveRing(highestR, col, 0x2dd4bf, 2.4, 480);
-        spawn3DParticleBurst(highestR, col, 0xfbbf24, 16, 0.13, 480, 'octa');
-        spawnFloatingPop("🧲 Polarity Pulled Tokens Up!", "text-teal-300", 4800);
-        showToast(`🧲 Lodestone Polarity pulled your tokens to the top of Col ${col + 1}!`, "🧲");
+        return;
     }
     else if (cardId === 'alchemy_crucible') {
         let targetR = -1;
@@ -1151,29 +1226,63 @@ function castCardOnColumn(handIdx, col) {
             return;
         }
 
-        sfx.playSurrealTransmute();
-        sfx.playCoinDing();
+        state.busy = true;
+        state.mana -= effCost;
+        consumeHandCardCopy(handIdx);
+        clearActionSelection();
+        updateColumnPreviewVisual(-1);
+        updateHUD();
+
+        if (typeof sfx.playAlchemySmelt === 'function') {
+            sfx.playAlchemySmelt();
+        } else if (typeof sfx.playAlchemyCrucible === 'function') {
+            sfx.playAlchemyCrucible();
+        } else {
+            sfx.playSurrealTransmute();
+            setTimeout(() => sfx.playCoinDing(), 110);
+        }
         triggerHaptic([35, 25, 55]);
         triggerBoardShake(0.22);
-
-        state.board[targetR][col] = EMPTY;
-        state.gold += 2;
-        applyColumnGravity(col);
-        rebuildBoardMeshes([col]);
-        onTokenShattered(1);
-
-        const enchantRow = aiEngine.getAvailableRow(state.board, col);
-        const slotRow = enchantRow !== -1 ? enchantRow : targetR;
-        if (state.enchantGrid && state.enchantGrid[slotRow]) {
-            state.enchantGrid[slotRow][col] = ENCHANT_TYPES.AMPLIFIER;
-            rebuildEnchantmentRings();
-        }
-
         spawn3DColumnBeam(col, 0xe879f9, 0.40, 500, true);
-        spawn3DShockwaveRing(slotRow, col, 0x38bdf8, 2.6, 500);
-        spawn3DParticleBurst(slotRow, col, 0xfde047, 18, 0.14, 520, 'octa');
-        spawnFloatingPop("⚗️ Smelted: +$2 & Wild Slot!", "text-sky-300", 5000);
-        showToast(`⚗️ Alchemical Crucible smelted blocker in Col ${col + 1} for +$2 Gold & spawned a Wild Amplifier Slot!`, "⚗️");
+
+        const vfxFn = typeof playAlchemyCrucibleVFX === 'function' ? playAlchemyCrucibleVFX : null;
+        runCardVFXWithCallback(vfxFn, [targetR, col], 380, () => {
+            state.board[targetR][col] = EMPTY;
+            state.gold += 2;
+            applyColumnGravity(col);
+            rebuildBoardMeshes([col]);
+            onTokenShattered(1);
+
+            const enchantRow = aiEngine.getAvailableRow(state.board, col);
+            const slotRow = enchantRow !== -1 ? enchantRow : targetR;
+            if (state.enchantGrid && state.enchantGrid[slotRow]) {
+                state.enchantGrid[slotRow][col] = ENCHANT_TYPES.AMPLIFIER;
+                rebuildEnchantmentRings();
+            }
+
+            // Trigger any Enchanted Slots if tokens above targetR compacted downward into one
+            for (let rr = 0; rr < ROWS; rr++) {
+                const cell = state.board[rr][col];
+                if ((cell === PLAYER || cell === AI) && state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE) {
+                    triggerSlotEnchantment(rr, col, cell);
+                }
+            }
+
+            spawn3DShockwaveRing(slotRow, col, 0x38bdf8, 2.6, 500);
+            spawn3DParticleBurst(slotRow, col, 0xfde047, 18, 0.14, 520, 'octa');
+            spawnFloatingPop("⚗️ Smelted: +$2 & Wild Slot!", "text-sky-300", 5000);
+            showToast(
+                `⚗️ Alchemical Crucible smelted blocker in Col ${col + 1} for +$2 Gold & spawned a Wild Amplifier Slot!`,
+                "⚗️"
+            );
+
+            if (resolvePostCardWinState()) return;
+
+            state.busy = false;
+            updateHUD();
+            updateTelemetryBadges();
+        });
+        return;
     }
     else if (cardId === 'mirror_shard') {
         const topR = aiEngine.getTopOccupiedRow(state.board, col);
@@ -1187,12 +1296,27 @@ function castCardOnColumn(handIdx, col) {
             return;
         }
 
-        sfx.playWildPrismatic();
-        sfx.playEchoTwinDrop();
+        if (typeof sfx.playMirrorReflect === 'function') {
+            sfx.playMirrorReflect();
+        } else if (typeof sfx.playMirrorShard === 'function') {
+            sfx.playMirrorShard();
+        } else {
+            sfx.playWildPrismatic();
+            setTimeout(() => sfx.playEchoTwinDrop(), 95);
+        }
         triggerHaptic([25, 30, 45]);
+
+        if (typeof playMirrorShardVFX === 'function') {
+            playMirrorShardVFX(topR, availR, col);
+        }
 
         spawn3DColumnBeam(col, 0xe879f9, 0.40, 500, true);
         spawnTokenMesh(availR, col, WILD);
+        // Start the reflected token at the source token's height so it visibly emerges upward
+        if (state.meshes[availR] && state.meshes[availR][col]) {
+            state.meshes[availR][col].position.y = START_Y + topR * CELL_SPACING + 0.15;
+            state.meshes[availR][col].userData.velY = 0.08;
+        }
         state.lastPlayedCell = [availR, col];
         spawn3DShockwaveRing(availR, col, 0x38bdf8, 2.6, 500);
         spawn3DParticleBurst(availR, col, 0xe879f9, 18, 0.13, 520, 'octa');
@@ -1233,11 +1357,13 @@ function castCardOnColumn(handIdx, col) {
         triggerHaptic([25, 35, 45]);
         spawn3DColumnBeam(col, 0xf59e0b, 0.38, 480, true);
         spawnTokenMesh(r1, col, PLAYER);
+        state.lastPlayedCell = [r1, col];
         spawn3DShockwaveRing(r1, col, 0xfbbf24, 2.1, 440);
         triggerSlotEnchantment(r1, col, PLAYER);
         const r2 = aiEngine.getAvailableRow(state.board, col);
         if (r2 !== -1) {
             spawnTokenMesh(r2, col, PLAYER);
+            state.lastPlayedCell = [r2, col];
             if (state.meshes[r2] && state.meshes[r2][col]) {
                 state.meshes[r2][col].position.y += CELL_SPACING * 0.85;
             }
@@ -1319,16 +1445,7 @@ function castCardOnColumn(handIdx, col) {
                 "⛏️"
             );
 
-            const winState = aiEngine.checkWinState(state.board, PLAYER);
-            if (winState) {
-                if (winState.winner === PLAYER) {
-                    handleFloorVictory(winState.line);
-                    return;
-                } else {
-                    handleFloorDefeat(winState.line);
-                    return;
-                }
-            }
+            if (resolvePostCardWinState()) return;
 
             state.busy = false;
             updateHUD();
@@ -1342,12 +1459,14 @@ function castCardOnColumn(handIdx, col) {
             showToast("Column is empty!", "⚠️");
             return;
         }
+        state.busy = true;
         sfx.playStalactiteSpear();
         triggerHaptic([30, 20, 65]);
         state.mana -= effCost;
         consumeHandCardCopy(handIdx);
         clearActionSelection();
         updateColumnPreviewVisual(-1);
+        updateHUD();
 
         // Animate 3D Stalactite Spear plunging from cavern ceiling into (topR, col)!
         playStalactiteStrikeVFX(topR, col, () => {
@@ -1355,11 +1474,8 @@ function castCardOnColumn(handIdx, col) {
             rebuildBoardMeshes();
             onTokenShattered(1);
             showToast(`🗡️ Stalactite Strike impaled & shattered top of Col ${col + 1}!`, "🗡️");
-            const winLine = aiEngine.findWinningLine(state.board, PLAYER);
-            if (winLine) {
-                handleFloorVictory(winLine);
-                return;
-            }
+            if (resolvePostCardWinState()) return;
+            state.busy = false;
             updateHUD();
             updateTelemetryBadges();
         });
@@ -1378,26 +1494,33 @@ function castCardOnColumn(handIdx, col) {
             showToast("Need at least 2 tokens to invert!", "⚠️");
             return;
         }
+
+        state.busy = true;
         sfx.playGravityVortex();
         triggerHaptic([25, 30, 45]);
         state.mana -= effCost;
         consumeHandCardCopy(handIdx);
         clearActionSelection();
         updateColumnPreviewVisual(-1);
+        updateHUD();
 
         // Animate 3D Vortex Flip on the target column before committing the inverted stack!
         playColumnInversionVFX(col, () => {
             stack.reverse();
             for (let i = 0; i < occupiedRows.length; i++) {
-                state.board[occupiedRows[i]][col] = stack[i];
+                const rr = occupiedRows[i];
+                state.board[rr][col] = stack[i];
+                if (
+                    (stack[i] === PLAYER || stack[i] === WILD || stack[i] === AI) &&
+                    state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE
+                ) {
+                    triggerSlotEnchantment(rr, col, stack[i] === AI ? AI : PLAYER);
+                }
             }
             rebuildBoardMeshes([col]);
             showToast(`🌀 Gravity Inversion flipped Col ${col + 1} upside down!`, "🌀");
-            const winLine = aiEngine.findWinningLine(state.board, PLAYER);
-            if (winLine) {
-                handleFloorVictory(winLine);
-                return;
-            }
+            if (resolvePostCardWinState()) return;
+            state.busy = false;
             updateHUD();
             updateTelemetryBadges();
         });
@@ -1414,6 +1537,9 @@ function castCardOnColumn(handIdx, col) {
         state.board[topR][col] = PLAYER;
         state.lastPlayedCell = [topR, col];
         rebuildBoardMeshes();
+        if (state.enchantGrid[topR][col] !== ENCHANT_TYPES.NONE) {
+            triggerSlotEnchantment(topR, col, PLAYER);
+        }
         spawn3DShockwaveRing(topR, col, 0xe879f9, 2.6, 500);
         spawn3DShockwaveRing(topR, col, 0xfbbf24, 1.9, 420);
         spawn3DParticleBurst(topR, col, 0xfde047, 18, 0.13, 520, 'octa');
@@ -1501,6 +1627,14 @@ function castCardOnColumn(handIdx, col) {
         applyColumnGravity(col);
         rebuildBoardMeshes([col]);
         onTokenShattered(vaporized);
+
+        for (let rr = 0; rr < ROWS; rr++) {
+            const cell = state.board[rr][col];
+            if ((cell === PLAYER || cell === WILD) && state.enchantGrid[rr][col] !== ENCHANT_TYPES.NONE) {
+                triggerSlotEnchantment(rr, col, PLAYER);
+            }
+        }
+
         spawnFloatingPop(`🩸 BRIMSTONE! Vaporized ${vaporized} Piece(s)!`, "text-rose-400", 5200);
         showToast(`🩸 Sulfuric Brimstone Laser obliterated ${vaporized} AI/Stone token(s) in Col ${col + 1}!`, "🩸");
     }
@@ -1525,11 +1659,7 @@ function castCardOnColumn(handIdx, col) {
     clearActionSelection();
     updateColumnPreviewVisual(-1);
 
-    const winLine = aiEngine.findWinningLine(state.board, PLAYER);
-    if (winLine) {
-        handleFloorVictory(winLine);
-        return;
-    }
+    if (resolvePostCardWinState()) return;
     updateHUD();
     updateTelemetryBadges();
 }
