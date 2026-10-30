@@ -328,23 +328,23 @@ function patchGameCatalogsWithSVGIcons() {
     });
   }
 
-  // 7. Upgrade Inspector, Modal & Roulette Result Title elements so HTML <img> strings
-  // render as real images even when game code sets .textContent = ...
-  const htmlAwareIds = [
+  // 7. Upgrade Inspector, HUD & Modal Icon Containers so HTML <img> strings render cleanly
+  // even when existing code assigns .textContent
+  const iconElementIds = [
     'inspector-icon',
     'sheet-icon',
+    'sheet-title',
     'floor-intro-icon-wrap',
+    'floor-intro-boss-name',
     'floor-intro-topo-name',
-    'topology-badge',
     'boss-name-label',
+    'topology-badge',
     'roulette-center-icon',
-    'roulette-result-title',
-    'bazaar-swap-title',
     'gameover-emoji',
     'tutorial-step-icon'
   ];
 
-  htmlAwareIds.forEach((elId) => {
+  iconElementIds.forEach((elId) => {
     const el = document.getElementById(elId);
     if (!el || el._c4IconPatched) return;
     el._c4IconPatched = true;
