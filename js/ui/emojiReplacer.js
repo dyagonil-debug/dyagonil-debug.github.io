@@ -1,7 +1,11 @@
 // ============================================================================
-// SUBTERRANEAN ASCENSION — UNIVERSAL EMOJI-TO-SVG REPLACER (js/ui/emojiReplacer.js)
-// Automatically replaces all remaining system emojis (🎒, 💀, ❤️/🖤/💔, ✨, and
-// Settings/Debug/HUD utility icons) with custom Subterranean vector SVGs.
+// SUBTERRANEAN ASCENSION — UNIVERSAL EMOJI & RAW <IMG> INTERCEPTOR
+// (js/ui/emojiReplacer.js)
+// 1. Replaces all remaining Unicode emojis (🎒, 💀, ❤️/🖤/💔, ✨, and UI icons)
+//    with custom Subterranean vector SVGs.
+// 2. Automatically upgrades any raw `<img ... c4-item-icon ...>` strings that
+//    were accidentally assigned via `.textContent` (such as `#roulette-result-title`
+//    in rouletteSim.js and `#bazaar-swap-title` in modals.js) into real DOM <img> nodes.
 // ============================================================================
 (function installSubterraneanEmojiReplacer() {
   function iconTag(src, extraClass = '') {
@@ -92,12 +96,43 @@
 
   const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'CODE', 'PRE']);
 
+  function containsRawImgMarkup(str) {
+    return typeof str === 'string' && str.includes('<img') && (str.includes('c4-item-icon') || str.includes('data:image/svg+xml'));
+  }
+
+  function replaceEmojisInPlainString(str) {
+    if (!str || !EMOJI_REGEX.test(str)) {
+      EMOJI_REGEX.lastIndex = 0;
+      return str;
+    }
+    EMOJI_REGEX.lastIndex = 0;
+    return str.replace(EMOJI_REGEX, (match) => EMOJI_LOOKUP[match] || match);
+  }
+
   function replaceTextNodeWithSvgNodes(textNode) {
     const parent = textNode.parentElement;
     if (!parent || SKIP_TAGS.has(parent.tagName)) return;
 
     const val = textNode.nodeValue;
-    if (!val || !EMOJI_REGEX.test(val)) return;
+    if (!val) return;
+
+    // Case 1: A script assigned raw `<img src="data:image/svg+xml..." class="c4-item-icon">` via .textContent
+    // (e.g. #roulette-result-title in rouletteSim.js or #bazaar-swap-title in modals.js)
+    if (containsRawImgMarkup(val)) {
+      const safeHtml = val
+        .split(/(<img[^>]*>)/gi)
+        .map((part) => (/^<img[^>]*>$/i.test(part) ? part : replaceEmojisInPlainString(part)))
+        .join('');
+      const temp = document.createElement('span');
+      temp.innerHTML = safeHtml;
+      const frag = document.createDocumentFragment();
+      while (temp.firstChild) frag.appendChild(temp.firstChild);
+      parent.replaceChild(frag, textNode);
+      return;
+    }
+
+    // Case 2: Standard Unicode emoji replacement inside a text node
+    if (!EMOJI_REGEX.test(val)) return;
     EMOJI_REGEX.lastIndex = 0;
 
     const parts = val.split(EMOJI_REGEX);
@@ -126,21 +161,12 @@
     }
     if (root.nodeType !== Node.ELEMENT_NODE || SKIP_TAGS.has(root.tagName)) return;
 
-    if (
-      root.childNodes.length === 1 &&
-      root.firstChild.nodeType === Node.TEXT_NODE &&
-      root.firstChild.nodeValue.includes('<img') &&
-      root.firstChild.nodeValue.includes('c4-item-icon')
-    ) {
-      root.innerHTML = root.firstChild.nodeValue;
-      return;
-    }
-
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
     const nodesToProcess = [];
     let current;
     while ((current = walker.nextNode())) {
-      if (current.nodeValue && EMOJI_REGEX.test(current.nodeValue)) {
+      const v = current.nodeValue;
+      if (v && (containsRawImgMarkup(v) || EMOJI_REGEX.test(v))) {
         nodesToProcess.push(current);
       }
       EMOJI_REGEX.lastIndex = 0;
