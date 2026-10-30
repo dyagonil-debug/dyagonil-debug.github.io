@@ -328,8 +328,7 @@ function patchGameCatalogsWithSVGIcons() {
     });
   }
 
-  // 7. Upgrade Inspector, HUD & Modal Icon Containers so HTML <img> strings render cleanly
-  // even when existing code assigns .textContent
+  // 7. Upgrade Inspector, HUD & Modal Icon Containers
   const iconElementIds = [
     'inspector-icon',
     'sheet-icon',
@@ -344,6 +343,11 @@ function patchGameCatalogsWithSVGIcons() {
     'tutorial-step-icon'
   ];
 
+  // Elements where you ONLY want plain text (stripping out any injected <img> tag)
+  const stripImgElementIds = new Set([
+    'floor-intro-boss-name'
+  ]);
+
   iconElementIds.forEach((elId) => {
     const el = document.getElementById(elId);
     if (!el || el._c4IconPatched) return;
@@ -353,11 +357,17 @@ function patchGameCatalogsWithSVGIcons() {
         return this.innerHTML;
       },
       set(val) {
-        if (typeof val === 'string' && val.includes('<img')) {
-          this.innerHTML = val;
+        const strVal = String(val ?? '');
+        if (stripImgElementIds.has(elId)) {
+          // Strip any <img ...> tag and extra whitespace, leaving only the text name
+          const cleanText = strVal.replace(/<img[^>]*>/gi, '').trim();
+          this.innerHTML = '';
+          this.appendChild(document.createTextNode(cleanText));
+        } else if (strVal.includes('<img')) {
+          this.innerHTML = strVal;
         } else {
           this.innerHTML = '';
-          this.appendChild(document.createTextNode(val ?? ''));
+          this.appendChild(document.createTextNode(strVal));
         }
       }
     });
