@@ -1,13 +1,12 @@
 // ============================================================================
-// MID-RUN SAVE & RESUME PERSISTENCE ENGINE v2 (js/state/persistence.js)
+// MID-RUN SAVE & RESUME PERSISTENCE ENGINE v3 (js/state/persistence.js)
 // ============================================================================
 // Fixes:
-// 1. Auto-save gate lock: Prevents bootGame()'s initNewRun() and Title Screen
-//    initialization from overwriting an existing checkpoint in localStorage.
-// 2. Title/Splash Screen integration: Intercepts #title-start-game-btn and
-//    post-boot initNewRun() calls, and dismisses lingering overlays on resume.
-// 3. Direct Three.js tokensGroup & enchantGroup mesh serialization/restoration
-//    plus state.meshes[r][c] re-linking so 3D tokens reappear and stay interactive.
+// 1. Hides #intro-sequence-overlay, #title-opener-stage, #difficulty-modal, and
+//    #floor-intro-overlay on Resume/Continue so gameplay begins immediately.
+// 2. Does not intercept initNewRun() during the Tutorial or auto-save tutorial
+//    boards, allowing the player to complete the full tutorial sequence first.
+// 3. Re-links state.meshes[r][c] to restored 3D Three.js token meshes.
 // ============================================================================
 
 const RUN_SAVE_STORAGE_KEY = 'c4_subterranean_saved_run_v1';
@@ -58,11 +57,21 @@ const SAFE_TRANSIENT_DEFAULTS = {
   selectedReserveIndex: null
 };
 
-// Gate lock: when a prior save exists at boot, block all auto-saves until the
+// Gate lock: when a prior save exists at boot, block auto-saves until the
 // player explicitly chooses "Resume Delve" or "Abandon & Start Floor 1".
 let _saveGateLocked = false;
 let _bootCachedPayload = null;
 let _isRestoringRun = false;
+
+function isTutorialCurrentlyActive() {
+  if (typeof window !== 'undefined' && window.tutorialActive) return true;
+  if (typeof tutorialActive !== 'undefined' && tutorialActive) return true;
+  const tutEl = document.getElementById('tutorial-overlay');
+  if (tutEl && !tutEl.classList.contains('hidden') && tutEl.style.display !== 'none') {
+    return true;
+  }
+  return false;
+}
 
 // ----------------------------------------------------------------------------
 // 1. CATALOG LOOKUP & STATE SERIALIZATION
@@ -307,7 +316,6 @@ function reconstructThreeObject(node) {
       }
     }
 
-    // Reuse canonical scene3d token materials when color matches so woodTex maps are preserved
     let material = null;
     const hexColor = node.mat.color ?? 0xffffff;
     if (!node.mat.transparent) {
@@ -391,13 +399,11 @@ function restoreGroupChildren(group, serializedList) {
   }
 }
 
-// Re-links `state.meshes[r][c]` to restored 3D token meshes so cards & boss powers can manipulate them
 function rebuildStateMeshesGridFromScene(tGroup) {
   if (typeof state === 'undefined' || !state) return;
   const rows = typeof ROWS === 'number' ? ROWS : 6;
   const cols = typeof COLS === 'number' ? COLS : 7;
 
-  // If spawnTokenMesh exists and tokensGroup is empty, rebuild from state.board
   if (
     tGroup &&
     tGroup.children.length === 0 &&
@@ -433,7 +439,6 @@ function rebuildStateMeshesGridFromScene(tGroup) {
       }
       continue;
     }
-    // Fallback: derive grid (row, col) from world (x, targetY/y) if getBoardWorldPos is available
     if (typeof getBoardWorldPos === 'function') {
       let bestR = -1;
       let bestC = -1;
@@ -486,10 +491,8 @@ function countPlayerOrAiTokensOnBoard(s) {
   return count;
 }
 
-// Only consider a run saveable if the player has actually dropped at least 1 token
-// OR advanced past Floor 1 (floorIdx > 0), preventing blank Floor 1 overwrites!
 function isRunSaveable() {
-  if (_saveGateLocked || _isRestoringRun) return false;
+  if (_saveGateLocked || _isRestoringRun || isTutorialCurrentlyActive()) return false;
   if (typeof state === 'undefined' || !state) return false;
   if (state.runOver || state.isGameOver || state.gameOver || state.victory || state.runComplete) {
     return false;
@@ -503,7 +506,7 @@ function isRunSaveable() {
 
 function saveCurrentRun(force = false) {
   try {
-    if (_isRestoringRun) return false;
+    if (_isRestoringRun || isTutorialCurrentlyActive()) return false;
     if (!force && (_saveGateLocked || !isRunSaveable())) return false;
     if (typeof state === 'undefined' || !state) return false;
 
@@ -539,7 +542,7 @@ function saveCurrentRun(force = false) {
           : (Array.isArray(state.cards) ? state.cards.length : 0),
         reserveCount: Array.isArray(state.reserves)
           ? state.reserves.length
-          : (Array.isArray(state.reserveTokens) ? state.reserveTokens.length : 0)
+          : (Array.isArray(state.reservePouch) ? state.reservePouch.length : 0)
       },
       stateSnapshot: cleanState,
       tokens3DSnapshot: serializeGroupChildren(tGroup),
@@ -587,15 +590,21 @@ function clearSavedRun() {
 }
 
 // ----------------------------------------------------------------------------
-// 4. RESTORING THE SAVED RUN (STATE + 3D SCENE + HUD + OVERLAY CLEANUP)
+// 4. RESTORING THE SAVED RUN & DISMISSING ALL TITLE/MODAL GATES
 // ----------------------------------------------------------------------------
 function dismissAnyTitleOrSplashOverlays() {
+  // Exact IDs from index.html including #intro-sequence-overlay and its stages
   const candidateIds = [
+    'intro-sequence-overlay',
+    'terminal-boot-stage',
+    'dyagonil-splash-stage',
+    'title-opener-stage',
+    'difficulty-modal',
+    'floor-intro-overlay',
+    'tutorial-overlay',
     'title-screen',
     'title-modal',
     'title-overlay',
-    'difficulty-modal',
-    'floor-intro-overlay',
     'splash-screen',
     'splash-overlay',
     'intro-overlay',
@@ -605,29 +614,32 @@ function dismissAnyTitleOrSplashOverlays() {
     'crt-gate',
     'opening-overlay'
   ];
+
   for (const id of candidateIds) {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('hidden');
-      el.style.display = 'none';
+      el.style.opacity = '0';
       el.style.pointerEvents = 'none';
+      if (id === 'intro-sequence-overlay' || id === 'difficulty-modal' || id === 'floor-intro-overlay') {
+        el.style.display = 'none';
+      }
     }
   }
 
-  const allFixed = document.querySelectorAll('.fixed.inset-0, [style*="position: fixed"]');
-  allFixed.forEach((el) => {
-    if (el.id === 'webgl-container' || el.id === 'c4-resume-delve-modal') return;
-    const txt = (el.innerText || '').toUpperCase();
-    if (
-      el.querySelector('.title-token-piece') ||
-      (txt.includes('SUBTERRANEAN ASCENSION') && (txt.includes('BEGIN') || txt.includes('START') || txt.includes('ASCEND') || txt.includes('ENTER')))
-    ) {
-      el.classList.add('hidden');
-      el.style.display = 'none';
-      el.style.pointerEvents = 'none';
-    }
-  });
   document.body.classList.remove('modal-occluded');
+
+  // Ensure BGM starts playing if enabled when entering gameplay directly
+  if (
+    typeof bgm !== 'undefined' &&
+    bgm &&
+    typeof bgm.play === 'function' &&
+    typeof userSettings !== 'undefined' &&
+    userSettings.musicEnabled &&
+    !(typeof sfx !== 'undefined' && sfx && sfx.muted)
+  ) {
+    try { bgm.play(); } catch (e) {}
+  }
 }
 
 function syncSceneAndHudAfterRestore(payload) {
@@ -639,22 +651,18 @@ function syncSceneAndHudAfterRestore(payload) {
     ? enchantGroup
     : (window.C4 && window.C4.scene3d ? window.C4.scene3d.enchantGroup : null);
 
-  // Restore 3D tokens directly into tokensGroup if snapshot meshes exist
   if (tGroup && payload && Array.isArray(payload.tokens3DSnapshot) && payload.tokens3DSnapshot.length > 0) {
     restoreGroupChildren(tGroup, payload.tokens3DSnapshot);
   }
 
-  // Re-link state.meshes[r][c] so card/boss effects can reference restored 3D tokens
   rebuildStateMeshesGridFromScene(tGroup);
 
-  // Restore 3D enchant meshes if snapshot exists, or rebuild via rebuildEnchantmentRings
   if (eGroup && payload && Array.isArray(payload.enchant3DSnapshot) && payload.enchant3DSnapshot.length > 0) {
     restoreGroupChildren(eGroup, payload.enchant3DSnapshot);
   } else if (typeof rebuildEnchantmentRings === 'function') {
     try { rebuildEnchantmentRings(); } catch (e) {}
   }
 
-  // Call any global HUD refresh functions defined in js/ui/hud.js or notifications.js
   const hudSyncFns = [
     'syncHUD',
     'updateHUD',
@@ -689,6 +697,7 @@ function resumeSavedRun() {
 
   _isRestoringRun = true;
   _saveGateLocked = false;
+  if (typeof window !== 'undefined') window.tutorialActive = false;
 
   try {
     const catalogMap = buildCatalogLookupMap();
@@ -697,7 +706,7 @@ function resumeSavedRun() {
     // 1. Apply floor/topology/boss state first
     Object.assign(state, restoredPhase1);
 
-    // 2. Let startFloorMatch build the 3D cavern board geometry & lighting for this floor
+    // 2. Build the 3D cavern board geometry & lighting for this floor without intro banner
     if (typeof startFloorMatch === 'function') {
       try {
         startFloorMatch(false);
@@ -709,21 +718,19 @@ function resumeSavedRun() {
     Object.assign(state, restoredPhase2);
 
     for (const [k, defaultVal] of Object.entries(SAFE_TRANSIENT_DEFAULTS)) {
-      if (k in state) {
-        state[k] = defaultVal;
-      }
+      state[k] = defaultVal;
     }
+    state.gameOver = false;
 
-    // 4. Reconstruct 3D token meshes, enchantment slots, and HUD
+    // 4. Reconstruct 3D token meshes, enchantment slots, and HUD, and dismiss Title Screen
     syncSceneAndHudAfterRestore(payload);
     dismissAnyTitleOrSplashOverlays();
 
-    // Ensure localStorage still holds the restored payload
     localStorage.setItem(RUN_SAVE_STORAGE_KEY, JSON.stringify(payload));
     _bootCachedPayload = payload;
     updateCheckpointPillUI(true);
 
-    // 5. If it was the AI's turn when saved, trigger AI move
+    // 5. Set active turn status banner or trigger AI move if saved on AI's turn
     if (state.turn === AI || state.currentTurn === AI) {
       const aiTriggerFns = ['triggerAiTurn', 'executeAiTurn', 'runAiTurn', 'scheduleAiMove', 'aiMove'];
       setTimeout(() => {
@@ -736,6 +743,10 @@ function resumeSavedRun() {
           }
         }
       }, 450);
+    } else if (typeof setStatusBanner === 'function') {
+      try {
+        setStatusBanner(true, 'Checkpoint restored — Your Turn! Drag across columns to aim.');
+      } catch (e) {}
     }
 
     if (typeof showToast === 'function') {
@@ -878,7 +889,7 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
           letter-spacing: 0.06em;
           cursor: pointer;
           box-shadow: 0 6px 20px rgba(45, 212, 191, 0.28);
-        ">RESUME DELVE</button>
+        ">CONTINUE SAVED DELVE</button>
 
         <button id="c4-btn-abandon-delve" class="font-mono-code" style="
           width: 100%;
@@ -910,8 +921,8 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
 
   if (resumeBtn) {
     resumeBtn.addEventListener('click', () => {
-      if (typeof sfx !== 'undefined' && sfx && typeof sfx.click === 'function') {
-        try { sfx.click(); } catch (e) {}
+      if (typeof sfx !== 'undefined' && sfx && typeof sfx.playCardChime === 'function') {
+        try { sfx.playCardChime(); } catch (e) {}
       }
       closePrompt();
       resumeSavedRun();
@@ -920,13 +931,17 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
 
   if (abandonBtn) {
     abandonBtn.addEventListener('click', () => {
-      if (typeof sfx !== 'undefined' && sfx && typeof sfx.click === 'function') {
-        try { sfx.click(); } catch (e) {}
+      if (typeof sfx !== 'undefined' && sfx && typeof sfx.playHoverTick === 'function') {
+        try { sfx.playHoverTick(); } catch (e) {}
       }
       clearSavedRun();
       closePrompt();
       if (typeof onAbandonCallback === 'function') {
         try { onAbandonCallback(); } catch (e) {}
+      } else {
+        dismissAnyTitleOrSplashOverlays();
+        if (typeof initNewRun === 'function') initNewRun();
+        if (typeof startFloorMatch === 'function') startFloorMatch(false);
       }
     });
   }
@@ -934,7 +949,6 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
   return true;
 }
 
-// Subtle floating checkpoint pill so you can visually see & test saves anytime
 function mountCheckpointPillUI() {
   if (document.getElementById('c4-checkpoint-pill')) return;
   const pill = document.createElement('button');
@@ -1017,18 +1031,20 @@ function installAutoSaveHooks() {
 
   mountCheckpointPillUI();
 
-  // 1. Intercept `#title-start-game-btn` in capture phase so clicking "Start Game"
-  //    immediately prompts to resume before opening the Difficulty Selector modal.
+  // 1. Intercept `#title-start-game-btn` ("Start Game") on the Title Screen.
+  //    Clicking "Continue Saved Delve" immediately dismisses #intro-sequence-overlay
+  //    and drops the player straight into gameplay.
   const startBtn = document.getElementById('title-start-game-btn');
   if (startBtn && !startBtn._c4ResumeInterceptAttached) {
     startBtn._c4ResumeInterceptAttached = true;
     startBtn.addEventListener(
       'click',
       (e) => {
-        if (_saveGateLocked && _bootCachedPayload && !_isRestoringRun) {
+        if (hasSavedRun() && !_isRestoringRun && !isTutorialCurrentlyActive()) {
           e.stopImmediatePropagation();
           e.preventDefault();
           promptResumeIfAvailable(() => {
+            // Player clicked "Abandon & Start Floor 1" -> proceed with normal Start Game click
             startBtn.click();
           });
         }
@@ -1037,34 +1053,14 @@ function installAutoSaveHooks() {
     );
   }
 
-  // 2. Also wrap initNewRun() as a fallback if called directly while a save is gated
-  if (typeof window.initNewRun === 'function' && !window.initNewRun._c4InterceptWrapped) {
-    const origInitNewRun = window.initNewRun;
-    const wrappedInit = function (...args) {
-      if (_saveGateLocked && _bootCachedPayload && !_isRestoringRun) {
-        setTimeout(() => {
-          promptResumeIfAvailable(() => {
-            origInitNewRun.apply(this, args);
-            if (typeof startFloorMatch === 'function') {
-              try { startFloorMatch(true); } catch (e) {}
-            }
-          });
-        }, 80);
-        return;
-      }
-      return origInitNewRun.apply(this, args);
-    };
-    wrappedInit._c4InterceptWrapped = true;
-    window.initNewRun = wrappedInit;
-  }
-
-  // 3. Clear saved run automatically when a run finishes in defeat or final victory
+  // 2. Clear saved run automatically when a run finishes in defeat or final victory
   const terminalFunctionsToClearOn = [
     'triggerGameOver',
     'handleDefeat',
     'handleFloorDefeat',
     'showRunVictoryModal',
-    'handleRunVictory'
+    'handleRunVictory',
+    'showGameOverModal'
   ];
 
   for (const fnName of terminalFunctionsToClearOn) {
@@ -1079,11 +1075,11 @@ function installAutoSaveHooks() {
     }
   }
 
-  // 4. Poll every 750ms for settled board/floor changes
+  // 3. Poll every 750ms for settled board/floor changes (skipped during Tutorial)
   let lastFingerprint = '';
   setInterval(() => {
     if (typeof state === 'undefined' || !state) return;
-    if (_saveGateLocked || _isRestoringRun) return;
+    if (_saveGateLocked || _isRestoringRun || isTutorialCurrentlyActive()) return;
 
     if (state.runOver || state.isGameOver || state.gameOver || state.victory || state.runComplete) {
       if (lastFingerprint !== 'TERMINAL') {
@@ -1105,7 +1101,7 @@ function installAutoSaveHooks() {
         : (Array.isArray(state.cards) ? state.cards.length : 0);
       const resSig = Array.isArray(state.reserves)
         ? state.reserves.length
-        : (Array.isArray(state.reserveTokens) ? state.reserveTokens.length : 0);
+        : (Array.isArray(state.reservePouch) ? state.reservePouch.length : 0);
       const gambitSig = Array.isArray(state.gambits)
         ? state.gambits.length
         : (Array.isArray(state.activeGambits) ? state.activeGambits.length : 0);
@@ -1119,15 +1115,15 @@ function installAutoSaveHooks() {
   }, 750);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
+    if (document.visibilityState === 'hidden' && !isTutorialCurrentlyActive()) {
       saveCurrentRun();
     }
   });
   window.addEventListener('pagehide', () => {
-    saveCurrentRun();
+    if (!isTutorialCurrentlyActive()) saveCurrentRun();
   });
   window.addEventListener('beforeunload', () => {
-    saveCurrentRun();
+    if (!isTutorialCurrentlyActive()) saveCurrentRun();
   });
 }
 
@@ -1140,6 +1136,7 @@ const runPersistence = {
   clearSavedRun,
   resumeSavedRun,
   promptResumeIfAvailable,
+  dismissAnyTitleOrSplashOverlays,
   installAutoSaveHooks
 };
 
