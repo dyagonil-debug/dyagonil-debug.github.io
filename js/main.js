@@ -5,8 +5,33 @@ if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
   lucide.createIcons();
 }
 
+function registerSubterraneanServiceWorker() {
+  if (
+    'serviceWorker' in navigator &&
+    (window.location.protocol === 'https:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1')
+  ) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch((err) => {
+        console.warn('[C4 PWA] Service Worker registration skipped:', err);
+      });
+    });
+  }
+}
+
+// Strip legacy banishCost property from DIFFICULTY_TIERS if present
+if (typeof DIFFICULTY_TIERS !== 'undefined' && DIFFICULTY_TIERS) {
+  Object.values(DIFFICULTY_TIERS).forEach((tier) => {
+    if (tier && typeof tier === 'object' && 'banishCost' in tier) {
+      delete tier.banishCost;
+    }
+  });
+}
+
 // Expose structured global namespace for inspection and extensibility
 window.C4 = {
+  version: '2.1.0-gambonanza',
   config: {
     ROWS,
     COLS,
@@ -18,7 +43,8 @@ window.C4 = {
     GAMBIT_CATALOG,
     ENCHANT_TYPES,
     BOSS_POOLS_BY_ACT,
-    ROULETTE_WEDGES
+    ROULETTE_WEDGES,
+    UI_ICONS: typeof UI_ICONS !== 'undefined' ? UI_ICONS : {}
   },
   settings: userSettings,
   state,
@@ -41,6 +67,9 @@ window.C4 = {
 function bootGame() {
   if (bootGame.started) return;
   bootGame.started = true;
+
+  // Ensure any legacy #prune-card-btn in the Underground Bazaar DOM is removed
+  document.getElementById('prune-card-btn')?.remove();
 
   try {
     const savedDiff = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
@@ -66,6 +95,9 @@ function bootGame() {
   if (typeof runPersistence !== 'undefined' && runPersistence) {
     runPersistence.installAutoSaveHooks();
   }
+
+  // 3. Register Offline PWA Service Worker
+  registerSubterraneanServiceWorker();
 }
 
 // ============================================================================
@@ -352,7 +384,7 @@ function bootGame() {
 })();
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootGame);
+  document.addEventListener('DOMContentLoaded', bootGame, { once: true });
 } else {
   bootGame();
 }
