@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-timer-brass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <radialGradient id="grad-hud-timer-face" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#070609"/>
+    </radialGradient>
+  </defs>
+  <!-- Top Crown & Side Plunger -->
+  <rect x="26" y="4" width="12" height="5.5" rx="2" fill="url(#grad-hud-timer-brass)" stroke="#451a03" stroke-width="1.5"/>
+  <path d="M32 9.5 V14 M47 17 L52 12 M50 10 L54 14" stroke="url(#grad-hud-timer-brass)" stroke-width="3" stroke-linecap="round"/>
+  <!-- Outer Brass Pocket Chronometer Casing -->
+  <circle cx="32" cy="36" r="22" fill="url(#grad-hud-timer-face)" stroke="url(#grad-hud-timer-brass)" stroke-width="3.5"/>
+  <!-- Swept Active Duration Arc -->
+  <path d="M32 19 A17 17 0 0 1 49 36 L32 36 Z" fill="#2dd4bf" opacity="0.28"/>
+  <!-- Dashed Rune Dial Ring -->
+  <circle cx="32" cy="36" r="17" fill="none" stroke="#2dd4bf" stroke-width="1.8" stroke-dasharray="3 4"/>
+  <!-- Clock Hands -->
+  <path d="M32 36 V22" stroke="#fef08a" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M32 36 L43 41" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="36" r="3.5" fill="#fbbf24" stroke="#1c1917" stroke-width="1.2"/>
+</svg>

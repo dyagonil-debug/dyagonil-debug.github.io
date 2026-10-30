@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-sfx-horn" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+  </defs>
+  <!-- Forged Resonator Horn Body -->
+  <path d="M9 24 H19 L34 11 V53 L19 40 H9 C7 40, 6 38, 6 35 V29 C6 26, 7 24, 9 24 Z" fill="url(#grad-hud-sfx-horn)" stroke="#fde68a" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="9" y="26" width="8" height="12" rx="2" fill="#292524"/>
+  <!-- Acoustic Shockwave Arcs -->
+  <path d="M41 23 C46 28, 46 36, 41 41" fill="none" stroke="#2dd4bf" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M48 16 C56 24, 56 40, 48 48" fill="none" stroke="#fbbf24" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M55 10 C64 21, 64 43, 55 54" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+</svg>

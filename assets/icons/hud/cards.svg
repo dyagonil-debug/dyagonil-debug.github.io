@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-cards-back" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#581c87"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="grad-hud-cards-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#292524"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+  </defs>
+  <!-- Rear Fanned Arcane Tablet -->
+  <rect x="10" y="13" width="28" height="40" rx="4.5" transform="rotate(-12 24 33)" fill="url(#grad-hud-cards-back)" stroke="#c084fc" stroke-width="2.2"/>
+  <!-- Front Runic Card -->
+  <rect x="23" y="11" width="29" height="41" rx="4.5" transform="rotate(8 37.5 31.5)" fill="url(#grad-hud-cards-front)" stroke="#fbbf24" stroke-width="2.5"/>
+  <!-- Glowing Teal & Gold Rune Emblem on Front Card -->
+  <polygon points="38,20 45,31 38,42 31,31" fill="#2dd4bf" stroke="#fef08a" stroke-width="1.8"/>
+  <circle cx="38" cy="31" r="2.8" fill="#fef08a"/>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-kb-case" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#292524"/>
+      <stop offset="100%" stop-color="#0c0a09"/>
+    </linearGradient>
+  </defs>
+  <!-- Top Mechanical Cord -->
+  <path d="M32 8 V16" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Tactile Terminal Chassis -->
+  <rect x="6" y="16" width="52" height="36" rx="6" fill="url(#grad-hud-kb-case)" stroke="#2dd4bf" stroke-width="2.6"/>
+  <!-- Row 1 Mechanical Keycaps -->
+  <rect x="12" y="22" width="7.5" height="6.5" rx="1.5" fill="#fbbf24"/>
+  <rect x="23" y="22" width="7.5" height="6.5" rx="1.5" fill="#fbbf24"/>
+  <rect x="34" y="22" width="7.5" height="6.5" rx="1.5" fill="#fbbf24"/>
+  <rect x="44.5" y="22" width="7.5" height="6.5" rx="1.5" fill="#2dd4bf"/>
+  <!-- Row 2 Mechanical Keycaps -->
+  <rect x="12" y="31.5" width="9" height="6.5" rx="1.5" fill="#d97706"/>
+  <rect x="24" y="31.5" width="7.5" height="6.5" rx="1.5" fill="#d97706"/>
+  <rect x="34.5" y="31.5" width="7.5" height="6.5" rx="1.5" fill="#d97706"/>
+  <rect x="45" y="31.5" width="7" height="6.5" rx="1.5" fill="#14b8a6"/>
+  <!-- Spacebar -->
+  <rect x="17" y="41" width="30" height="6" rx="2" fill="#f59e0b" stroke="#fef08a" stroke-width="1.2"/>
+</svg>

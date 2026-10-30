@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-sparkle-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef9c3"/>
+      <stop offset="45%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="grad-hud-sparkle-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ccfbf1"/>
+      <stop offset="55%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <radialGradient id="grad-hud-sparkle-aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#f59e0b" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#070609" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Subterranean Arcane Glow Halo -->
+  <circle cx="32" cy="32" r="28" fill="url(#grad-hud-sparkle-aura)"/>
+  <!-- Inner Rune Ring -->
+  <circle cx="30" cy="30" r="14" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.65"/>
+  <!-- Diagonal Facet Rays -->
+  <path d="M16 16 L44 44 M44 16 L16 44" stroke="#fde68a" stroke-width="2.2" stroke-linecap="round" opacity="0.75"/>
+  <!-- Main 4-Point Crystalline Star -->
+  <path d="M30 4 Q33.5 26.5 56 30 Q33.5 33.5 30 56 Q26.5 33.5 4 30 Q26.5 26.5 30 4 Z" fill="url(#grad-hud-sparkle-main)" stroke="#fef08a" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- Inner Prismatic Core Diamond -->
+  <polygon points="30,19 36,30 30,41 24,30" fill="#fef9c3" opacity="0.85"/>
+  <polygon points="19,30 30,26 41,30 30,34" fill="#fef9c3" opacity="0.85"/>
+  <circle cx="30" cy="30" r="3.5" fill="#ffffff"/>
+  <!-- Top-Right Bioluminescent Teal Crystal Star -->
+  <path d="M50 6 Q51.8 14.2 60 16 Q51.8 17.8 50 26 Q48.2 17.8 40 16 Q48.2 14.2 50 6 Z" fill="url(#grad-hud-sparkle-teal)" stroke="#ccfbf1" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- Bottom-Left Secondary Amber Star -->
+  <path d="M14 42 Q15.5 48.5 22 50 Q15.5 51.5 14 58 Q12.5 51.5 6 50 Q12.5 48.5 14 42 Z" fill="url(#grad-hud-sparkle-teal)" stroke="#fef08a" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-haptics-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#292524"/>
+      <stop offset="100%" stop-color="#0c0a09"/>
+    </linearGradient>
+  </defs>
+  <!-- Lateral Jagged Seismic Vibration Waves -->
+  <path d="M12 16 L6 23 L12 31 L6 39 L12 47" fill="none" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 16 L58 23 L52 31 L58 39 L52 47" fill="none" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Obsidian Runic Tablet -->
+  <rect x="18" y="9" width="28" height="46" rx="5.5" fill="url(#grad-hud-haptics-body)" stroke="#fbbf24" stroke-width="2.6"/>
+  <rect x="22" y="14" width="20" height="31" rx="2.5" fill="#070609" stroke="#44403c" stroke-width="1.2"/>
+  <!-- Glowing Center Pulse Core -->
+  <polygon points="32,22 38,29.5 32,37 26,29.5" fill="#f59e0b" stroke="#fef08a" stroke-width="1.5"/>
+  <circle cx="32" cy="50" r="2.2" fill="#2dd4bf"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-mtn-main" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="45%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#1c1917"/>
+    </linearGradient>
+    <linearGradient id="grad-hud-mtn-sec" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="45%" stop-color="#115e59"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <!-- Right Bioluminescent Cavern Spire -->
+  <polygon points="27,54 45,20 59,54" fill="url(#grad-hud-mtn-sec)" stroke="#5eead4" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- Left Primary Magma-Crowned Peak -->
+  <polygon points="5,54 25,11 45,54" fill="url(#grad-hud-mtn-main)" stroke="#fde68a" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Glowing Ridge Snow/Crystal Cap -->
+  <polygon points="25,11 32,26 27,23 25,29 22,23 18,26" fill="#fef08a"/>
+  <!-- Dark Subterranean Portal Entrance at Base -->
+  <path d="M20 54 V44 C20 40, 30 40, 30 44 V54 Z" fill="#070609" stroke="#fbbf24" stroke-width="1.6"/>
+  <path d="M3 54 H61" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

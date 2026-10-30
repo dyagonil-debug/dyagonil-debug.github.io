@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-wrench-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ccfbf1"/>
+      <stop offset="50%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="grad-hud-wrench-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="55%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+  </defs>
+  <!-- Crossed Subterranean Pick-Hammer Shaft -->
+  <path d="M13 13 L51 51" stroke="#78350f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M13 13 L51 51" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8 22 L22 8 L28 14 L14 28 Z" fill="url(#grad-hud-wrench-gold)" stroke="#fef08a" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Artificer Spanner Wrench -->
+  <path d="M43 10 C37 10, 33 15, 34 21 L12 43 C9 46, 9 51, 12 54 C15 57, 20 57, 23 54 L45 32 C51 33, 56 29, 56 23 C56 21, 55 19, 54 17 L48 23 L42 21 L40 15 L46 9 C45 9.5, 44 10, 43 10 Z" fill="url(#grad-hud-wrench-teal)" stroke="#ccfbf1" stroke-width="2.2" stroke-linejoin="round"/>
+  <circle cx="17.5" cy="48.5" r="2.5" fill="#070609"/>
+</svg>

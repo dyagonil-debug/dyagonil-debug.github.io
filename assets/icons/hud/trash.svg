@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-trash-body" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#881337"/>
+      <stop offset="100%" stop-color="#1c1917"/>
+    </linearGradient>
+  </defs>
+  <!-- Crucible Lid & Handle -->
+  <path d="M24 16 V10 H40 V16" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="12" y="15" width="40" height="5" rx="2.5" fill="#f43f5e" stroke="#fecdd3" stroke-width="1.8"/>
+  <!-- Smelter Bin Body -->
+  <path d="M17 20 L21 55 H43 L47 20 Z" fill="url(#grad-hud-trash-body)" stroke="#fb7185" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- Glowing Magma Vent Slots -->
+  <path d="M26 28 V47 M32 28 V47 M38 28 V47" stroke="#fbbf24" stroke-width="2.8" stroke-linecap="round"/>
+</svg>

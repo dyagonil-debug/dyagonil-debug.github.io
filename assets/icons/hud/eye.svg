@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-eye-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <radialGradient id="grad-hud-eye-iris" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ccfbf1"/>
+      <stop offset="55%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#134e4a"/>
+    </radialGradient>
+  </defs>
+  <!-- Upper & Lower Arcane Telemetry Rays -->
+  <path d="M32 6 V12 M18 9 L21 14 M46 9 L43 14 M32 58 V52 M18 55 L21 50 M46 55 L43 50" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Outer Eye Shield -->
+  <path d="M5 32 C14 16, 50 16, 59 32 C50 48, 14 48, 5 32 Z" fill="#1c1917" stroke="url(#grad-hud-eye-gold)" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Bioluminescent Teal Iris -->
+  <circle cx="32" cy="32" r="11.5" fill="url(#grad-hud-eye-iris)" stroke="#fef08a" stroke-width="2"/>
+  <!-- Vertical Slit Pupil -->
+  <ellipse cx="32" cy="32" rx="3.2" ry="8" fill="#070609"/>
+  <!-- Specular Glint -->
+  <circle cx="28" cy="28" r="2.5" fill="#ffffff"/>
+</svg>

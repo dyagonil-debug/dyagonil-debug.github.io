@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grad-hud-mute-horn" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#78716c"/>
+      <stop offset="100%" stop-color="#292524"/>
+    </linearGradient>
+  </defs>
+  <!-- Darkened Resonator Horn -->
+  <path d="M9 24 H19 L34 11 V53 L19 40 H9 C7 40, 6 38, 6 35 V29 C6 26, 7 24, 9 24 Z" fill="url(#grad-hud-mute-horn)" stroke="#a8a29e" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- Crimson Rune X Cross -->
+  <path d="M42 24 L56 38 M56 24 L42 38" stroke="#f43f5e" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M42 24 L56 38 M56 24 L42 38" stroke="#fecdd3" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
