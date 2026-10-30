@@ -1,6 +1,7 @@
 // ============================================================================
 // 14. PLAYABLE INTERACTIVE TUTORIAL ENGINE (js/ui/tutorial.js)
-// Guided 5-stage playable "Training Grotto" that leads directly into gameplay
+// Guided 5-stage playable "Training Grotto" that triggers Continue Saved Delve
+// (if a save exists) or Difficulty Selection after hitting "Start Real Run ->"
 // ============================================================================
 
 const PLAYABLE_TUTORIAL_STEPS = [
@@ -87,11 +88,11 @@ const PLAYABLE_TUTORIAL_STEPS = [
     title: 'Grotto Cleared & Stability Bonus!',
     targetSelector: ['#gold-badge', '#stability-info-btn'],
     calloutPosition: 'bottom',
-    promptText: 'Continue to Game →',
+    promptText: 'Start Real Run →',
     expectedAction: null,
     body: `
       <p><strong>Victory!</strong> Every remaining turn on your <strong class="text-orange-300">🌋 Seismic Stability</strong> timer converts into <strong>+$1 Speed Bonus Gold</strong> for the <strong>Underground Bazaar</strong>.</p>
-      <p class="text-teal-300 font-semibold">Tap <strong>Continue to Game →</strong> below to jump straight into Floor 1!</p>
+      <p class="text-teal-300 font-semibold">Watch out on <strong>Floors 3, 6 &amp; 9</strong>: Multi-HP Bosses calcify your winning token into Stone and keep fighting until all Boss HP hearts are depleted!</p>
     `
   }
 ];
@@ -220,7 +221,6 @@ function renderTutorialStep() {
 
   const isPlayableStep = !!step.expectedAction;
 
-  // Allow pointer events straight through to the 3D board & hand during Steps 1-4
   if (tutOverlay) {
     tutOverlay.style.pointerEvents = isPlayableStep ? 'none' : 'auto';
   }
@@ -257,10 +257,10 @@ function renderTutorialStep() {
     }"></span>
   `).join('');
 
-  nextPrompt.textContent = step.promptText || 'Continue →';
+  nextPrompt.textContent = step.promptText || 'Next →';
   nextPrompt.className = isPlayableStep
     ? 'px-3 py-1.5 rounded-xl bg-teal-500/25 border border-teal-400/60 text-teal-200 font-mono-code font-bold text-[10px] uppercase tracking-wider shadow-md'
-    : 'px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-stone-950 font-mono-code font-bold text-[11px] uppercase tracking-wider shadow-lg animate-pulse cursor-pointer';
+    : 'px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-stone-950 font-mono-code font-bold text-[10px] uppercase tracking-wider shadow-md animate-pulse cursor-pointer';
 
   requestAnimationFrame(() => {
     const cardH = card.offsetHeight || 195;
@@ -307,14 +307,13 @@ function installPlayableTutorialHooksOnce() {
   if (tutorialHooksInstalled) return;
   tutorialHooksInstalled = true;
 
-  // 1. Guide card selection during Step 2
   const _origToggleSelectCard = window.toggleSelectCard || toggleSelectCard;
   window.toggleSelectCard = toggleSelectCard = function(idx) {
     if (tutorialActive) {
       const step = PLAYABLE_TUTORIAL_STEPS[tutorialStepIdx];
       const exp = step && step.expectedAction;
       if (!exp || exp.type !== 'CAST_CARD') {
-        showToast("Complete the current board objective first!", "🃏");
+        showToast("Hold onto your cards for the next training objective!", "🃏");
         return;
       }
       const clickedCardId = state.hand[idx];
@@ -338,7 +337,6 @@ function installPlayableTutorialHooksOnce() {
     return _origToggleSelectCard(idx);
   };
 
-  // 2. Guide Reserve Token selection during Step 3
   const _origToggleSelectReserve = window.toggleSelectReserveToken || toggleSelectReserveToken;
   window.toggleSelectReserveToken = toggleSelectReserveToken = function(idx) {
     if (tutorialActive) {
@@ -369,7 +367,6 @@ function installPlayableTutorialHooksOnce() {
     return _origToggleSelectReserve(idx);
   };
 
-  // 3. Validate each playable tutorial objective in commitColumnAction
   const _origCommitColumnAction = window.commitColumnAction || commitColumnAction;
   window.commitColumnAction = commitColumnAction = function(col) {
     if (!tutorialActive) {
@@ -387,7 +384,6 @@ function installPlayableTutorialHooksOnce() {
       return;
     }
 
-    // STEP 1: Standard Token Drop into Column 2 (Gilded Slot)
     if (exp.type === 'DROP_STANDARD') {
       if (state.selectedCardIdx !== null || state.selectedReserveIdx !== null) {
         clearActionSelection();
@@ -403,7 +399,6 @@ function installPlayableTutorialHooksOnce() {
       return;
     }
 
-    // STEP 2: Cast Spelunker's Pickaxe on Column 3
     if (exp.type === 'CAST_CARD') {
       if (state.selectedCardIdx === null || state.hand[state.selectedCardIdx] !== exp.cardId) {
         showToast(exp.wrongCardToast, "⛏️");
@@ -418,7 +413,6 @@ function installPlayableTutorialHooksOnce() {
       return;
     }
 
-    // STEP 3: Deploy Heavy Anvil Reserve Token in Column 4
     if (exp.type === 'DROP_RESERVE') {
       if (state.selectedReserveIdx === null || state.reservePouch[state.selectedReserveIdx] !== exp.reserveId) {
         showToast(exp.wrongReserveToast, "⚓");
@@ -437,7 +431,6 @@ function installPlayableTutorialHooksOnce() {
       return;
     }
 
-    // STEP 4: Winning Connect-4 Drop in Column 3!
     if (exp.type === 'ANY_DROP_WIN') {
       const r = aiEngine.getAvailableRow(state.board, col);
       sfx.playWoodClack(true);
@@ -487,20 +480,14 @@ function startTutorialSequence() {
   if (introOverlay) {
     introOverlay.style.opacity = '0';
     introOverlay.style.pointerEvents = 'none';
-    setTimeout(() => {
-      introOverlay.classList.add('hidden');
-      introOverlay.style.display = 'none';
-    }, 380);
+    setTimeout(() => introOverlay.classList.add('hidden'), 420);
   }
 
   dismissAllActiveNotifications();
   setupPlayableTutorialBoard();
 
   const tutOverlay = document.getElementById('tutorial-overlay');
-  if (tutOverlay) {
-    tutOverlay.classList.remove('hidden');
-    tutOverlay.style.display = '';
-  }
+  tutOverlay.classList.remove('hidden');
   renderTutorialStep();
 }
 
@@ -520,7 +507,7 @@ function advanceTutorialStep() {
   } else {
     sfx.playTutorialStepBlip(tutorialStepIdx, true);
     triggerHaptic([25, 30, 45]);
-    finishTutorialSequence();
+    finishTutorialSequence(false);
   }
 }
 
@@ -528,11 +515,8 @@ function stepBackTutorial() {
   if (!tutorialActive) return;
 }
 
-// Immediately transitions out of the tutorial into live Floor 1 gameplay (or asks to resume
-// a prior saved delve only AFTER the player has finished the tutorial sequence).
-function finishTutorialSequence() {
+function finishTutorialSequence(returnToTitle = false) {
   setTutorialActiveState(false);
-
   const tutOverlay = document.getElementById('tutorial-overlay');
   if (tutOverlay) {
     tutOverlay.classList.add('hidden');
@@ -541,34 +525,39 @@ function finishTutorialSequence() {
 
   dismissAllActiveNotifications();
 
-  // Hide any lingering title/intro/difficulty overlays so gameplay starts immediately
-  if (
-    typeof runPersistence !== 'undefined' &&
-    runPersistence &&
-    typeof runPersistence.dismissAnyTitleOrSplashOverlays === 'function'
-  ) {
-    runPersistence.dismissAnyTitleOrSplashOverlays();
-  }
-
-  // Initialize fresh Floor 1 board immediately for active gameplay
-  initNewRun();
-  startFloorMatch(false);
-  state.turn = PLAYER;
-  state.busy = false;
-  state.gameOver = false;
-  updateHUD();
-  updateTelemetryBadges();
-  setStatusBanner(true, 'Floor 1 Begins — Drag across columns to aim!');
-
-  // If the player had a saved run before entering the tutorial, only now (after
-  // completing the tutorial sequence) offer to continue it.
+  // If a saved run exists when hitting "Start Real Run ->", show the Continue
+  // Saved Delve prompt first before opening the Difficulty Modal!
   if (
     typeof runPersistence !== 'undefined' &&
     runPersistence &&
     typeof runPersistence.hasSavedRun === 'function' &&
     runPersistence.hasSavedRun()
   ) {
-    runPersistence.promptResumeIfAvailable();
+    if (typeof runPersistence.dismissAnyTitleOrSplashOverlays === 'function') {
+      runPersistence.dismissAnyTitleOrSplashOverlays();
+    }
+    runPersistence.promptResumeIfAvailable(() => {
+      initNewRun();
+      startFloorMatch(false);
+      openDifficultyModal(false);
+    });
+    return;
+  }
+
+  initNewRun();
+  startFloorMatch(false);
+
+  if (returnToTitle) {
+    const introOverlay = document.getElementById('intro-sequence-overlay');
+    if (introOverlay) {
+      introOverlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        introOverlay.style.opacity = '1';
+        introOverlay.style.pointerEvents = 'auto';
+      });
+    }
+  } else {
+    openDifficultyModal(false);
   }
 }
 
@@ -582,7 +571,6 @@ function finishTutorialSequence() {
     tutOverlay.addEventListener('click', (e) => {
       if (e.target.closest('#tutorial-skip-btn')) return;
       const step = PLAYABLE_TUTORIAL_STEPS[tutorialStepIdx];
-      // Only allow clicking to finish once the player has reached the final step
       if (step && !step.expectedAction) {
         advanceTutorialStep();
       }
@@ -615,7 +603,7 @@ function finishTutorialSequence() {
     skipBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       sfx.playHoverTick();
-      finishTutorialSequence();
+      finishTutorialSequence(false);
     });
   }
 
