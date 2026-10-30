@@ -180,7 +180,6 @@ class TactileSFX {
     playResultChime(isWin) {
         if (this.muted) return;
         if (isWin) {
-            // Lead Square Fanfare (D5 -> F5 -> A5 -> D6 -> C6 -> D6)
             this.playSteppedSequence([
                 { freq: 587.33,  dur: 0.075, gain: 0.13 }, // D5
                 { freq: 698.46,  dur: 0.075, gain: 0.13 }, // F5
@@ -189,14 +188,12 @@ class TactileSFX {
                 { freq: 1046.50, dur: 0.080, gain: 0.13 }, // C6
                 { freq: 1174.66, dur: 0.340, gain: 0.16 }  // D6
             ], 'square', 0.15, 3400);
-            // Triangle Sub-Bass Harmony
             this.playSteppedSequence([
                 { freq: 146.83, dur: 0.225, gain: 0.16 }, // D3
                 { freq: 220.00, dur: 0.220, gain: 0.16 }, // A3
                 { freq: 293.66, dur: 0.340, gain: 0.18 }  // D4
             ], 'triangle', 0.17, 1800);
         } else {
-            // 8-Bit Chromatic Defeat Descent
             this.playSteppedSequence([
                 { freq: 311.13, dur: 0.11, gain: 0.14 }, // D#4
                 { freq: 293.66, dur: 0.11, gain: 0.14 }, // D4
@@ -239,19 +236,17 @@ class TactileSFX {
         this.playNoiseBurst(0.14, 700, 0.10, 'lowpass');
     }
 
-    // 11. Cute 8-Bit Chiptune Logo Twinkle (Plays when Dyagonil splash hits full opacity)
+    // 11. Cute 8-Bit Chiptune Logo Twinkle
     playSplashTwinkle() {
         if (this.muted) return;
-        // Bright, cute GameBoy/NES style sparkle arpeggio (D6 -> F#6 -> A6 -> D7 -> A6 -> D7) matched to 0.13-0.14 gain
         this.playSteppedSequence([
             { freq: 1174.66, dur: 0.045, gain: 0.12 }, // D6
             { freq: 1479.98, dur: 0.045, gain: 0.13 }, // F#6
             { freq: 1760.00, dur: 0.045, gain: 0.13 }, // A6
             { freq: 2349.32, dur: 0.070, gain: 0.14 }, // D7
             { freq: 1760.00, dur: 0.045, gain: 0.11 }, // A6
-            { freq: 2349.32, dur: 0.240, gain: 0.14 }  // D7 ring out
+            { freq: 2349.32, dur: 0.240, gain: 0.14 }  // D7
         ], 'square', 0.14, 3800);
-        // Warm triangle harmony underneath at matched 0.14 gain
         this.playSteppedSequence([
             { freq: 587.33,  dur: 0.135, gain: 0.13 }, // D5
             { freq: 880.00,  dur: 0.115, gain: 0.13 }, // A5
@@ -259,7 +254,7 @@ class TactileSFX {
         ], 'triangle', 0.14, 2400);
     }
 
-    // 12. Animated Title Opener Token Drop Blip (Pitch rises with each of the 4 tokens: idx 0..3)
+    // 12. Animated Title Opener Token Drop Blip
     playTitleTokenDrop(idx = 0) {
         if (this.muted) return;
         const baseNotes = [293.66, 349.23, 440.00, 587.33]; // D4, F4, A4, D5
@@ -278,7 +273,7 @@ class TactileSFX {
             { freq: 587.33,  dur: 0.055, gain: 0.13 }, // D5
             { freq: 880.00,  dur: 0.055, gain: 0.13 }, // A5
             { freq: 1174.66, dur: 0.065, gain: 0.14 }, // D6
-            { freq: 1479.98, dur: 0.220, gain: 0.15 }  // F#6/F6 heroic lock
+            { freq: 1479.98, dur: 0.220, gain: 0.15 }  // F#6
         ], 'square', 0.14, 3500);
         this.playNoiseBurst(0.08, 1100, 0.11, 'lowpass');
     }
@@ -291,10 +286,10 @@ class TactileSFX {
             { freq: 293.66, dur: 0.045, gain: 0.14 }, // D4
             { freq: 440.00, dur: 0.050, gain: 0.14 }, // A4
             { freq: 587.33, dur: 0.055, gain: 0.15 }, // D5
-            { freq: 880.00, dur: 0.065, gain: 0.15 }, // A5 (Apex of flip)
+            { freq: 880.00, dur: 0.065, gain: 0.15 }, // A5
             { freq: 587.33, dur: 0.050, gain: 0.14 }, // D5
             { freq: 392.00, dur: 0.050, gain: 0.14 }, // G4
-            { freq: 293.66, dur: 0.085, gain: 0.16 }  // D4 Lock-in
+            { freq: 293.66, dur: 0.085, gain: 0.16 }  // D4
         ], 'square', 0.15, 3200);
         this.playNoiseBurst(0.22, 1200, 0.13, 'bandpass');
     }
@@ -383,7 +378,7 @@ class TactileSFX {
         this.playNoiseBurst(0.065, 950, 0.12, 'bandpass');
     }
 
-    // 22. 8-Bit Stalactite Strike Whistle & Shatter (High Falling Whistle -> Piercing Crunch)
+    // 22. 8-Bit Stalactite Strike Whistle & Shatter
     playStalactiteSpear() {
         if (this.muted) return;
         this.playSteppedSequence([
@@ -392,7 +387,7 @@ class TactileSFX {
             { freq: 1046.50, dur: 0.025, gain: 0.13 }, // C6
             { freq: 783.99,  dur: 0.025, gain: 0.14 }, // G5
             { freq: 523.25,  dur: 0.030, gain: 0.15 }, // C5
-            { freq: 130.81,  dur: 0.095, gain: 0.18 }  // C3 Impact
+            { freq: 130.81,  dur: 0.095, gain: 0.18 }  // C3
         ], 'square', 0.15, 3400);
         this.playNoiseBurst(0.16, 1350, 0.17, 'bandpass');
     }
@@ -421,7 +416,7 @@ class TactileSFX {
             { freq: 739.99,  dur: 0.032, gain: 0.13 }, // F#5
             { freq: 830.61,  dur: 0.032, gain: 0.13 }, // G#5
             { freq: 932.33,  dur: 0.040, gain: 0.14 }, // A#5
-            { freq: 1174.66, dur: 0.160, gain: 0.15 }  // D6 Amber Lock
+            { freq: 1174.66, dur: 0.160, gain: 0.15 }  // D6
         ], 'square', 0.14, 3600);
     }
 
@@ -453,9 +448,9 @@ class TactileSFX {
     playCurseBanish() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 130.81,  dur: 0.045, gain: 0.15 }, // C3 Grind
+            { freq: 130.81,  dur: 0.045, gain: 0.15 }, // C3
             { freq: 146.83,  dur: 0.045, gain: 0.15 }, // D3
-            { freq: 587.33,  dur: 0.040, gain: 0.13 }, // D5 Cleanse
+            { freq: 587.33,  dur: 0.040, gain: 0.13 }, // D5
             { freq: 880.00,  dur: 0.045, gain: 0.13 }, // A5
             { freq: 1174.66, dur: 0.130, gain: 0.14 }  // D6
         ], 'square', 0.14, 3400);
@@ -466,9 +461,9 @@ class TactileSFX {
     playAnvilClang() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 1479.98, dur: 0.018, gain: 0.16 }, // F#6 Metallic Strike
-            { freq: 2217.46, dur: 0.025, gain: 0.15 }, // C#7 Ring
-            { freq: 110.00,  dur: 0.095, gain: 0.18 }, // A2 Crush
+            { freq: 1479.98, dur: 0.018, gain: 0.16 }, // F#6
+            { freq: 2217.46, dur: 0.025, gain: 0.15 }, // C#7
+            { freq: 110.00,  dur: 0.095, gain: 0.18 }, // A2
             { freq: 73.42,   dur: 0.110, gain: 0.16 }  // D2
         ], 'square', 0.17, 3800);
         this.playNoiseBurst(0.14, 1200, 0.16, 'bandpass');
@@ -487,7 +482,7 @@ class TactileSFX {
         ], 'square', 0.14, 4200);
     }
 
-    // 30. 8-Bit Jalapeño Core Bomb Detonation (Fuse Whistle -> Spicy 3x3 Blast)
+    // 30. 8-Bit Jalapeño Core Bomb Detonation
     playJalapenoBlast() {
         if (this.muted) return;
         this.playSteppedSequence([
@@ -500,20 +495,20 @@ class TactileSFX {
         this.playNoiseBurst(0.24, 900, 0.19, 'lowpass');
     }
 
-    // 31. 8-Bit Vampire Bat Echolocation & Bite (Ultrasonic Chirps -> Drain Latch)
+    // 31. 8-Bit Vampire Bat Echolocation & Bite
     playBatEcholocation() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 1975.53, dur: 0.018, gain: 0.12 }, // B6 Chirp 1
+            { freq: 1975.53, dur: 0.018, gain: 0.12 }, // B6
             { freq: 1318.51, dur: 0.018, gain: 0.11 }, // E6
-            { freq: 2093.00, dur: 0.018, gain: 0.12 }, // C7 Chirp 2
+            { freq: 2093.00, dur: 0.018, gain: 0.12 }, // C7
             { freq: 1396.91, dur: 0.018, gain: 0.11 }, // F6
-            { freq: 659.25,  dur: 0.045, gain: 0.14 }, // E5 Bite
-            { freq: 880.00,  dur: 0.095, gain: 0.14 }  // A5 Convert
+            { freq: 659.25,  dur: 0.045, gain: 0.14 }, // E5
+            { freq: 880.00,  dur: 0.095, gain: 0.14 }  // A5
         ], 'square', 0.13, 4200);
     }
 
-    // 32. 8-Bit Golden Midas Eye Fanfare (Regal Lydian Gilded Fanfare)
+    // 32. 8-Bit Golden Midas Eye Fanfare
     playMidasFanfare() {
         if (this.muted) return;
         this.playSteppedSequence([
@@ -535,11 +530,11 @@ class TactileSFX {
         if (this.muted) return;
         if (isNineLivesSave) {
             this.playSteppedSequence([
-                { freq: 783.99,  dur: 0.035, gain: 0.14 }, // G5 Meow rise
+                { freq: 783.99,  dur: 0.035, gain: 0.14 }, // G5
                 { freq: 1174.66, dur: 0.045, gain: 0.15 }, // D6
                 { freq: 1567.98, dur: 0.055, gain: 0.16 }, // G6
                 { freq: 1046.50, dur: 0.050, gain: 0.14 }, // C6
-                { freq: 220.00,  dur: 0.090, gain: 0.18 }  // A3 Claw shatter
+                { freq: 220.00,  dur: 0.090, gain: 0.18 }  // A3
             ], 'square', 0.16, 3800);
             this.playNoiseBurst(0.14, 1600, 0.16, 'bandpass');
         } else {
@@ -573,7 +568,7 @@ class TactileSFX {
             { freq: 783.99,  dur: 0.035, gain: 0.14 }, // G5
             { freq: 987.77,  dur: 0.040, gain: 0.15 }, // B5
             { freq: 1174.66, dur: 0.045, gain: 0.15 }, // D6
-            { freq: 1567.98, dur: 0.160, gain: 0.16 }  // G6 Apex!
+            { freq: 1567.98, dur: 0.160, gain: 0.16 }  // G6
         ], 'square', 0.15, 3900);
     }
 
@@ -581,9 +576,9 @@ class TactileSFX {
     playEchoBellToll() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 1318.51, dur: 0.055, gain: 0.14 }, // E6 Toll 1
+            { freq: 1318.51, dur: 0.055, gain: 0.14 }, // E6
             { freq: 659.25,  dur: 0.045, gain: 0.11 }, // E5
-            { freq: 1318.51, dur: 0.140, gain: 0.13 }  // E6 Toll 2
+            { freq: 1318.51, dur: 0.140, gain: 0.13 }  // E6
         ], 'triangle', 0.14, 3800);
     }
 
@@ -607,8 +602,8 @@ class TactileSFX {
     playDaliClockTick() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 987.77, dur: 0.022, gain: 0.11 }, // Tick
-            { freq: 659.25, dur: 0.028, gain: 0.11 }, // Tock
+            { freq: 987.77,  dur: 0.022, gain: 0.11 }, // Tick
+            { freq: 659.25,  dur: 0.028, gain: 0.11 }, // Tock
             { freq: 1174.66, dur: 0.060, gain: 0.12 }
         ], 'square', 0.12, 3500);
     }
@@ -617,76 +612,72 @@ class TactileSFX {
     playBossPhaseShatter() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 587.33,  dur: 0.045, gain: 0.15 }, // D5 Strike
+            { freq: 587.33,  dur: 0.045, gain: 0.15 }, // D5
             { freq: 880.00,  dur: 0.045, gain: 0.15 }, // A5
-            { freq: 1174.66, dur: 0.065, gain: 0.16 }, // D6 Armor Crack
-            { freq: 311.13,  dur: 0.055, gain: 0.16 }, // Eb4 Enrage
+            { freq: 1174.66, dur: 0.065, gain: 0.16 }, // D6
+            { freq: 311.13,  dur: 0.055, gain: 0.16 }, // Eb4
             { freq: 293.66,  dur: 0.055, gain: 0.16 }, // D4
-            { freq: 207.65,  dur: 0.160, gain: 0.18 }  // G#3 Tritone Roar
+            { freq: 207.65,  dur: 0.160, gain: 0.18 }  // G#3
         ], 'sawtooth', 0.17, 3200);
         this.playNoiseBurst(0.26, 1050, 0.18, 'bandpass');
     }
 
-    // 40. In-Theme Subterranean Level Transition Sound (Plays during Floor Intro Fade-In/Out while BGM is paused)
+    // 40. In-Theme Subterranean Level Transition Sound
     playLevelTransitionJingle(floorIdx = 0, isBoss = false, isPreBoss = false) {
         if (this.muted) return;
         if (isBoss) {
-            // Ominous D Phrygian / Hungarian / Locrian Boss Gate Descent Fanfare
             const bossTier = floorIdx >= 8 ? 3 : (floorIdx >= 5 ? 2 : 1);
-            const tritoneOrb2 = bossTier === 3 ? 311.13 : (bossTier === 2 ? 415.30 : 311.13); // Eb4 / G#4
+            const tritoneOrb2 = bossTier === 3 ? 311.13 : (bossTier === 2 ? 415.30 : 311.13);
             this.playSteppedSequence([
-                { freq: 293.66,     dur: 0.09, gain: 0.15 }, // D4
-                { freq: tritoneOrb2, dur: 0.09, gain: 0.15 }, // Eb4 / G#4
-                { freq: 370.00,     dur: 0.09, gain: 0.15 }, // F#4
-                { freq: 440.00,     dur: 0.11, gain: 0.16 }, // A4
-                { freq: 466.16,     dur: 0.11, gain: 0.16 }, // Bb4
-                { freq: 440.00,     dur: 0.10, gain: 0.15 }, // A4
-                { freq: 293.66,     dur: 0.34, gain: 0.17 }  // D4 Lock
+                { freq: 293.66,      dur: 0.09, gain: 0.15 },
+                { freq: tritoneOrb2, dur: 0.09, gain: 0.15 },
+                { freq: 370.00,      dur: 0.09, gain: 0.15 },
+                { freq: 440.00,      dur: 0.11, gain: 0.16 },
+                { freq: 466.16,      dur: 0.11, gain: 0.16 },
+                { freq: 440.00,      dur: 0.10, gain: 0.15 },
+                { freq: 293.66,      dur: 0.34, gain: 0.17 }
             ], 'sawtooth', 0.16, 2600);
-            // Deep Sub-Bass Cavern Gate Thud
             this.playSteppedSequence([
-                { freq: 146.83, dur: 0.18, gain: 0.17 }, // D3
-                { freq: 110.00, dur: 0.18, gain: 0.17 }, // A2
-                { freq: 73.42,  dur: 0.52, gain: 0.18 }  // D2
+                { freq: 146.83, dur: 0.18, gain: 0.17 },
+                { freq: 110.00, dur: 0.18, gain: 0.17 },
+                { freq: 73.42,  dur: 0.52, gain: 0.18 }
             ], 'triangle', 0.18, 1600);
             this.playNoiseBurst(0.24, 900, 0.14, 'lowpass');
         } else if (isPreBoss) {
-            // Tense D Dorian Vanguard War-Horn Transition
             this.playSteppedSequence([
-                { freq: 440.00, dur: 0.08, gain: 0.13 }, // A4
-                { freq: 392.00, dur: 0.08, gain: 0.13 }, // G4
-                { freq: 349.23, dur: 0.08, gain: 0.14 }, // F4
-                { freq: 329.63, dur: 0.08, gain: 0.14 }, // E4
-                { freq: 293.66, dur: 0.12, gain: 0.15 }, // D4
-                { freq: 440.00, dur: 0.10, gain: 0.14 }, // A4
-                { freq: 587.33, dur: 0.28, gain: 0.15 }  // D5 Echo
+                { freq: 440.00, dur: 0.08, gain: 0.13 },
+                { freq: 392.00, dur: 0.08, gain: 0.13 },
+                { freq: 349.23, dur: 0.08, gain: 0.14 },
+                { freq: 329.63, dur: 0.08, gain: 0.14 },
+                { freq: 293.66, dur: 0.12, gain: 0.15 },
+                { freq: 440.00, dur: 0.10, gain: 0.14 },
+                { freq: 587.33, dur: 0.28, gain: 0.15 }
             ], 'square', 0.14, 3000);
             this.playSteppedSequence([
-                { freq: 146.83, dur: 0.32, gain: 0.16 }, // D3
-                { freq: 220.00, dur: 0.20, gain: 0.16 }, // A3
-                { freq: 146.83, dur: 0.30, gain: 0.17 }  // D3
+                { freq: 146.83, dur: 0.32, gain: 0.16 },
+                { freq: 220.00, dur: 0.20, gain: 0.16 },
+                { freq: 146.83, dur: 0.30, gain: 0.17 }
             ], 'triangle', 0.16, 1800);
             this.playNoiseBurst(0.14, 1200, 0.11, 'bandpass');
         } else {
-            // Mystical Subterranean Descent Echo (Descending D Dorian Crystal Cascade -> Warm Lantern Lock)
             this.playSteppedSequence([
-                { freq: 880.00, dur: 0.075, gain: 0.12 }, // A5
-                { freq: 698.46, dur: 0.075, gain: 0.12 }, // F5
-                { freq: 587.33, dur: 0.075, gain: 0.13 }, // D5
-                { freq: 440.00, dur: 0.085, gain: 0.13 }, // A4
-                { freq: 523.25, dur: 0.085, gain: 0.13 }, // C5
-                { freq: 587.33, dur: 0.300, gain: 0.14 }  // D5 Cavern Resonance
+                { freq: 880.00, dur: 0.075, gain: 0.12 },
+                { freq: 698.46, dur: 0.075, gain: 0.12 },
+                { freq: 587.33, dur: 0.075, gain: 0.13 },
+                { freq: 440.00, dur: 0.085, gain: 0.13 },
+                { freq: 523.25, dur: 0.085, gain: 0.13 },
+                { freq: 587.33, dur: 0.300, gain: 0.14 }
             ], 'square', 0.13, 3100);
             this.playSteppedSequence([
-                { freq: 293.66, dur: 0.225, gain: 0.15 }, // D4
-                { freq: 220.00, dur: 0.170, gain: 0.15 }, // A3
-                { freq: 146.83, dur: 0.320, gain: 0.16 }  // D3 Sub-bass landing
+                { freq: 293.66, dur: 0.225, gain: 0.15 },
+                { freq: 220.00, dur: 0.170, gain: 0.15 },
+                { freq: 146.83, dur: 0.320, gain: 0.16 }
             ], 'triangle', 0.16, 1900);
             this.playNoiseBurst(0.10, 1350, 0.09, 'bandpass');
         }
     }
 
-    // 41. Crisp Tactile Mechanical Keyboard Keystroke (Switch Click + Keycap Bottom-Out Thock + Spring Upstroke)
+    // 41. Crisp Tactile Mechanical Keyboard Keystroke
     playMechanicalKeystroke() {
         if (this.muted) return;
         this.init();
@@ -695,11 +686,8 @@ class TactileSFX {
             this.ctx.resume().catch(() => {});
         }
         const now = this.ctx.currentTime;
-
-        // Part A: Sharp high-frequency switch leaf click (Cherry MX Blue / IBM buckling spring snap)
         this.playNoiseBurst(0.014, 4600, 0.24, 'bandpass');
 
-        // Part B: Woody PBT keycap bottom-out "thock" transient
         const thockOsc = this.ctx.createOscillator();
         const thockGain = this.ctx.createGain();
         thockOsc.type = 'triangle';
@@ -712,7 +700,6 @@ class TactileSFX {
         thockOsc.start(now + 0.004);
         thockOsc.stop(now + 0.05);
 
-        // Part C: Subtle metallic keycap upstroke release click (~52ms later)
         const upOsc = this.ctx.createOscillator();
         const upGain = this.ctx.createGain();
         upOsc.type = 'square';
@@ -730,70 +717,66 @@ class TactileSFX {
     playTrapdoorRelease() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 392.00, dur: 0.025, gain: 0.15 }, // G4 Iron latch click
+            { freq: 392.00, dur: 0.025, gain: 0.15 }, // G4
             { freq: 293.66, dur: 0.030, gain: 0.16 }, // D4
-            { freq: 196.00, dur: 0.045, gain: 0.17 }, // G3 Trapdoor drop
+            { freq: 196.00, dur: 0.045, gain: 0.17 }, // G3
             { freq: 146.83, dur: 0.060, gain: 0.17 }, // D3
-            { freq: 98.00,  dur: 0.110, gain: 0.16 }  // G2 Subterranean rumble
+            { freq: 98.00,  dur: 0.110, gain: 0.16 }  // G2
         ], 'triangle', 0.17, 2000);
         this.playNoiseBurst(0.16, 820, 0.15, 'lowpass');
     }
 
-    // 43. 8-Bit Token Hitting the Cavern Floor (Primary Stone Thud + Secondary Bounce Clatter)
+    // 43. 8-Bit Token Hitting the Cavern Floor
     playTokenFloorHit(hitIdx = 0, tokenType = 1) {
         if (this.muted) return;
-        const baseFreqs = [261.63, 293.66, 329.63]; // C4, D4, E4 per falling token
+        const baseFreqs = [261.63, 293.66, 329.63];
         const pitchMult = tokenType === 3 ? 0.78 : (tokenType === 4 ? 1.15 : 1.0);
         const root = baseFreqs[hitIdx % baseFreqs.length] * pitchMult;
 
-        // Stepped 8-bit floor strike + secondary bounce tick
         this.playSteppedSequence([
-            { freq: root * 1.45, dur: 0.018, gain: 0.15 }, // Initial rim clack
-            { freq: root * 0.75, dur: 0.040, gain: 0.18 }, // Heavy floor thud
-            { freq: root * 0.50, dur: 0.032, gain: 0.06 }, // Brief rebound air gap
-            { freq: root * 1.20, dur: 0.016, gain: 0.12 }, // Secondary bounce clack
-            { freq: root * 0.65, dur: 0.048, gain: 0.13 }  // Cavern floor settle
+            { freq: root * 1.45, dur: 0.018, gain: 0.15 },
+            { freq: root * 0.75, dur: 0.040, gain: 0.18 },
+            { freq: root * 0.50, dur: 0.032, gain: 0.06 },
+            { freq: root * 1.20, dur: 0.016, gain: 0.12 },
+            { freq: root * 0.65, dur: 0.048, gain: 0.13 }
         ], 'square', 0.16, 2600);
         this.playNoiseBurst(0.055, 1150 + hitIdx * 210, 0.14, 'bandpass');
     }
 
-    // 44. Interactive Title Screen Token Toy Note (Pitched in D Dorian: D5, F5, A5, D6)
+    // 44. Interactive Title Screen Token Toy Note
     playTitleTokenToyNote(idx = 0) {
         if (this.muted) return;
-        // Token 0 (Amber): D5 | Token 1 (Teal): F5 | Token 2 (Amber): A5 | Token 3 (Purple): D6
         const notes = [587.33, 698.46, 880.00, 1174.66];
         const root = notes[idx % notes.length];
 
-        // Primary 8-bit square pluck with a quick octave-fifth chirp
         this.playSteppedSequence([
-            { freq: root * 1.5, dur: 0.018, gain: 0.11 },
-            { freq: root,       dur: 0.095, gain: 0.14 },
+            { freq: root * 1.5,  dur: 0.018, gain: 0.11 },
+            { freq: root,        dur: 0.095, gain: 0.14 },
             { freq: root * 1.25, dur: 0.045, gain: 0.09 }
         ], 'square', 0.14, 3600);
 
-        // Warm triangle sub-octave body
         this.playSteppedSequence([
             { freq: root * 0.5, dur: 0.14, gain: 0.13 }
         ], 'triangle', 0.13, 2200);
     }
 
-    // 45. 8-Bit Secret Code Unlocked Fanfare (Retro Mystery Chime)
+    // 45. 8-Bit Secret Code Unlocked Fanfare
     playDebugUnlockJingle() {
         if (this.muted) return;
         this.playSteppedSequence([
-            { freq: 659.25,  dur: 0.055, gain: 0.13 }, // E5
-            { freq: 783.99,  dur: 0.055, gain: 0.13 }, // G5
-            { freq: 987.77,  dur: 0.055, gain: 0.14 }, // B5
-            { freq: 1174.66, dur: 0.055, gain: 0.14 }, // D6
-            { freq: 1318.51, dur: 0.055, gain: 0.15 }, // E6
-            { freq: 1567.98, dur: 0.070, gain: 0.15 }, // G6
-            { freq: 1975.53, dur: 0.240, gain: 0.16 }  // B6
+            { freq: 659.25,  dur: 0.055, gain: 0.13 },
+            { freq: 783.99,  dur: 0.055, gain: 0.13 },
+            { freq: 987.77,  dur: 0.055, gain: 0.14 },
+            { freq: 1174.66, dur: 0.055, gain: 0.14 },
+            { freq: 1318.51, dur: 0.055, gain: 0.15 },
+            { freq: 1567.98, dur: 0.070, gain: 0.15 },
+            { freq: 1975.53, dur: 0.240, gain: 0.16 }
         ], 'square', 0.15, 4200);
 
         this.playSteppedSequence([
-            { freq: 329.63, dur: 0.165, gain: 0.14 }, // E4
-            { freq: 493.88, dur: 0.165, gain: 0.14 }, // B4
-            { freq: 659.25, dur: 0.310, gain: 0.16 }  // E5
+            { freq: 329.63, dur: 0.165, gain: 0.14 },
+            { freq: 493.88, dur: 0.165, gain: 0.14 },
+            { freq: 659.25, dur: 0.310, gain: 0.16 }
         ], 'triangle', 0.15, 2400);
     }
 
@@ -802,29 +785,25 @@ class TactileSFX {
         if (this.muted) return;
         const hits = Math.max(1, Math.min(4, stoneCount));
 
-        // Staggered metallic pickaxe clangs for each stone shattered
         for (let i = 0; i < hits; i++) {
             setTimeout(() => {
                 if (this.muted) return;
                 const pitchShift = 1 + i * 0.08;
-                // High metallic iron-on-flint spark ping
                 this.playSteppedSequence([
-                    { freq: 523.25 * pitchShift,  dur: 0.018, gain: 0.12 }, // Swing whoosh
-                    { freq: 1975.53 * pitchShift, dur: 0.022, gain: 0.17 }, // B6 Iron strike
-                    { freq: 2637.02 * pitchShift, dur: 0.030, gain: 0.15 }, // E7 Metallic ring
-                    { freq: 1318.51 * pitchShift, dur: 0.045, gain: 0.12 }, // E6 Resonance
-                    { freq: 146.83,               dur: 0.075, gain: 0.17 }, // D3 Rock crack
-                    { freq: 87.31,                dur: 0.095, gain: 0.15 }  // F2 Rubble thud
+                    { freq: 523.25 * pitchShift,  dur: 0.018, gain: 0.12 },
+                    { freq: 1975.53 * pitchShift, dur: 0.022, gain: 0.17 },
+                    { freq: 2637.02 * pitchShift, dur: 0.030, gain: 0.15 },
+                    { freq: 1318.51 * pitchShift, dur: 0.045, gain: 0.12 },
+                    { freq: 146.83,               dur: 0.075, gain: 0.17 },
+                    { freq: 87.31,                dur: 0.095, gain: 0.15 }
                 ], 'square', 0.16, 4000);
 
-                // Deep triangle rock-splitting transient
                 this.playSteppedSequence([
                     { freq: 220.00, dur: 0.035, gain: 0.18 },
                     { freq: 110.00, dur: 0.065, gain: 0.18 },
                     { freq: 65.41,  dur: 0.110, gain: 0.16 }
                 ], 'triangle', 0.18, 1600);
 
-                // Gravel & stone shrapnel noise burst
                 this.playNoiseBurst(0.15, 1450 + i * 220, 0.17, 'bandpass');
             }, i * 75);
         }
@@ -835,10 +814,10 @@ class TactileSFX {
         if (this.muted) return;
         if (isFinal) {
             this.playSteppedSequence([
-                { freq: 587.33,  dur: 0.045, gain: 0.13 }, // D5
-                { freq: 880.00,  dur: 0.045, gain: 0.13 }, // A5
-                { freq: 1174.66, dur: 0.055, gain: 0.14 }, // D6
-                { freq: 1479.98, dur: 0.160, gain: 0.15 }  // F#6
+                { freq: 587.33,  dur: 0.045, gain: 0.13 },
+                { freq: 880.00,  dur: 0.045, gain: 0.13 },
+                { freq: 1174.66, dur: 0.055, gain: 0.14 },
+                { freq: 1479.98, dur: 0.160, gain: 0.15 }
             ], 'square', 0.14, 3600);
         } else {
             const scale = [587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50, 1174.66, 1318.51];
@@ -848,6 +827,103 @@ class TactileSFX {
                 { freq: root * 1.25, dur: 0.065, gain: 0.12 }
             ], 'triangle', 0.12, 3400);
         }
+    }
+
+    // 48. 8-Bit Tectonic Anchor Keystone Brace & Gilded Lock-In
+    playTectonicAnchor(upgradedToAmplifier = false) {
+        if (this.muted) return;
+        // Phase 1: Heavy dwarven keystone brace slam (sub-bass triangle thud)
+        this.playSteppedSequence([
+            { freq: 293.66, dur: 0.028, gain: 0.17 }, // D4
+            { freq: 196.00, dur: 0.035, gain: 0.18 }, // G3
+            { freq: 146.83, dur: 0.075, gain: 0.18 }, // D3 Brace Lock
+            { freq: 220.00, dur: 0.120, gain: 0.15 }  // A3
+        ], 'triangle', 0.18, 1900);
+        this.playNoiseBurst(0.08, 950, 0.14, 'lowpass');
+
+        // Phase 2: Gilded / Amplifier slot crystallization chime (~115ms later)
+        setTimeout(() => {
+            if (this.muted) return;
+            const topNote = upgradedToAmplifier ? 1975.53 : 1479.98; // B6 (Amplifier) vs F#6 (Gilded)
+            this.playSteppedSequence([
+                { freq: 587.33,  dur: 0.032, gain: 0.13 }, // D5
+                { freq: 880.00,  dur: 0.035, gain: 0.14 }, // A5
+                { freq: 1174.66, dur: 0.040, gain: 0.14 }, // D6
+                { freq: topNote, dur: 0.170, gain: 0.15 }
+            ], 'square', 0.14, 3900);
+        }, 115);
+    }
+
+    // 49. 8-Bit Lodestone Polarity Electromagnetic Hum & Levitation Snap
+    playLodestonePolarity() {
+        if (this.muted) return;
+        // Alternating bipolar magnetic flux pulse sweeping upward to a metallic lock
+        this.playSteppedSequence([
+            { freq: 220.00,  dur: 0.026, gain: 0.13 }, // A3
+            { freq: 329.63,  dur: 0.026, gain: 0.13 }, // E4
+            { freq: 293.66,  dur: 0.026, gain: 0.14 }, // D4
+            { freq: 440.00,  dur: 0.026, gain: 0.14 }, // A4
+            { freq: 587.33,  dur: 0.030, gain: 0.15 }, // D5
+            { freq: 880.00,  dur: 0.032, gain: 0.15 }, // A5
+            { freq: 1318.51, dur: 0.038, gain: 0.16 }, // E6
+            { freq: 1760.00, dur: 0.150, gain: 0.15 }  // A6 Magnetic snap!
+        ], 'square', 0.15, 3800);
+
+        // Low electromagnetic triangle hum underneath
+        this.playSteppedSequence([
+            { freq: 110.00, dur: 0.11, gain: 0.15 }, // A2
+            { freq: 146.83, dur: 0.11, gain: 0.15 }, // D3
+            { freq: 220.00, dur: 0.16, gain: 0.16 }  // A3
+        ], 'triangle', 0.15, 1800);
+        this.playNoiseBurst(0.055, 2200, 0.10, 'bandpass');
+    }
+
+    // 50. 8-Bit Alchemical Crucible Bubbling Acid Dissolve & Wild Crystal Smelt
+    playAlchemyCrucible() {
+        if (this.muted) return;
+        // Phase 1: Percolating alchemical crucible bubbles + sizzle dissolve
+        this.playSteppedSequence([
+            { freq: 370.00, dur: 0.024, gain: 0.13 }, // F#4
+            { freq: 440.00, dur: 0.024, gain: 0.13 }, // A4
+            { freq: 392.00, dur: 0.024, gain: 0.14 }, // G4
+            { freq: 523.25, dur: 0.024, gain: 0.14 }, // C5
+            { freq: 466.16, dur: 0.024, gain: 0.14 }, // Bb4
+            { freq: 659.25, dur: 0.028, gain: 0.15 }  // E5
+        ], 'triangle', 0.14, 3200);
+        this.playNoiseBurst(0.14, 2600, 0.12, 'highpass');
+
+        // Phase 2: Golden transmutation & Wild Amplifier crystal chime (~150ms later)
+        setTimeout(() => {
+            if (this.muted) return;
+            this.playSteppedSequence([
+                { freq: 783.99,  dur: 0.032, gain: 0.14 }, // G5
+                { freq: 987.77,  dur: 0.035, gain: 0.14 }, // B5
+                { freq: 1174.66, dur: 0.040, gain: 0.15 }, // D6
+                { freq: 1567.98, dur: 0.180, gain: 0.15 }  // G6
+            ], 'square', 0.15, 4000);
+        }, 150);
+    }
+
+    // 51. 8-Bit Prismatic Mirror Shard Twin-Octave Reflection Shimmer
+    playMirrorShard() {
+        if (this.muted) return;
+        // Motif 1 (Amber source token): D5 -> F#5 -> A5
+        // Motif 2 (Reflected Wild Prismatic octave): D6 -> F#6 -> A6 -> C#7 -> D7
+        this.playSteppedSequence([
+            { freq: 587.33,  dur: 0.028, gain: 0.13 }, // D5
+            { freq: 739.99,  dur: 0.028, gain: 0.13 }, // F#5
+            { freq: 880.00,  dur: 0.032, gain: 0.14 }, // A5
+            { freq: 1174.66, dur: 0.028, gain: 0.14 }, // D6
+            { freq: 1479.98, dur: 0.028, gain: 0.15 }, // F#6
+            { freq: 1760.00, dur: 0.032, gain: 0.15 }, // A6
+            { freq: 2217.46, dur: 0.038, gain: 0.14 }, // C#7
+            { freq: 2349.32, dur: 0.170, gain: 0.15 }  // D7 Prismatic Lock
+        ], 'square', 0.15, 4200);
+
+        this.playSteppedSequence([
+            { freq: 293.66, dur: 0.090, gain: 0.14 }, // D4
+            { freq: 587.33, dur: 0.240, gain: 0.15 }  // D5
+        ], 'triangle', 0.14, 2400);
     }
 }
 
