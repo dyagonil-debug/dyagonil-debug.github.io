@@ -43,6 +43,16 @@ const CARD_CATALOG = {
         shortDesc: 'Shatter ALL Petrified Stone in a col!',
         desc: 'Swing a heavy iron mining pickaxe down a target column! Shatters EVERY neutral Petrified Stone token in that column, compacting remaining tokens downward.'
     },
+    tectonic_anchor: {
+        id: 'tectonic_anchor',
+        name: 'Tectonic Anchor',
+        cost: 1,
+        price: 7,
+        tier: 1,
+        icon: '⏳',
+        shortDesc: '+3 Stability & Gilds next slot in col!',
+        desc: 'Reinforce the cavern ceiling for +3 Seismic Stability turns and enchant the next open slot in the target column into a Gilded Slot (+$3 Gold)!'
+    },
     sinkhole_chute: {
         id: 'sinkhole_chute',
         name: 'Subterranean Trapdoor',
@@ -52,6 +62,26 @@ const CARD_CATALOG = {
         icon: '🕳️',
         shortDesc: 'Drop 3 bottom tokens out of board! (Min 3)',
         desc: 'Unbolt a subterranean trapdoor beneath the board! Shakes the cavern and causes 3 random tokens in the bottom row (pulling from higher rows if needed) to fall out of the bottom, shifting their columns down. Unusable if fewer than 3 tokens are in play.'
+    },
+    lodestone: {
+        id: 'lodestone',
+        name: 'Lodestone Polarity',
+        cost: 1,
+        price: 8,
+        tier: 2,
+        icon: '🧲',
+        shortDesc: 'Float your tokens to top of column stack!',
+        desc: 'Magnetically pull all of your Amber and Wild tokens in a column to the top of its stack while sinking AI and Petrified Stone pieces to the bottom!'
+    },
+    alchemy_crucible: {
+        id: 'alchemy_crucible',
+        name: 'Alchemical Crucible',
+        cost: 1,
+        price: 9,
+        tier: 2,
+        icon: '⚗️',
+        shortDesc: 'Shatter top AI/Stone -> +$2 & Wild Slot!',
+        desc: 'Dissolve the topmost AI or Petrified Stone blocker in a column! Awards +$2 Gold, triggers shatter synergies, and leaves a glowing Wild Amplifier Slot in its place.'
     },
     inversion: {
         id: 'inversion',
@@ -92,6 +122,16 @@ const CARD_CATALOG = {
         icon: '♊',
         shortDesc: 'High-Tier: Drop 2 Player tokens in 1 col!',
         desc: 'High-Tier Mastery: Instantly drop TWO of your amber tokens stacked into the target column!'
+    },
+    mirror_shard: {
+        id: 'mirror_shard',
+        name: 'Prismatic Mirror Shard',
+        cost: 2,
+        price: 11,
+        tier: 2,
+        icon: '🪞',
+        shortDesc: 'Clone top Player token upward as WILD!',
+        desc: 'Reflect your topmost Player or Wild token in a column into the empty space directly above it as a Wild Prismatic Token!'
     },
     abyssal_upheaval: {
         id: 'abyssal_upheaval',
@@ -305,7 +345,7 @@ const GAMBIT_CATALOG = {
         icon: '🕰️',
         price: 9,
         tier: 2,
-        desc: 'Tier 2 Melting Time: Gravity Inversion, Transmute & Abyssal Upheaval cost -1 Mana. Reveals exact AI scores above all 7 columns.'
+        desc: 'Tier 2 Melting Time: Gravity Inversion, Lodestone Polarity, Transmute & Abyssal Upheaval cost -1 Mana. Reveals exact AI scores above all 7 columns.'
     },
     echo_bell: {
         id: 'echo_bell',
@@ -334,7 +374,7 @@ const GAMBIT_CATALOG = {
     jalapeno_overdrive: {
         id: 'jalapeno_overdrive',
         name: 'Jalapeño Pepperoni Overdrive',
-        icon: '??',
+        icon: '🌶️',
         price: 11,
         tier: 2,
         desc: 'Tier 2 Spicy Ignition: Start each floor with +1 Mana. Every 2 tokens shattered converts 1 random AI token into your color!'
