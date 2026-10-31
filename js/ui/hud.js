@@ -388,3 +388,11 @@ function setStatusBanner(isPlayer, msg) {
         ? "w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"
         : "w-2 h-2 rounded-full bg-teal-400 animate-ping shrink-0";
 }
+
+  // Reset any inline styles that persistence.js or other modals may have set
+  overlay.style.display = '';
+  overlay.style.opacity = '';
+  overlay.style.pointerEvents = '';
+
+  // Reset & show overlay for Fade-In
+  overlay.classList.remove('hidden', 'floor-intro-fadeout', 'floor-intro-active');
