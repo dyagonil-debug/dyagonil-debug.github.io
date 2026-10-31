@@ -2,12 +2,13 @@
 // MID-RUN SAVE & RESUME PERSISTENCE ENGINE v4 (js/state/persistence.js)
 // ============================================================================
 // Fixes:
-// 1. Title Screen "Start Game" -> "Continue Saved Delve" dismisses
-//    #intro-sequence-overlay and leads immediately into gameplay.
-// 2. Hooking startTutorialSequence() locks & preserves any existing checkpoint
-//    while the player completes all 5 stages of the playable tutorial.
-// 3. Hooking finishTutorialSequence() ("Start Real Run ->") immediately
-//    triggers the Continue Saved Delve prompt upon tutorial completion.
+// 1. Hides #intro-sequence-overlay, #title-opener-stage, #difficulty-modal, and
+//    #floor-intro-overlay on Resume/Continue without leaving inline display:none
+//    styles on #floor-intro-overlay or #difficulty-modal that would deadlock
+//    state.busy = true on subsequent Floor Intro transitions or Retries.
+// 2. Does not intercept initNewRun() during the Tutorial or auto-save tutorial
+//    boards, allowing the player to complete the full tutorial sequence first.
+// 3. Re-links state.meshes[r][c] to restored 3D Three.js token meshes.
 // ============================================================================
 
 const RUN_SAVE_STORAGE_KEY = 'c4_subterranean_saved_run_v1';
@@ -58,15 +59,13 @@ const SAFE_TRANSIENT_DEFAULTS = {
   selectedReserveIndex: null
 };
 
-// Gate lock: when a prior save exists at boot or tutorial start, block auto-saves
-// until the player explicitly chooses "Continue Saved Delve" or "Abandon & Start Floor 1".
+// Gate lock: when a prior save exists at boot, block auto-saves until the
+// player explicitly chooses "Resume Delve" or "Abandon & Start Floor 1".
 let _saveGateLocked = false;
 let _bootCachedPayload = null;
 let _isRestoringRun = false;
-let _inTutorialMode = false;
 
 function isTutorialCurrentlyActive() {
-  if (_inTutorialMode) return true;
   if (typeof window !== 'undefined' && window.tutorialActive) return true;
   if (typeof tutorialActive !== 'undefined' && tutorialActive) return true;
   const tutEl = document.getElementById('tutorial-overlay');
@@ -584,7 +583,6 @@ function hasSavedRun() {
 }
 
 function clearSavedRun() {
-  if (_inTutorialMode) return;
   _bootCachedPayload = null;
   _saveGateLocked = false;
   try {
@@ -597,13 +595,12 @@ function clearSavedRun() {
 // 4. RESTORING THE SAVED RUN & DISMISSING ALL TITLE/MODAL GATES
 // ----------------------------------------------------------------------------
 function dismissAnyTitleOrSplashOverlays() {
-  const candidateIds = [
+  // 1. Permanently dismiss boot/title/splash overlays
+  const bootAndTitleIds = [
     'intro-sequence-overlay',
     'terminal-boot-stage',
     'dyagonil-splash-stage',
     'title-opener-stage',
-    'difficulty-modal',
-    'floor-intro-overlay',
     'tutorial-overlay',
     'title-screen',
     'title-modal',
@@ -618,20 +615,50 @@ function dismissAnyTitleOrSplashOverlays() {
     'opening-overlay'
   ];
 
-  for (const id of candidateIds) {
+  for (const id of bootAndTitleIds) {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('hidden');
       el.style.opacity = '0';
       el.style.pointerEvents = 'none';
-      if (id === 'intro-sequence-overlay' || id === 'difficulty-modal' || id === 'floor-intro-overlay') {
+      if (id === 'intro-sequence-overlay') {
         el.style.display = 'none';
       }
     }
   }
 
+  // 2. Hide reusable game modals via CSS classes and CLEAR any inline display/opacity/pointerEvents
+  //    so future Floor Intro transitions, Difficulty modals, or Game Over modals never deadlock!
+  const reusableModalIds = [
+    'difficulty-modal',
+    'floor-intro-overlay',
+    'gameover-modal'
+  ];
+
+  for (const id of reusableModalIds) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('hidden');
+      el.classList.remove('floor-intro-active', 'floor-intro-fadeout');
+      el.style.display = '';
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+    }
+  }
+
+  if (typeof activeFloorIntroTimers !== 'undefined' && Array.isArray(activeFloorIntroTimers)) {
+    activeFloorIntroTimers.forEach((t) => clearTimeout(t));
+    activeFloorIntroTimers.length = 0;
+  }
+
+  if (typeof state !== 'undefined' && state) {
+    state.busy = false;
+    state.gameOver = false;
+  }
+
   document.body.classList.remove('modal-occluded');
 
+  // Ensure BGM starts playing if enabled when entering gameplay directly
   if (
     typeof bgm !== 'undefined' &&
     bgm &&
@@ -640,6 +667,8 @@ function dismissAnyTitleOrSplashOverlays() {
     userSettings.musicEnabled &&
     !(typeof sfx !== 'undefined' && sfx && sfx.muted)
   ) {
+    bgm.isPausedForIntro = false;
+    bgm.isPausedForModal = false;
     try { bgm.play(); } catch (e) {}
   }
 }
@@ -699,7 +728,6 @@ function resumeSavedRun() {
 
   _isRestoringRun = true;
   _saveGateLocked = false;
-  _inTutorialMode = false;
   if (typeof window !== 'undefined') window.tutorialActive = false;
 
   try {
@@ -724,8 +752,9 @@ function resumeSavedRun() {
       state[k] = defaultVal;
     }
     state.gameOver = false;
+    state.busy = false;
 
-    // 4. Reconstruct 3D token meshes, enchantment slots, and HUD, and dismiss all overlays
+    // 4. Reconstruct 3D token meshes, enchantment slots, and HUD, and dismiss Title Screen
     syncSceneAndHudAfterRestore(payload);
     dismissAnyTitleOrSplashOverlays();
 
@@ -937,7 +966,6 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
       if (typeof sfx !== 'undefined' && sfx && typeof sfx.playHoverTick === 'function') {
         try { sfx.playHoverTick(); } catch (e) {}
       }
-      _inTutorialMode = false;
       clearSavedRun();
       closePrompt();
       if (typeof onAbandonCallback === 'function') {
@@ -1017,7 +1045,7 @@ function updateCheckpointPillUI(saved) {
 }
 
 // ----------------------------------------------------------------------------
-// 6. LIFECYCLE, TITLE SCREEN & TUTORIAL COMPLETION HOOKS
+// 6. LIFECYCLE & AUTO-SAVE HOOKS
 // ----------------------------------------------------------------------------
 function captureBootCheckpointBeforeInit() {
   const existing = loadSavedRunPayload();
@@ -1054,54 +1082,7 @@ function installAutoSaveHooks() {
     );
   }
 
-  // 2. Hook `startTutorialSequence` so entering the Tutorial preserves any saved run
-  //    without interrupting the player until they finish the tutorial sequence.
-  if (typeof window.startTutorialSequence === 'function' && !window.startTutorialSequence._c4Wrapped) {
-    const origStartTutorial = window.startTutorialSequence;
-    const wrappedStartTutorial = function (...args) {
-      captureBootCheckpointBeforeInit();
-      _inTutorialMode = true;
-      if (typeof window !== 'undefined') window.tutorialActive = true;
-      return origStartTutorial.apply(this, args);
-    };
-    wrappedStartTutorial._c4Wrapped = true;
-    window.startTutorialSequence = wrappedStartTutorial;
-  }
-
-  // 3. Hook `finishTutorialSequence` (triggered when clicking "Start Real Run ->"
-  //    on Step 5 of the tutorial) so the Continue Saved Delve option appears right
-  //    after completing the tutorial!
-  if (typeof window.finishTutorialSequence === 'function' && !window.finishTutorialSequence._c4Wrapped) {
-    const origFinishTutorial = window.finishTutorialSequence;
-    const wrappedFinishTutorial = function (returnToTitle = false, ...rest) {
-      _inTutorialMode = false;
-      if (typeof window !== 'undefined') window.tutorialActive = false;
-
-      if (hasSavedRun()) {
-        const tutOverlay = document.getElementById('tutorial-overlay');
-        if (tutOverlay) {
-          tutOverlay.classList.add('hidden');
-          tutOverlay.style.pointerEvents = 'auto';
-        }
-        if (typeof dismissAllActiveNotifications === 'function') {
-          try { dismissAllActiveNotifications(); } catch (e) {}
-        }
-        dismissAnyTitleOrSplashOverlays();
-
-        // Display the Continue Saved Delve modal immediately after hitting "Start Real Run ->"
-        promptResumeIfAvailable(() => {
-          origFinishTutorial.apply(this, [returnToTitle, ...rest]);
-        });
-        return;
-      }
-
-      return origFinishTutorial.apply(this, [returnToTitle, ...rest]);
-    };
-    wrappedFinishTutorial._c4Wrapped = true;
-    window.finishTutorialSequence = wrappedFinishTutorial;
-  }
-
-  // 4. Clear saved run automatically when a real run finishes in defeat or final victory
+  // 2. Clear saved run automatically when a run finishes in defeat or final victory
   const terminalFunctionsToClearOn = [
     'triggerGameOver',
     'handleDefeat',
@@ -1115,9 +1096,7 @@ function installAutoSaveHooks() {
     if (typeof window[fnName] === 'function' && !window[fnName]._c4ClearWrapped) {
       const originalFn = window[fnName];
       const wrapped = function (...args) {
-        if (!isTutorialCurrentlyActive()) {
-          clearSavedRun();
-        }
+        clearSavedRun();
         return originalFn.apply(this, args);
       };
       wrapped._c4ClearWrapped = true;
@@ -1125,7 +1104,7 @@ function installAutoSaveHooks() {
     }
   }
 
-  // 5. Poll every 750ms for settled board/floor changes (skipped during Tutorial)
+  // 3. Poll every 750ms for settled board/floor changes (skipped during Tutorial)
   let lastFingerprint = '';
   setInterval(() => {
     if (typeof state === 'undefined' || !state) return;
