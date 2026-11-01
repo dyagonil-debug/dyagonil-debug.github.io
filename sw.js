@@ -1,15 +1,17 @@
 // ============================================================================
 // SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v1.26';
+const CACHE_NAME = 'subterranean-ascension-v2.5.0';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './assets/images/dyagonil-logo.png',
+  './assets/icons/icon-manifest.json',
   './css/main.css',
   './css/animations.css',
   './css/overlays.css',
+  './css/icons.css',
   './js/config/constants.js',
   './js/config/topologies.js',
   './js/config/catalogs.js',
@@ -25,6 +27,8 @@ const PRECACHE_ASSETS = [
   './js/graphics/scene3d.js',
   './js/graphics/vfx3d.js',
   './js/graphics/loop.js',
+  './js/ui/iconSystem.js',
+  './js/ui/emojiReplacer.js',
   './js/ui/notifications.js',
   './js/ui/hud.js',
   './js/ui/modals.js',
@@ -61,7 +65,7 @@ self.addEventListener('fetch', (event) => {
   let url;
   try {
     url = new URL(event.request.url);
-  } catch (e) {
+  } catch (_) {
     return;
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;

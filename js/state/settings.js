@@ -1,9 +1,6 @@
 // ============================================================================
 // PERSISTENT USER SETTINGS ENGINE (localStorage) (js/state/settings.js)
 // ============================================================================
-// ============================================================================
-// 0. PERSISTENT USER SETTINGS ENGINE (localStorage: c4_subterranean_settings)
-// ============================================================================
 const SETTINGS_STORAGE_KEY = 'c4_subterranean_settings';
 const VALID_NOTIFICATION_SPEEDS = new Set(['fast', 'normal', 'extended']);
 const VALID_TOUCH_DROP_MODES = new Set(['confirm', 'instant']);
@@ -19,7 +16,7 @@ const userSettings = {
   slotCalloutsEnabled: true,
   floatingPopsEnabled: true,
   notificationSpeed: 'normal', // 'fast' (2500ms) | 'normal' (4800ms) | 'extended' (7000ms)
-  musicEnabled: true, // Retro 8-Bit Chiptune Soundtrack toggle
+  musicEnabled: true,
   sfxEnabled: true,
   hapticsEnabled: true,
   touchDropMode: 'confirm' // 'confirm' (Two-Tap Safe) | 'instant' (Single-Tap Fast)
@@ -43,13 +40,13 @@ function loadUserSettings() {
     if (VALID_TOUCH_DROP_MODES.has(parsed.touchDropMode)) {
       userSettings.touchDropMode = parsed.touchDropMode;
     }
-  } catch (e) {}
+  } catch (_) {}
 }
 
 function saveUserSettings() {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(userSettings));
-  } catch (e) {}
+  } catch (_) {}
   if (typeof syncSettingsUI === 'function') {
     syncSettingsUI();
   }

@@ -6,15 +6,15 @@ const pointer = new THREE.Vector2();
 let isPointerDownOnBoard = false;
 let downCol = -1;
 let pointerMovedSignificantly = false;
-let downX = 0, downY = 0;
+let downX = 0;
+let downY = 0;
 
 function getColumnFromPointerEvent(e) {
   pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects(columnHitboxes);
-  if (hits.length > 0) return hits[0].object.userData.col;
-  return -1;
+  return hits.length > 0 ? hits[0].object.userData.col : -1;
 }
 
 renderer.domElement.addEventListener('pointerdown', (e) => {
@@ -71,20 +71,10 @@ document.getElementById('confirm-drop-btn').addEventListener('click', () => {
 
 document.getElementById('cancel-action-btn').addEventListener('click', clearActionSelection);
 
-document.getElementById('close-info-sheet').addEventListener('click', () => {
-  document.getElementById('info-sheet-modal').classList.add('hidden');
-});
-
-document.getElementById('info-sheet-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'info-sheet-modal') {
-    document.getElementById('info-sheet-modal').classList.add('hidden');
-  }
-});
-
 document.getElementById('telemetry-btn').addEventListener('click', () => {
   state.showTelemetry = !state.showTelemetry;
   updateTelemetryBadges();
-  showToast(state.showTelemetry ? "AI Column Telemetry: ON" : "AI Column Telemetry: OFF", "👁️");
+  showToast(state.showTelemetry ? 'AI Column Telemetry: ON' : 'AI Column Telemetry: OFF', '👁️');
 });
 
 document.getElementById('mute-btn').addEventListener('click', () => {
@@ -94,27 +84,28 @@ document.getElementById('mute-btn').addEventListener('click', () => {
   saveUserSettings();
   if (nextMute) bgm.stop();
   else bgm.play();
-  showToast(nextMute ? "Audio & Chiptune Music Muted" : "Audio & Chiptune Music Active", nextMute ? "🔇" : "🔊");
+  showToast(nextMute ? 'Audio & Chiptune Music Muted' : 'Audio & Chiptune Music Active', nextMute ? '🔇' : '🔊');
 });
 
 // ============================================================================
 // DESKTOP & QA KEYBOARD SHORTCUTS
 // ============================================================================
+const BLOCKING_MODAL_IDS = [
+  'intro-sequence-overlay',
+  'floor-intro-overlay',
+  'tutorial-overlay',
+  'bazaar-modal',
+  'roulette-modal',
+  'boss-chest-modal',
+  'gameover-modal',
+  'settings-modal',
+  'difficulty-modal',
+  'debug-menu-modal',
+  'info-sheet-modal'
+];
+
 function isAnyBlockingModalOpen() {
-  const modalIds = [
-    'intro-sequence-overlay',
-    'floor-intro-overlay',
-    'tutorial-overlay',
-    'bazaar-modal',
-    'roulette-modal',
-    'boss-chest-modal',
-    'gameover-modal',
-    'settings-modal',
-    'difficulty-modal',
-    'debug-menu-modal',
-    'info-sheet-modal'
-  ];
-  return modalIds.some(id => {
+  return BLOCKING_MODAL_IDS.some((id) => {
     const el = document.getElementById(id);
     if (!el) return false;
     if (id === 'intro-sequence-overlay' && el.style.pointerEvents === 'none') return false;
@@ -200,7 +191,7 @@ window.addEventListener('keydown', (e) => {
     if (state.mana >= effCost) {
       toggleSelectCard(cardIdx);
     } else {
-      showToast("Not enough Mana crystals!", "⚡");
+      showToast('Not enough Mana crystals!', '⚡');
     }
     return;
   }

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#070609">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Connect 4: Subterranean Ascension // Gambonanza Edition</title>
+  <title>Connect 4: Subterranean Ascension</title>
 
   <!-- PWA Manifest & App Icons -->
   <link rel="manifest" href="./manifest.json">
@@ -1041,13 +1041,5 @@
   <script defer src="./js/graphics/loop.js"></script>
   <script defer src="./js/main.js"></script>
 
-  <!-- 9. PWA Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-      });
-    }
-  </script>
 </body>
 </html>

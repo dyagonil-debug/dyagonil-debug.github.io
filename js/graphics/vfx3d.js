@@ -1,791 +1,2863 @@
 // ============================================================================
-// 3D SUBTERRANEAN VFX & CHOREOGRAPHY ENGINE (js/graphics/vfx3d.js)
-// ============================================================================
-
-// ============================================================================
-// 4B. 3D SUBTERRANEAN VFX & CHOREOGRAPHY ENGINE (Arcane Cards, Reserve Tokens & Gambits)
+// 3D SUBTERRANEAN VFX & HIGH-DETAIL SCULPTED PROP ENGINE (js/graphics/vfx3d.js)
+//   Every Arcane Card and Tactical Reserve Token constructs a finely detailed,
+//   multi-component 3D miniature of the object it represents (bevelled dice
+//   with accurate 1-6 pip layouts, graduated glass-and-brass hypodermic
+//   lancet, curved serrated bear-trap jaws with leaf springs & chain, French
+//   guillotine with lunette stock & trapezoidal blade, 24-segment articulated
+//   Ouroboros dragon-serpent, blinking spherical Basilisk eyeball with scaly
+//   lids, 6-winged multi-feather Seraphim & eye-studded Ophanim wheels, etc.).
 // ============================================================================
 const vfxGroup = new THREE.Group();
 boardGroup.add(vfxGroup);
 const activeVFX = [];
 const boardShakeState = { intensity: 0, decay: 0.88 };
 
-function triggerBoardShake(amount = 0.22) {
-    boardShakeState.intensity = Math.max(boardShakeState.intensity, amount);
+// Dedicated high-contrast Rim Light attached to vfxGroup so sculpted 3D props
+// show crisp metallic bevels, specular highlights, and surface relief.
+const vfxKeyLight = new THREE.PointLight(0xfffbeb, 1.65, 22);
+vfxKeyLight.position.set(0, 2.2, 4.8);
+vfxGroup.add(vfxKeyLight);
+
+const VFX_MIN_VISIBLE_Y = START_Y + 0.15;                             // -2.45
+const VFX_MAX_VISIBLE_Y = START_Y + (ROWS - 1) * CELL_SPACING - 0.15; // +3.15
+const VFX_CENTER_Y = START_Y + ((ROWS - 1) * CELL_SPACING) / 2;       // +0.35
+
+function clampVisibleY(y) {
+  return Math.max(VFX_MIN_VISIBLE_Y, Math.min(VFX_MAX_VISIBLE_Y, y));
 }
 
-function getCellWorldPos(r, c, zOffset = 0.42) {
-    return new THREE.Vector3(
-        START_X + c * CELL_SPACING,
-        START_Y + r * CELL_SPACING,
-        zOffset
-    );
+function getVisibleRowY(r) {
+  const safeR = Math.max(0, Math.min(ROWS - 1, Number.isFinite(r) && r >= 0 ? r : 2));
+  return clampVisibleY(START_Y + safeR * CELL_SPACING);
+}
+
+function triggerBoardShake(amount = 0.22) {
+  boardShakeState.intensity = Math.max(boardShakeState.intensity, amount);
+}
+
+function getCellWorldPos(r, c, zOffset = 0.55) {
+  const safeR = Math.max(0, Math.min(ROWS - 1, Number.isFinite(r) && r >= 0 ? r : 2));
+  const safeC = Math.max(0, Math.min(COLS - 1, Number.isFinite(c) && c >= 0 ? c : 3));
+  return new THREE.Vector3(
+    START_X + safeC * CELL_SPACING,
+    START_Y + safeR * CELL_SPACING,
+    zOffset
+  );
+}
+
+function getBoardWorldPos(r, c) {
+  return getCellWorldPos(r, c, 0);
 }
 
 function addTimedVFX(mesh, durationMs, onUpdate) {
-    vfxGroup.add(mesh);
-    activeVFX.push({
-        mesh,
-        startTime: performance.now(),
-        duration: durationMs,
-        onUpdate
-    });
+  vfxGroup.add(mesh);
+  activeVFX.push({
+    mesh,
+    startTime: performance.now(),
+    duration: durationMs,
+    onUpdate
+  });
 }
 
+// ============================================================================
+// SHARED PBR MATERIAL PALETTE FOR FINELY SCULPTED 3D PROPS
+// ============================================================================
+const C4_VFX_MATS = {
+  polishedSteel: new THREE.MeshStandardMaterial({
+    color: 0xf1f5f9,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.22,
+    roughness: 0.14,
+    metalness: 0.94
+  }),
+  darkIron: new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    emissive: 0x0f172a,
+    emissiveIntensity: 0.3,
+    roughness: 0.36,
+    metalness: 0.86
+  }),
+  rustedIron: new THREE.MeshStandardMaterial({
+    color: 0x78350f,
+    emissive: 0x451a03,
+    emissiveIntensity: 0.32,
+    roughness: 0.52,
+    metalness: 0.72
+  }),
+  agedBrass: new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    emissive: 0xb45309,
+    emissiveIntensity: 0.38,
+    roughness: 0.22,
+    metalness: 0.88
+  }),
+  burnishedCopper: new THREE.MeshStandardMaterial({
+    color: 0xf97316,
+    emissive: 0x9a3412,
+    emissiveIntensity: 0.35,
+    roughness: 0.25,
+    metalness: 0.86
+  }),
+  boneIvory: new THREE.MeshStandardMaterial({
+    color: 0xfef3c7,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.20,
+    roughness: 0.26,
+    metalness: 0.12
+  }),
+  crimsonRuby: new THREE.MeshStandardMaterial({
+    color: 0xf43f5e,
+    emissive: 0xe11d48,
+    emissiveIntensity: 0.55,
+    roughness: 0.16,
+    metalness: 0.45
+  }),
+  emeraldJade: new THREE.MeshStandardMaterial({
+    color: 0x10b981,
+    emissive: 0x059669,
+    emissiveIntensity: 0.42,
+    roughness: 0.20,
+    metalness: 0.55
+  }),
+  obsidianPitch: new THREE.MeshStandardMaterial({
+    color: 0x18181b,
+    emissive: 0x581c87,
+    emissiveIntensity: 0.45,
+    roughness: 0.10,
+    metalness: 0.90
+  }),
+  quicksilverChrome: new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.45,
+    roughness: 0.06,
+    metalness: 0.98
+  }),
+  beeswaxGold: new THREE.MeshStandardMaterial({
+    color: 0xfde047,
+    emissive: 0xca8a04,
+    emissiveIntensity: 0.32,
+    roughness: 0.35,
+    metalness: 0.15
+  }),
+  basaltStone: new THREE.MeshStandardMaterial({
+    color: 0x78716c,
+    emissive: 0x292524,
+    emissiveIntensity: 0.28,
+    roughness: 0.65,
+    metalness: 0.25
+  })
+};
+
 // Helper: 3D Particle Burst at (r, c)
-function spawn3DParticleBurst(r, c, colorHex = 0xfbbf24, count = 16, speed = 0.11, durationMs = 520, shape = 'box') {
-    const group = new THREE.Group();
-    const origin = getCellWorldPos(r, c, 0.45);
-    group.position.copy(origin);
+function spawn3DParticleBurst(r, c, colorHex = 0xfbbf24, count = 16, speed = 0.12, durationMs = 560, shape = 'box') {
+  const group = new THREE.Group();
+  group.position.copy(getCellWorldPos(r, c, 0.65));
 
-    const geo = shape === 'octa'
-        ? new THREE.OctahedronGeometry(0.13, 0)
-        : (shape === 'cone'
-            ? new THREE.ConeGeometry(0.09, 0.24, 5)
-            : new THREE.BoxGeometry(0.13, 0.13, 0.13));
+  const geo = shape === 'octa'
+    ? new THREE.OctahedronGeometry(0.15, 0)
+    : (shape === 'cone'
+      ? new THREE.ConeGeometry(0.11, 0.28, 5)
+      : new THREE.BoxGeometry(0.15, 0.15, 0.15));
 
-    const particles = [];
-    for (let i = 0; i < count; i++) {
-        const mat = new THREE.MeshBasicMaterial({
-            color: colorHex,
-            transparent: true,
-            opacity: 1.0,
-            blending: THREE.AdditiveBlending
-        });
-        const p = new THREE.Mesh(geo, mat);
-        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-        const spd = speed * (0.55 + Math.random() * 0.85);
-        p.userData = {
-            vx: Math.cos(angle) * spd,
-            vy: Math.sin(angle) * spd + 0.035,
-            vz: (Math.random() - 0.5) * spd * 0.8,
-            rx: (Math.random() - 0.5) * 0.25,
-            ry: (Math.random() - 0.5) * 0.25
-        };
-        group.add(p);
-        particles.push(p);
-    }
-
-    addTimedVFX(group, durationMs, (p) => {
-        particles.forEach(pt => {
-            pt.position.x += pt.userData.vx;
-            pt.position.y += pt.userData.vy;
-            pt.position.z += pt.userData.vz;
-            pt.userData.vy -= 0.0045; // gravity
-            pt.rotation.x += pt.userData.rx;
-            pt.rotation.y += pt.userData.ry;
-            pt.scale.setScalar(Math.max(0.01, 1 - p));
-            pt.material.opacity = 1 - p;
-        });
+  const particles = [];
+  for (let i = 0; i < count; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending
     });
+    const p = new THREE.Mesh(geo, mat);
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+    const spd = speed * (0.6 + Math.random() * 0.85);
+    p.userData = {
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd + 0.04,
+      vz: (Math.random() - 0.5) * spd * 0.8,
+      rx: (Math.random() - 0.5) * 0.28,
+      ry: (Math.random() - 0.5) * 0.28
+    };
+    group.add(p);
+    particles.push(p);
+  }
+
+  addTimedVFX(group, durationMs, (p) => {
+    particles.forEach((pt) => {
+      pt.position.x += pt.userData.vx;
+      pt.position.y += pt.userData.vy;
+      pt.position.z += pt.userData.vz;
+      pt.userData.vy -= 0.0045;
+      pt.rotation.x += pt.userData.rx;
+      pt.rotation.y += pt.userData.ry;
+      pt.scale.setScalar(Math.max(0.01, 1 - p));
+      pt.material.opacity = 1 - p;
+    });
+  });
 }
 
 // Helper: 3D Expanding Shockwave Ring at (r, c)
-function spawn3DShockwaveRing(r, c, colorHex = 0xf59e0b, maxScale = 2.6, durationMs = 460) {
-    const ringGeoVfx = new THREE.TorusGeometry(0.32, 0.055, 10, 28);
-    const ringMatVfx = new THREE.MeshBasicMaterial({
-        color: colorHex,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-    });
-    const ring = new THREE.Mesh(ringGeoVfx, ringMatVfx);
-    ring.position.copy(getCellWorldPos(r, c, 0.46));
+function spawn3DShockwaveRing(r, c, colorHex = 0xf59e0b, maxScale = 2.8, durationMs = 520) {
+  const ringGeoVfx = new THREE.TorusGeometry(0.36, 0.065, 10, 28);
+  const ringMatVfx = new THREE.MeshBasicMaterial({
+    color: colorHex,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending
+  });
+  const ring = new THREE.Mesh(ringGeoVfx, ringMatVfx);
+  ring.position.copy(getCellWorldPos(r, c, 0.68));
 
-    addTimedVFX(ring, durationMs, (p) => {
-        const ease = 1 - Math.pow(1 - p, 3);
-        const s = 0.5 + ease * (maxScale - 0.5);
-        ring.scale.set(s, s, 1);
-        ringMatVfx.opacity = Math.max(0, 1 - p);
-    });
+  addTimedVFX(ring, durationMs, (p) => {
+    const ease = 1 - Math.pow(1 - p, 3);
+    const s = 0.55 + ease * (maxScale - 0.55);
+    ring.scale.set(s, s, 1);
+    ringMatVfx.opacity = Math.max(0, 1 - p);
+  });
 }
 
 // Helper: 3D Vertical Column Pillar / Beam
-function spawn3DColumnBeam(col, colorHex = 0xef4444, radius = 0.46, durationMs = 540, pulseRings = true) {
-    const group = new THREE.Group();
-    const colX = START_X + col * CELL_SPACING;
-    const centerY = START_Y + ((ROWS - 1) * CELL_SPACING) / 2;
+function spawn3DColumnBeam(col, colorHex = 0xef4444, radius = 0.48, durationMs = 620, pulseRings = true) {
+  const group = new THREE.Group();
+  const colX = START_X + col * CELL_SPACING;
+  const centerY = VFX_CENTER_Y;
 
-    const cylGeo = new THREE.CylinderGeometry(radius, radius, BOARD_H + 1.8, 20, 1, true);
-    const cylMat = new THREE.MeshBasicMaterial({
-        color: colorHex,
+  const cylGeo = new THREE.CylinderGeometry(radius, radius, BOARD_H, 20, 1, true);
+  const cylMat = new THREE.MeshBasicMaterial({
+    color: colorHex,
+    transparent: true,
+    opacity: 0.88,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  const beam = new THREE.Mesh(cylGeo, cylMat);
+  beam.position.set(colX, centerY, 0.48);
+  group.add(beam);
+
+  const coreGeo = new THREE.CylinderGeometry(radius * 0.45, radius * 0.45, BOARD_H + 0.4, 16);
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.94,
+    blending: THREE.AdditiveBlending
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.set(colX, centerY, 0.48);
+  group.add(core);
+
+  const rings = [];
+  if (pulseRings) {
+    for (let i = 0; i < 4; i++) {
+      const rGeo = new THREE.TorusGeometry(radius * 1.2, 0.055, 8, 24);
+      rGeo.rotateX(Math.PI / 2);
+      const rMat = new THREE.MeshBasicMaterial({
+        color: 0xfde047,
         transparent: true,
-        opacity: 0.88,
-        side: THREE.DoubleSide,
+        opacity: 0.95,
         blending: THREE.AdditiveBlending
-    });
-    const beam = new THREE.Mesh(cylGeo, cylMat);
-    beam.position.set(colX, centerY, 0.25);
-    group.add(beam);
-
-    // Inner white-hot core cylinder
-    const coreGeo = new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, BOARD_H + 2.0, 16);
-    const coreMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.92,
-        blending: THREE.AdditiveBlending
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    core.position.set(colX, centerY, 0.25);
-    group.add(core);
-
-    const rings = [];
-    if (pulseRings) {
-        for (let i = 0; i < 4; i++) {
-            const rGeo = new THREE.TorusGeometry(radius * 1.15, 0.045, 8, 24);
-            rGeo.rotateX(Math.PI / 2);
-            const rMat = new THREE.MeshBasicMaterial({
-                color: 0xfde047,
-                transparent: true,
-                opacity: 0.9,
-                blending: THREE.AdditiveBlending
-            });
-            const rMesh = new THREE.Mesh(rGeo, rMat);
-            rMesh.position.set(colX, START_Y + BOARD_H - i * 1.6, 0.25);
-            group.add(rMesh);
-            rings.push(rMesh);
-        }
+      });
+      const rMesh = new THREE.Mesh(rGeo, rMat);
+      rMesh.position.set(colX, VFX_MAX_VISIBLE_Y - i * 1.35, 0.52);
+      group.add(rMesh);
+      rings.push(rMesh);
     }
+  }
 
-    addTimedVFX(group, durationMs, (p) => {
-        const widthScale = p < 0.2 ? (p / 0.2) * 1.25 : Math.max(0.05, 1.25 * (1 - (p - 0.2) / 0.8));
-        beam.scale.set(widthScale, 1, widthScale);
-        core.scale.set(widthScale * 0.8, 1, widthScale * 0.8);
-        cylMat.opacity = (1 - p) * 0.85;
-        coreMat.opacity = (1 - p) * 0.95;
-        rings.forEach((rm) => {
-            rm.position.y -= 0.14;
-            if (rm.position.y < START_Y - 0.5) rm.position.y = START_Y + BOARD_H + 0.5;
-            rm.material.opacity = 1 - p;
-        });
+  addTimedVFX(group, durationMs, (p) => {
+    const widthScale = p < 0.2 ? (p / 0.2) * 1.3 : Math.max(0.05, 1.3 * (1 - (p - 0.2) / 0.8));
+    beam.scale.set(widthScale, 1, widthScale);
+    core.scale.set(widthScale * 0.8, 1, widthScale * 0.8);
+    cylMat.opacity = (1 - p) * 0.88;
+    coreMat.opacity = (1 - p) * 0.95;
+    rings.forEach((rm) => {
+      rm.position.y -= 0.12;
+      if (rm.position.y < VFX_MIN_VISIBLE_Y) rm.position.y = VFX_MAX_VISIBLE_Y;
+      rm.material.opacity = 1 - p;
     });
+  });
 }
 
-// 1. Stalactite Strike: Plunging 3D Cavern Stalactite Spear from ceiling into (topR, col)
-function playStalactiteStrikeVFX(topR, col, onImpact) {
-    const colX = START_X + col * CELL_SPACING;
-    const targetY = START_Y + topR * CELL_SPACING;
-    const startY = START_Y + BOARD_H + 3.2;
-
-    const spearGeo = new THREE.ConeGeometry(0.38, 1.55, 7);
-    spearGeo.rotateX(Math.PI);
-    const spearMat = new THREE.MeshStandardMaterial({
-        color: 0xa8a29e,
-        emissive: 0x38bdf8,
-        emissiveIntensity: 0.45,
-        roughness: 0.4,
-        metalness: 0.3
-    });
-    const spear = new THREE.Mesh(spearGeo, spearMat);
-    spear.position.set(colX, startY, 0.32);
-
-    let impacted = false;
-    addTimedVFX(spear, 340, (p) => {
-        if (p < 0.68) {
-            const fallP = Math.pow(p / 0.68, 2);
-            spear.position.y = startY - (startY - targetY) * fallP;
-            spear.rotation.y += 0.25;
-        } else {
-            if (!impacted) {
-                impacted = true;
-                triggerBoardShake(0.28);
-                spawn3DParticleBurst(topR, col, 0x38bdf8, 18, 0.14, 480, 'octa');
-                spawn3DShockwaveRing(topR, col, 0xfde047, 2.4, 420);
-                if (onImpact) onImpact();
-            }
-            const fadeP = (p - 0.68) / 0.32;
-            spear.scale.setScalar(Math.max(0.01, 1 - fadeP));
-        }
-    });
-}
-
-// 1B. Subterranean Trapdoor: 3 Tokens Plummeting Out of the Bottom of the Board & Bouncing on the Cavern Floor
+// ============================================================================
+// 1. SUBTERRANEAN TRAPDOOR: Hinged Iron Trapdoor Grates & Falling Tokens
+// ============================================================================
 function playSinkholeFallingTokensVFX(selectedTargets) {
-    const floorY = START_Y - 2.35;
+  const floorY = START_Y - 2.15;
 
-    selectedTargets.forEach((target, idx) => {
-        const { r, c, type } = target;
-        const colX = START_X + c * CELL_SPACING;
-        const startY = START_Y + r * CELL_SPACING;
+  selectedTargets.forEach((target, idx) => {
+    const { r, c, type } = target;
+    const colX = START_X + c * CELL_SPACING;
+    const startY = START_Y + r * CELL_SPACING;
 
-        spawn3DShockwaveRing(r, c, 0xf97316, 2.0, 380);
-        spawn3DParticleBurst(r, c, 0x78716c, 10, 0.11, 420, 'box');
-
-        let mat = playerMat;
-        if (type === AI) mat = aiMat;
-        else if (type === STONE) mat = stoneMat;
-        else if (type === WILD) mat = wildMat;
-
-        const fallingMesh = new THREE.Mesh(tokenGeo, mat);
-        fallingMesh.position.set(colX, startY, 0.24);
-
-        const innerRing = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 8, 20), brassInlayMat);
-        innerRing.position.z = 0.16;
-        fallingMesh.add(innerRing);
-
-        const baseScale = (type === PLAYER && hasGambit('shrinking_shroom')) ? 0.68 : 1.0;
-        fallingMesh.scale.set(baseScale, baseScale, type === PLAYER && hasGambit('shrinking_shroom') ? 0.85 : 1.0);
-
-        const delayNorm = idx * 0.11;
-        const spinDir = idx % 2 === 0 ? 1 : -1;
-        const driftX = (idx - 1) * 0.22;
-        let hitFloor = false;
-
-        addTimedVFX(fallingMesh, 880, (p) => {
-            if (p < delayNorm) {
-                fallingMesh.position.x = colX + (Math.random() - 0.5) * 0.12;
-                return;
-            }
-            const localP = Math.min(1, (p - delayNorm) / (1 - delayNorm));
-
-            if (localP < 0.56) {
-                const fallFrac = localP / 0.56;
-                const accel = fallFrac * fallFrac;
-                fallingMesh.position.x = colX + driftX * fallFrac * 0.4;
-                fallingMesh.position.y = startY - (startY - floorY) * accel;
-                fallingMesh.position.z = 0.24 + fallFrac * 0.52;
-                fallingMesh.rotation.x = fallFrac * Math.PI * 1.35 * spinDir;
-                fallingMesh.rotation.y = fallFrac * Math.PI * 0.85 * spinDir;
-                fallingMesh.rotation.z = fallFrac * Math.PI * 1.1 * spinDir;
-            } else {
-                if (!hitFloor) {
-                    hitFloor = true;
-                    sfx.playTokenFloorHit(idx, type);
-                    triggerBoardShake(0.18);
-                    triggerHaptic(22);
-
-                    const floorCellRow = -2;
-                    spawn3DShockwaveRing(floorCellRow, c, 0xfbbf24, 1.85, 360);
-                    spawn3DParticleBurst(floorCellRow, c, 0xa8a29e, 12, 0.12, 380, 'octa');
-                }
-                const bounceP = (localP - 0.56) / 0.44;
-                const bounceArc = Math.abs(Math.sin(bounceP * Math.PI * 1.65)) * (1 - bounceP) * 0.82;
-                fallingMesh.position.x = colX + driftX * (0.4 + bounceP * 0.6);
-                fallingMesh.position.y = floorY + bounceArc;
-                fallingMesh.position.z = 0.76 + bounceP * 0.25;
-                fallingMesh.rotation.x += 0.14 * spinDir;
-                fallingMesh.rotation.z += 0.18 * spinDir;
-
-                if (bounceP > 0.72) {
-                    const fadeOut = 1 - (bounceP - 0.72) / 0.28;
-                    fallingMesh.scale.setScalar(Math.max(0.01, baseScale * fadeOut));
-                }
-            }
-        });
+    // Spawn hinged iron trapdoor leaf beneath the column
+    const doorGroup = new THREE.Group();
+    doorGroup.position.set(colX - 0.45, START_Y - 0.55, 0.55);
+    const doorPlate = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.12, 0.75), C4_VFX_MATS.darkIron);
+    doorPlate.position.x = 0.45;
+    doorGroup.add(doorPlate);
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.82, 10), C4_VFX_MATS.agedBrass);
+    hinge.rotation.x = Math.PI / 2;
+    doorGroup.add(hinge);
+    addTimedVFX(doorGroup, 820, (p) => {
+      const openAngle = p < 0.25 ? (p / 0.25) * 1.35 : (p > 0.78 ? ((1 - p) / 0.22) * 1.35 : 1.35);
+      doorGroup.rotation.z = -openAngle;
     });
+
+    spawn3DShockwaveRing(r, c, 0xf97316, 2.2, 420);
+    spawn3DParticleBurst(r, c, 0x78716c, 12, 0.12, 460, 'box');
+
+    const fallingMesh = new THREE.Mesh(tokenGeo, getTokenMaterial(type));
+    fallingMesh.position.set(colX, startY, 0.45);
+
+    const innerRing = new THREE.Mesh(tokenInnerRingGeo, brassInlayMat);
+    innerRing.position.z = 0.16;
+    fallingMesh.add(innerRing);
+
+    const isShroom = type === PLAYER && hasGambit('shrinking_shroom');
+    const baseScale = isShroom ? 0.68 : 1.0;
+    fallingMesh.scale.set(baseScale, baseScale, isShroom ? 0.85 : 1.0);
+
+    const delayNorm = idx * 0.10;
+    const spinDir = idx % 2 === 0 ? 1 : -1;
+    const driftX = (idx - 1) * 0.24;
+    let hitFloor = false;
+
+    addTimedVFX(fallingMesh, 880, (p) => {
+      if (p < delayNorm) {
+        fallingMesh.position.x = colX + (Math.random() - 0.5) * 0.14;
+        return;
+      }
+      const localP = Math.min(1, (p - delayNorm) / (1 - delayNorm));
+
+      if (localP < 0.56) {
+        const fallFrac = localP / 0.56;
+        const accel = fallFrac * fallFrac;
+        fallingMesh.position.x = colX + driftX * fallFrac * 0.4;
+        fallingMesh.position.y = startY - (startY - floorY) * accel;
+        fallingMesh.position.z = 0.45 + fallFrac * 0.55;
+        fallingMesh.rotation.x = fallFrac * Math.PI * 1.45 * spinDir;
+        fallingMesh.rotation.y = fallFrac * Math.PI * 0.95 * spinDir;
+        fallingMesh.rotation.z = fallFrac * Math.PI * 1.15 * spinDir;
+      } else {
+        if (!hitFloor) {
+          hitFloor = true;
+          sfx.playTokenFloorHit(idx, type);
+          triggerBoardShake(0.20);
+          triggerHaptic(22);
+          spawn3DShockwaveRing(0, c, 0xfbbf24, 2.0, 380);
+          spawn3DParticleBurst(0, c, 0xa8a29e, 14, 0.13, 400, 'octa');
+        }
+        const bounceP = (localP - 0.56) / 0.44;
+        const bounceArc = Math.abs(Math.sin(bounceP * Math.PI * 1.65)) * (1 - bounceP) * 0.88;
+        fallingMesh.position.x = colX + driftX * (0.4 + bounceP * 0.6);
+        fallingMesh.position.y = floorY + bounceArc;
+        fallingMesh.position.z = 0.95 + bounceP * 0.25;
+        fallingMesh.rotation.x += 0.16 * spinDir;
+        fallingMesh.rotation.z += 0.20 * spinDir;
+
+        if (bounceP > 0.72) {
+          const fadeOut = 1 - (bounceP - 0.72) / 0.28;
+          fallingMesh.scale.setScalar(Math.max(0.01, baseScale * fadeOut));
+        }
+      }
+    });
+  });
 }
 
-// 2. Gravity Inversion: 180-degree 3D Column Vortex Flip
+// ============================================================================
+// 2. GRAVITY INVERSION: 3D Brass Gyroscopic Astrolabe & 180° Column Orbit
+// ============================================================================
 function playColumnInversionVFX(col, onMidFlip) {
-    const colX = START_X + col * CELL_SPACING;
-    const centerY = START_Y + ((ROWS - 1) * CELL_SPACING) / 2;
+  const colX = START_X + col * CELL_SPACING;
+  const centerY = VFX_CENTER_Y;
 
-    const vortexGroup = new THREE.Group();
-    vortexGroup.position.set(colX, centerY, 0.35);
-    for (let i = 0; i < 3; i++) {
-        const tGeo = new THREE.TorusGeometry(0.54, 0.04, 10, 24);
-        const tMat = new THREE.MeshBasicMaterial({
-            color: i % 2 === 0 ? 0x2dd4bf : 0xa855f7,
-            transparent: true,
-            opacity: 0.9,
-            blending: THREE.AdditiveBlending
-        });
-        const torus = new THREE.Mesh(tGeo, tMat);
-        torus.position.y = (i - 1) * 1.5;
-        vortexGroup.add(torus);
+  const vortexGroup = new THREE.Group();
+  vortexGroup.position.set(colX, centerY, 0.92);
+
+  // Nested 3-axis brass & cyan astrolabe rings with cardinal finials
+  for (let i = 0; i < 3; i++) {
+    const tGeo = new THREE.TorusGeometry(0.85 - i * 0.14, 0.055, 12, 32);
+    const torus = new THREE.Mesh(tGeo, i === 1 ? C4_VFX_MATS.agedBrass : C4_VFX_MATS.polishedSteel);
+    vortexGroup.add(torus);
+  }
+  const coreOcta = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), C4_VFX_MATS.crimsonRuby);
+  vortexGroup.add(coreOcta);
+
+  const colMeshes = [];
+  for (let r = 0; r < ROWS; r++) {
+    if (state.meshes[r] && state.meshes[r][col]) {
+      colMeshes.push({ mesh: state.meshes[r][col], origY: state.meshes[r][col].position.y });
+    }
+  }
+
+  let flipped = false;
+  addTimedVFX(vortexGroup, 760, (p) => {
+    vortexGroup.children[0].rotation.set(p * Math.PI * 3, p * Math.PI * 2, 0);
+    vortexGroup.children[1].rotation.set(0, p * Math.PI * 4, p * Math.PI * 2);
+    vortexGroup.children[2].rotation.set(p * Math.PI * 2, 0, -p * Math.PI * 4);
+    coreOcta.rotation.y = p * Math.PI * 6;
+    if (p > 0.75) {
+      vortexGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.25));
     }
 
-    const colMeshes = [];
-    for (let r = 0; r < ROWS; r++) {
-        if (state.meshes[r] && state.meshes[r][col]) {
-            colMeshes.push({ mesh: state.meshes[r][col], origY: state.meshes[r][col].position.y });
-        }
+    if (p < 0.58) {
+      const a = (p / 0.58) * Math.PI;
+      colMeshes.forEach(({ mesh, origY }) => {
+        const dy = origY - centerY;
+        mesh.position.y = centerY + dy * Math.cos(a);
+        mesh.position.z = Math.sin(a) * 1.55;
+        mesh.rotation.x = a;
+      });
+    } else if (!flipped) {
+      flipped = true;
+      colMeshes.forEach(({ mesh }) => {
+        mesh.position.z = 0;
+        mesh.rotation.set(0, 0, 0);
+      });
+      triggerBoardShake(0.22);
+      if (typeof onMidFlip === 'function') onMidFlip();
+    }
+  });
+}
+
+// ============================================================================
+// 3. SUSPICIOUS JAR OF CAVE FLIES: Apothecary Specimen Jar & Articulated Flies
+// ============================================================================
+function buildArticulatedFlyMesh(isGood) {
+  const fly = new THREE.Group();
+  const bodyMat = isGood ? C4_VFX_MATS.emeraldJade : C4_VFX_MATS.basaltStone;
+  // Thorax + Abdomen
+  const thorax = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 1), bodyMat);
+  const abdomen = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 1), bodyMat);
+  abdomen.position.set(0, -0.14, -0.04);
+  abdomen.scale.set(0.85, 1.35, 0.85);
+  fly.add(thorax);
+  fly.add(abdomen);
+  // Compound Eyes
+  const eyeGeo = new THREE.OctahedronGeometry(0.055, 0);
+  const eyeL = new THREE.Mesh(eyeGeo, C4_VFX_MATS.crimsonRuby);
+  const eyeR = new THREE.Mesh(eyeGeo, C4_VFX_MATS.crimsonRuby);
+  eyeL.position.set(-0.06, 0.08, 0.06);
+  eyeR.position.set(0.06, 0.08, 0.06);
+  fly.add(eyeL);
+  fly.add(eyeR);
+  // Translucent Fluttering Wings
+  const wingGeo = new THREE.BoxGeometry(0.28, 0.02, 0.14);
+  const wingMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.82 });
+  const wingL = new THREE.Mesh(wingGeo, wingMat);
+  const wingR = new THREE.Mesh(wingGeo, wingMat);
+  wingL.position.set(-0.16, 0.02, 0.06);
+  wingR.position.set(0.16, 0.02, 0.06);
+  fly.add(wingL);
+  fly.add(wingR);
+  fly.userData.wingL = wingL;
+  fly.userData.wingR = wingR;
+  return fly;
+}
+
+function playCaveFliesSwarmVFX(targetR, targetC, isGood, onImpact) {
+  const swarmGroup = new THREE.Group();
+  const dest = getCellWorldPos(targetR, targetC, 0.88);
+  const startPos = new THREE.Vector3(dest.x, clampVisibleY(dest.y + 1.05), 1.08);
+
+  // Sculpted Apothecary Specimen Jar with Flared Lip, Brass Collar & Cork Stopper
+  const jarGroup = new THREE.Group();
+  jarGroup.position.copy(startPos);
+  const jarGlassMat = new THREE.MeshBasicMaterial({
+    color: 0xa3e635,
+    transparent: true,
+    opacity: 0.45,
+    blending: THREE.AdditiveBlending
+  });
+  const jarBelly = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.40, 0.82, 16), jarGlassMat);
+  const jarBase = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.10, 16), C4_VFX_MATS.darkIron);
+  jarBase.position.y = -0.44;
+  const jarCollar = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.055, 10, 20), C4_VFX_MATS.agedBrass);
+  jarCollar.rotation.x = Math.PI / 2;
+  jarCollar.position.y = 0.42;
+  const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.28, 14), carvedWoodMat);
+  cork.position.y = 0.56;
+  jarGroup.add(jarBelly);
+  jarGroup.add(jarBase);
+  jarGroup.add(jarCollar);
+  jarGroup.add(cork);
+  swarmGroup.add(jarGroup);
+
+  const flies = [];
+  for (let i = 0; i < 12; i++) {
+    const fly = buildArticulatedFlyMesh(isGood);
+    fly.userData.phase = (i / 12) * Math.PI * 2;
+    fly.userData.radius = 1.45 + Math.random() * 0.65;
+    fly.userData.speed = 10 + Math.random() * 5;
+    fly.userData.yOff = (Math.random() - 0.5) * 1.2;
+    swarmGroup.add(fly);
+    flies.push(fly);
+  }
+
+  let impacted = false;
+  addTimedVFX(swarmGroup, 780, (p) => {
+    jarGroup.rotation.z = Math.sin(p * Math.PI * 8) * 0.22;
+    cork.position.y = 0.56 + Math.min(1.6, p * 3.2);
+    cork.rotation.z = p * Math.PI * 5;
+    if (p > 0.65) {
+      jarGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.35));
     }
 
-    let flipped = false;
-    addTimedVFX(vortexGroup, 460, (p) => {
-        vortexGroup.rotation.z = p * Math.PI * 3;
-        vortexGroup.rotation.x = p * Math.PI;
-        vortexGroup.children.forEach(c => { c.material.opacity = 1 - p; });
-
-        if (p < 0.55) {
-            const a = (p / 0.55) * Math.PI;
-            colMeshes.forEach(({ mesh, origY }) => {
-                const dy = origY - centerY;
-                mesh.position.y = centerY + dy * Math.cos(a);
-                mesh.position.z = Math.sin(a) * 1.35;
-                mesh.rotation.x = a;
-            });
-        } else if (!flipped) {
-            flipped = true;
-            triggerBoardShake(0.16);
-            if (onMidFlip) onMidFlip();
-        }
+    const curRadius = (1 - Math.min(1, p / 0.75)) * 1.55 + 0.16;
+    flies.forEach((f, idx) => {
+      const ang = f.userData.phase + p * f.userData.speed;
+      f.position.set(
+        dest.x + Math.cos(ang) * curRadius,
+        clampVisibleY(dest.y + Math.sin(ang * 1.4) * curRadius + f.userData.yOff * (1 - p)),
+        0.96 + Math.sin(ang) * 0.35
+      );
+      f.rotation.z = Math.sin(ang) * 0.4;
+      const flap = Math.sin(p * 90 + idx) * 0.65;
+      f.userData.wingL.rotation.z = flap;
+      f.userData.wingR.rotation.z = -flap;
+      if (p > 0.78) f.scale.setScalar(Math.max(0.01, (1 - p) / 0.22));
     });
-}
 
-// 3. Suspicious Jar of Cave Flies: 3D Orbiting Swarm of Cave Flies
-function playCaveFliesSwarmVFX(targetR, targetC, isGood) {
-    const swarmGroup = new THREE.Group();
-    const dest = getCellWorldPos(targetR, targetC, 0.55);
-    const flyGeo = new THREE.OctahedronGeometry(0.11, 0);
-    const flies = [];
-
-    for (let i = 0; i < 12; i++) {
-        const mat = new THREE.MeshBasicMaterial({
-            color: isGood ? 0xa3e635 : 0x78716c,
-            transparent: true,
-            opacity: 1.0
-        });
-        const fly = new THREE.Mesh(flyGeo, mat);
-        fly.userData = {
-            phase: (i / 12) * Math.PI * 2,
-            radius: 1.8 + Math.random() * 0.9,
-            speed: 9 + Math.random() * 6,
-            yOff: (Math.random() - 0.5) * 1.4
-        };
-        swarmGroup.add(fly);
-        flies.push(fly);
+    if (p >= 0.54 && !impacted) {
+      impacted = true;
+      triggerBoardShake(0.22);
+      if (typeof onImpact === 'function') onImpact();
     }
-
-    addTimedVFX(swarmGroup, 580, (p) => {
-        const curRadius = (1 - p) * 1.9 + 0.15;
-        flies.forEach(f => {
-            const ang = f.userData.phase + p * f.userData.speed;
-            f.position.set(
-                dest.x + Math.cos(ang) * curRadius,
-                dest.y + Math.sin(ang * 1.3) * curRadius + f.userData.yOff * (1 - p),
-                dest.z + Math.sin(ang) * 0.5
-            );
-            f.material.opacity = p > 0.8 ? (1 - p) * 5 : 1.0;
-        });
-    });
+  });
 }
 
-// 4. Fool's Counterfeit Penny: 3D Spinning Golden Coin Flip above (r, col)
-function playFoolsPennyFlipVFX(r, col, isLucky) {
-    const coinGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.09, 24);
-    const coinMat = new THREE.MeshStandardMaterial({
-        color: isLucky ? 0xfacc15 : 0x78716c,
-        emissive: isLucky ? 0xd97706 : 0x292524,
-        emissiveIntensity: 0.7,
-        roughness: 0.2,
-        metalness: 0.85
-    });
-    const coin = new THREE.Mesh(coinGeo, coinMat);
-    const basePos = getCellWorldPos(r, col, 0.65);
-    coin.position.copy(basePos);
+// ============================================================================
+// 4. FOOL'S COUNTERFEIT PENNY: Embossed Mint Coin with Bevelled Rim & Relief
+// ============================================================================
+function buildSculptedCoinMesh(isLucky, radius = 0.68) {
+  const coin = new THREE.Group();
+  const faceMat = isLucky ? C4_VFX_MATS.agedBrass : C4_VFX_MATS.basaltStone;
+  const rimMat = isLucky ? C4_VFX_MATS.beeswaxGold : C4_VFX_MATS.darkIron;
 
-    addTimedVFX(coin, 560, (p) => {
-        const arcH = Math.sin(p * Math.PI) * 1.75;
-        coin.position.y = basePos.y + arcH;
-        coin.rotation.x = p * Math.PI * 7;
-        coin.rotation.z = p * Math.PI * 2;
-        if (p > 0.78) {
-            coin.scale.setScalar(Math.max(0.01, (1 - p) / 0.22));
-        }
-    });
+  const discGeo = new THREE.CylinderGeometry(radius, radius, 0.12, 28);
+  discGeo.rotateX(Math.PI / 2);
+  coin.add(new THREE.Mesh(discGeo, faceMat));
+
+  // Milled outer rim + inner beaded ring + embossed diamond/skull emblem on both faces
+  coin.add(new THREE.Mesh(new THREE.TorusGeometry(radius, 0.065, 12, 28), rimMat));
+  coin.add(new THREE.Mesh(new THREE.TorusGeometry(radius * 0.76, 0.03, 8, 24), rimMat));
+
+  const relief = new THREE.Mesh(
+    new THREE.OctahedronGeometry(radius * 0.42, 0),
+    isLucky ? C4_VFX_MATS.beeswaxGold : C4_VFX_MATS.crimsonRuby
+  );
+  relief.scale.set(1, 1, 0.45);
+  coin.add(relief);
+  return coin;
 }
 
-// 5. Coaster Apex Momentum: 3D Glowing Airtime Track Arc across (c1 -> c2 -> c3)
+function playFoolsPennyFlipVFX(r, col, isLucky, onImpact) {
+  const group = new THREE.Group();
+  const basePos = getCellWorldPos(r, col, 0.98);
+  basePos.y = clampVisibleY(basePos.y);
+
+  const coin = buildSculptedCoinMesh(isLucky, 0.72);
+  coin.position.copy(basePos);
+  group.add(coin);
+
+  let impacted = false;
+  addTimedVFX(group, 760, (p) => {
+    const arcH = Math.sin(p * Math.PI) * 1.75;
+    coin.position.y = clampVisibleY(basePos.y + arcH);
+    coin.position.z = 0.98 + Math.sin(p * Math.PI) * 0.55;
+    coin.rotation.x = p * Math.PI * 8;
+    coin.rotation.y = p * Math.PI * 2;
+
+    if (p >= 0.56 && !impacted) {
+      impacted = true;
+      triggerBoardShake(0.22);
+      if (typeof onImpact === 'function') onImpact();
+    }
+    if (p > 0.78) {
+      coin.scale.setScalar(Math.max(0.01, (1 - p) / 0.22));
+    }
+  });
+}
+
+// ============================================================================
+// 5. COASTER APEX MOMENTUM: Sculpted 4-Wheel Dwarven Minecart on Glowing Track
+// ============================================================================
 function playCoasterArcVFX(colsArr) {
-    const group = new THREE.Group();
-    colsArr.forEach((c, idx) => {
-        const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, c));
-        spawn3DShockwaveRing(topR, c, 0x2dd4bf, 2.2, 480 + idx * 90);
-        spawn3DParticleBurst(topR, c, 0xfde047, 10, 0.10, 480, 'octa');
-    });
+  const group = new THREE.Group();
+  colsArr.forEach((c, idx) => {
+    const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, c));
+    spawn3DShockwaveRing(topR, c, 0x2dd4bf, 2.4, 520 + idx * 90);
+    spawn3DParticleBurst(topR, c, 0xfde047, 12, 0.11, 520, 'octa');
+  });
 
-    const cStart = colsArr[0], cEnd = colsArr[colsArr.length - 1];
-    const x0 = START_X + cStart * CELL_SPACING;
-    const x2 = START_X + cEnd * CELL_SPACING;
-    const orbGeo = new THREE.OctahedronGeometry(0.22, 1);
-    const orbMat = new THREE.MeshBasicMaterial({
-        color: 0x2dd4bf,
-        transparent: true,
-        opacity: 1.0,
-        blending: THREE.AdditiveBlending
-    });
-    const cartOrb = new THREE.Mesh(orbGeo, orbMat);
-    group.add(cartOrb);
+  const cStart = colsArr[0];
+  const cEnd = colsArr[colsArr.length - 1];
+  const x0 = START_X + cStart * CELL_SPACING;
+  const x2 = START_X + cEnd * CELL_SPACING;
 
-    addTimedVFX(group, 560, (p) => {
-        const curX = x0 + (x2 - x0) * p;
-        const curY = START_Y + 2.2 + Math.sin(p * Math.PI) * 2.4;
-        cartOrb.position.set(curX, curY, 0.65);
-        cartOrb.rotation.z += 0.25;
-        orbMat.opacity = 1 - Math.pow(p, 3);
+  const cartGroup = new THREE.Group();
+  const hopper = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.44, 0.48), C4_VFX_MATS.darkIron);
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 0.54), C4_VFX_MATS.agedBrass);
+  rim.position.y = 0.22;
+  cartGroup.add(hopper);
+  cartGroup.add(rim);
+
+  const wheelGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.10, 12);
+  wheelGeo.rotateX(Math.PI / 2);
+  [-0.24, 0.24].forEach((wx) => {
+    [-0.24, 0.24].forEach((wz) => {
+      const w = new THREE.Mesh(wheelGeo, C4_VFX_MATS.agedBrass);
+      w.position.set(wx, -0.24, wz);
+      cartGroup.add(w);
     });
+  });
+  group.add(cartGroup);
+
+  addTimedVFX(group, 680, (p) => {
+    const curX = x0 + (x2 - x0) * p;
+    const curY = clampVisibleY(START_Y + 1.5 + Math.sin(p * Math.PI) * 1.6);
+    cartGroup.position.set(curX, curY, 0.98);
+    cartGroup.rotation.z = Math.cos(p * Math.PI) * 0.45;
+    if (p > 0.75) cartGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.25));
+  });
 }
 
-// 6. Gambit HUD Badge Pulse Helper (Supports both SVG <img> Medallions & Raw Emojis!)
+// ============================================================================
+// 6. GAMBIT HUD BADGE PULSE HELPER
+// ============================================================================
 function pulseGambitBadgeInHUD(gambitId) {
-    const strip = document.getElementById('gambit-strip');
-    if (!strip) return;
-    const g = GAMBIT_CATALOG[gambitId];
-    if (!g) return;
-    Array.from(strip.querySelectorAll('button')).forEach((btn) => {
-        const html = btn.innerHTML || '';
-        const txt = btn.textContent || '';
-        if (
-            html.includes(gambitId) ||
-            (g.rawEmoji && txt.includes(g.rawEmoji)) ||
-            (g.icon && txt.includes(g.icon)) ||
-            (g.name && html.includes(g.name))
-        ) {
-            btn.classList.add('ring-2', 'ring-amber-300', 'scale-110', 'shadow-[0_0_16px_#fbbf24]');
-            setTimeout(() => {
-                btn.classList.remove('ring-2', 'ring-amber-300', 'scale-110', 'shadow-[0_0_16px_#fbbf24]');
-            }, 650);
-        }
-    });
+  const strip = document.getElementById('gambit-strip');
+  if (!strip) return;
+  const g = GAMBIT_CATALOG[gambitId];
+  if (!g) return;
+  Array.from(strip.querySelectorAll('button')).forEach((btn) => {
+    const html = btn.innerHTML || '';
+    const txt = btn.textContent || '';
+    if (
+      html.includes(gambitId) ||
+      (g.rawEmoji && txt.includes(g.rawEmoji)) ||
+      (g.icon && txt.includes(g.icon)) ||
+      (g.name && html.includes(g.name.split(' ')[0]))
+    ) {
+      btn.classList.add('ring-2', 'ring-amber-300', 'scale-110', 'shadow-[0_0_16px_#fbbf24]');
+      setTimeout(() => {
+        btn.classList.remove('ring-2', 'ring-amber-300', 'scale-110', 'shadow-[0_0_16px_#fbbf24]');
+      }, 650);
+    }
+  });
 }
 
-// 7. Spelunker's Pickaxe: 3D Swinging Iron Pickaxe & Flint Spark Shatter
+// ============================================================================
+// 7. SPELUNKER'S PICKAXE: Sculpted Miner's Pickaxe with Curved Dual-Prong Head
+// ============================================================================
 function playPickaxeSwingVFX(col, stoneRows, onImpact) {
-    const colX = START_X + col * CELL_SPACING;
-    const minRow = Math.min(...stoneRows);
-    const maxRow = Math.max(...stoneRows);
-    const startY = START_Y + maxRow * CELL_SPACING + 0.55;
-    const endY = START_Y + minRow * CELL_SPACING;
+  const colX = START_X + col * CELL_SPACING;
+  const minRow = stoneRows.length > 0 ? Math.min(...stoneRows) : 0;
+  const maxRow = stoneRows.length > 0 ? Math.max(...stoneRows) : 2;
+  const startY = clampVisibleY(START_Y + maxRow * CELL_SPACING + 0.65);
+  const endY = clampVisibleY(START_Y + minRow * CELL_SPACING);
 
-    const pickaxeGroup = new THREE.Group();
+  const pickaxeGroup = new THREE.Group();
 
-    const handleGeo = new THREE.CylinderGeometry(0.055, 0.07, 1.35, 10);
-    handleGeo.translate(0, 0.55, 0);
-    const handleMesh = new THREE.Mesh(handleGeo, carvedWoodMat);
-    pickaxeGroup.add(handleMesh);
+  // Turned Hickory Shaft + Leather Grip Rings + Brass Pommel
+  const handleGeo = new THREE.CylinderGeometry(0.075, 0.10, 1.85, 12);
+  handleGeo.translate(0, 0.78, 0);
+  pickaxeGroup.add(new THREE.Mesh(handleGeo, carvedWoodMat));
 
-    const ironMat = new THREE.MeshStandardMaterial({
-        color: 0xd6d3d1,
-        emissive: 0x38bdf8,
-        emissiveIntensity: 0.25,
-        roughness: 0.25,
-        metalness: 0.88
-    });
+  for (let i = 0; i < 3; i++) {
+    const gripRing = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.024, 8, 16), C4_VFX_MATS.rustedIron);
+    gripRing.rotation.x = Math.PI / 2;
+    gripRing.position.y = 0.08 + i * 0.18;
+    pickaxeGroup.add(gripRing);
+  }
+  const pommel = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 1), C4_VFX_MATS.agedBrass);
+  pommel.position.y = -0.12;
+  pickaxeGroup.add(pommel);
 
-    const prongGeo = new THREE.ConeGeometry(0.12, 0.62, 6);
-    prongGeo.rotateZ(Math.PI / 2);
+  // Riveted Center Iron Collar + Top Spike + Curved Pick & Chisel Blades
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.30, 0.30), C4_VFX_MATS.agedBrass);
+  collar.position.set(0, 1.52, 0);
+  pickaxeGroup.add(collar);
 
-    const leftProng = new THREE.Mesh(prongGeo, ironMat);
-    leftProng.position.set(-0.31, 1.15, 0);
-    leftProng.rotation.z = 0.18;
-    pickaxeGroup.add(leftProng);
+  const topCap = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 8), C4_VFX_MATS.polishedSteel);
+  topCap.position.set(0, 1.78, 0);
+  pickaxeGroup.add(topCap);
 
-    const rightProng = new THREE.Mesh(prongGeo, ironMat);
-    rightProng.rotation.y = Math.PI;
-    rightProng.position.set(0.31, 1.15, 0);
-    rightProng.rotation.z = -0.18;
-    pickaxeGroup.add(rightProng);
+  // Multi-segment curved pick arm (left) and broad chisel arm (right)
+  [-1, 1].forEach((dir) => {
+    const armRoot = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.18), C4_VFX_MATS.darkIron);
+    armRoot.position.set(dir * 0.32, 1.50, 0);
+    armRoot.rotation.z = -dir * 0.18;
+    pickaxeGroup.add(armRoot);
 
-    const collarMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), brassInlayMat);
-    collarMesh.position.set(0, 1.15, 0);
-    pickaxeGroup.add(collarMesh);
+    const tipGeo = new THREE.ConeGeometry(0.13, 0.58, 6);
+    tipGeo.rotateZ(-dir * Math.PI / 2);
+    const tip = new THREE.Mesh(tipGeo, C4_VFX_MATS.polishedSteel);
+    tip.position.set(dir * 0.72, 1.38, 0);
+    tip.rotation.z = -dir * 0.34;
+    pickaxeGroup.add(tip);
+  });
 
-    pickaxeGroup.position.set(colX + 0.52, startY, 0.58);
-    pickaxeGroup.rotation.z = -0.85;
+  pickaxeGroup.position.set(colX + 0.55, startY, 0.94);
+  pickaxeGroup.rotation.z = -0.85;
 
-    let impacted = false;
-    addTimedVFX(pickaxeGroup, 420, (p) => {
-        if (p < 0.28) {
-            const windP = p / 0.28;
-            pickaxeGroup.rotation.z = -0.85 - Math.sin(windP * Math.PI * 0.5) * 0.45;
-            pickaxeGroup.position.y = startY + windP * 0.25;
-        } else if (p < 0.68) {
-            const strikeP = (p - 0.28) / 0.40;
-            const easeIn = strikeP * strikeP;
-            pickaxeGroup.rotation.z = -1.30 + easeIn * 2.15;
-            pickaxeGroup.position.y = startY - easeIn * (startY - endY + 0.35);
+  let impacted = false;
+  addTimedVFX(pickaxeGroup, 760, (p) => {
+    if (p < 0.30) {
+      const windP = p / 0.30;
+      pickaxeGroup.rotation.z = -0.85 - Math.sin(windP * Math.PI * 0.5) * 0.55;
+      pickaxeGroup.position.y = clampVisibleY(startY + windP * 0.25);
+    } else if (p < 0.68) {
+      const strikeP = (p - 0.30) / 0.38;
+      const easeIn = strikeP * strikeP;
+      pickaxeGroup.rotation.z = -1.40 + easeIn * 2.25;
+      pickaxeGroup.position.y = clampVisibleY(startY - easeIn * (startY - endY + 0.35));
 
-            if (strikeP >= 0.55 && !impacted) {
-                impacted = true;
-                triggerBoardShake(0.24 + Math.min(0.18, stoneRows.length * 0.05));
-
-                stoneRows.forEach((sr) => {
-                    spawn3DShockwaveRing(sr, col, 0xfacc15, 2.25, 420);
-                    spawn3DParticleBurst(sr, col, 0xfef08a, 10, 0.14, 420, 'octa');
-                    spawn3DParticleBurst(sr, col, 0x78716c, 14, 0.13, 500, 'box');
-                });
-
-                if (onImpact) onImpact();
-            }
-        } else {
-            const fadeP = (p - 0.68) / 0.32;
-            pickaxeGroup.rotation.z = 0.85 + fadeP * 0.25;
-            pickaxeGroup.scale.setScalar(Math.max(0.01, 1 - fadeP));
-        }
-    });
-}
-
-// 8. Tectonic Anchor: 3D Dwarven Keystone Pillar Clamp & Slot Gilding Slam
-function playTectonicAnchorVFX(col, targetR, isAmplifier = false) {
-    const colX = START_X + col * CELL_SPACING;
-    const slotRow = targetR !== -1 ? targetR : Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
-    const slotY = START_Y + slotRow * CELL_SPACING;
-    const topClampStart = START_Y + BOARD_H + 1.4;
-    const botClampStart = START_Y - 1.4;
-
-    const anchorGroup = new THREE.Group();
-
-    // Top & Bottom Dwarven Brass Keystone Clamps
-    const clampGeo = new THREE.BoxGeometry(0.92, 0.26, 0.62);
-    const clampMat = new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        emissive: 0xd97706,
-        emissiveIntensity: 0.45,
-        roughness: 0.25,
-        metalness: 0.85
-    });
-    const topClamp = new THREE.Mesh(clampGeo, clampMat);
-    const botClamp = new THREE.Mesh(clampGeo, clampMat);
-    topClamp.position.set(colX, topClampStart, 0.36);
-    botClamp.position.set(colX, botClampStart, 0.36);
-    anchorGroup.add(topClamp);
-    anchorGroup.add(botClamp);
-
-    // Central Descending Keystone Gem
-    const gemGeo = new THREE.OctahedronGeometry(0.34, 0);
-    const gemMat = new THREE.MeshBasicMaterial({
-        color: isAmplifier ? 0x38bdf8 : 0xfde047,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-    });
-    const gem = new THREE.Mesh(gemGeo, gemMat);
-    gem.position.set(colX, topClampStart, 0.52);
-    anchorGroup.add(gem);
-
-    let locked = false;
-    addTimedVFX(anchorGroup, 480, (p) => {
-        if (p < 0.48) {
-            const ease = Math.pow(p / 0.48, 2);
-            topClamp.position.y = topClampStart - ease * 0.95;
-            botClamp.position.y = botClampStart + ease * 0.95;
-            gem.position.y = topClampStart - ease * (topClampStart - slotY);
-            gem.rotation.y += 0.28;
-            gem.rotation.z += 0.15;
-        } else {
-            if (!locked) {
-                locked = true;
-                triggerBoardShake(0.20);
-                spawn3DColumnBeam(col, isAmplifier ? 0x38bdf8 : 0xfacc15, 0.38, 420, false);
-                spawn3DShockwaveRing(slotRow, col, isAmplifier ? 0x38bdf8 : 0xfacc15, 2.5, 440);
-                spawn3DParticleBurst(slotRow, col, isAmplifier ? 0x7dd3fc : 0xfde047, 16, 0.13, 460, 'octa');
-            }
-            const fadeP = (p - 0.48) / 0.52;
-            const scaleOut = Math.max(0.01, 1 - fadeP);
-            gem.rotation.y += 0.22;
-            gem.scale.setScalar(1 + fadeP * 0.45);
-            gemMat.opacity = 1 - fadeP;
-            topClamp.scale.set(1, scaleOut, scaleOut);
-            botClamp.scale.set(1, scaleOut, scaleOut);
-        }
-    });
-}
-
-// 9. Lodestone Polarity: 3D Bipolar Magnetic Levitation & Blocker Sink Choreography
-function playLodestonePolarityVFX(col, transitions, onComplete) {
-    const colX = START_X + col * CELL_SPACING;
-    const centerY = START_Y + ((ROWS - 1) * CELL_SPACING) / 2;
-
-    // Spawn Bipolar Horseshoe Magnetic Field Rings (Crimson North + Cyan South)
-    const fieldGroup = new THREE.Group();
-    fieldGroup.position.set(colX, centerY, 0.42);
-
-    const ringCount = 4;
-    const fieldRings = [];
-    for (let i = 0; i < ringCount; i++) {
-        const rGeo = new THREE.TorusGeometry(0.56, 0.045, 10, 26);
-        rGeo.rotateX(Math.PI / 2);
-        const rMat = new THREE.MeshBasicMaterial({
-            color: i % 2 === 0 ? 0x38bdf8 : 0xf43f5e,
-            transparent: true,
-            opacity: 0.9,
-            blending: THREE.AdditiveBlending
+      if (strikeP >= 0.52 && !impacted) {
+        impacted = true;
+        triggerBoardShake(0.28 + Math.min(0.18, stoneRows.length * 0.05));
+        stoneRows.forEach((sr) => {
+          spawn3DShockwaveRing(sr, col, 0xfacc15, 2.5, 460);
+          spawn3DParticleBurst(sr, col, 0xfef08a, 12, 0.14, 460, 'octa');
+          spawn3DParticleBurst(sr, col, 0x78716c, 16, 0.14, 520, 'box');
         });
-        const rMesh = new THREE.Mesh(rGeo, rMat);
-        rMesh.position.y = (i - 1.5) * 1.1;
-        fieldGroup.add(rMesh);
-        fieldRings.push(rMesh);
+        if (typeof onImpact === 'function') onImpact();
+      }
+    } else {
+      const fadeP = (p - 0.68) / 0.32;
+      pickaxeGroup.rotation.z = 0.85 + fadeP * 0.25;
+      pickaxeGroup.scale.setScalar(Math.max(0.01, 1 - fadeP));
     }
-
-    // Track actual token meshes in `col` so Player/Wild tokens visibly float forward & up while AI/Stone sink back & down
-    const movingItems = transitions.map((tr) => {
-        const mesh = state.meshes[tr.fromR] && state.meshes[tr.fromR][col];
-        return {
-            mesh,
-            startY: START_Y + tr.fromR * CELL_SPACING,
-            endY: START_Y + tr.toR * CELL_SPACING,
-            isRising: tr.isPlayerType
-        };
-    }).filter((item) => item.mesh);
-
-    let finished = false;
-    addTimedVFX(fieldGroup, 460, (p) => {
-        const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-        const arcSin = Math.sin(p * Math.PI);
-
-        fieldRings.forEach((rm, idx) => {
-            rm.position.y += idx % 2 === 0 ? 0.09 : -0.09;
-            if (rm.position.y > 2.4) rm.position.y = -2.4;
-            if (rm.position.y < -2.4) rm.position.y = 2.4;
-            rm.scale.setScalar(1 + arcSin * 0.22);
-            rm.material.opacity = (1 - p) * 0.9;
-        });
-
-        movingItems.forEach((item) => {
-            item.mesh.position.y = item.startY + (item.endY - item.startY) * ease;
-            // Rising Player/Wild tokens arc forward in Z (+0.65); sinking blockers pass behind (-0.35)
-            item.mesh.position.z = (item.isRising ? 0.65 : -0.35) * arcSin;
-            item.mesh.rotation.y = (item.isRising ? 1 : -1) * p * Math.PI * 2;
-        });
-
-        if (p >= 0.92 && !finished) {
-            finished = true;
-            movingItems.forEach((item) => {
-                item.mesh.position.z = 0;
-                item.mesh.rotation.set(0, 0, 0);
-            });
-            triggerBoardShake(0.18);
-            if (onComplete) onComplete();
-        }
-    });
+  });
 }
 
-// 10. Alchemical Crucible: 3D Bubbling Acid Smelt & Wild Amplifier Crystal Emergence
-function playAlchemyCrucibleVFX(targetR, slotRow, col, onSmelt) {
-    const targetMesh = state.meshes[targetR] && state.meshes[targetR][col];
-    const originPos = getCellWorldPos(targetR, col, 0.45);
-    const destY = START_Y + slotRow * CELL_SPACING;
+// ============================================================================
+// 8. TECTONIC ANCHOR: Dwarven Keystone Press with Guide Rods & Fluted Capitals
+// ============================================================================
+function playTectonicAnchorVFX(col, targetR, isAmplifier = false, onImpact) {
+  const colX = START_X + col * CELL_SPACING;
+  const slotRow = targetR !== -1 ? targetR : Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+  const slotY = getVisibleRowY(slotRow);
+  const topClampStart = VFX_MAX_VISIBLE_Y;
+  const botClampStart = VFX_MIN_VISIBLE_Y;
 
-    const crucibleGroup = new THREE.Group();
-    crucibleGroup.position.set(originPos.x, originPos.y, 0.45);
+  const anchorGroup = new THREE.Group();
 
-    // Swirling Alchemical Vortex Ring
-    const vortexGeo = new THREE.TorusGeometry(0.46, 0.055, 10, 24);
-    const vortexMat = new THREE.MeshBasicMaterial({
-        color: 0xe879f9,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-    });
-    const vortexRing = new THREE.Mesh(vortexGeo, vortexMat);
-    crucibleGroup.add(vortexRing);
+  const buildCapital = (isTop) => {
+    const cap = new THREE.Group();
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.26, 0.68), C4_VFX_MATS.agedBrass);
+    const bevel = new THREE.Mesh(
+      new THREE.CylinderGeometry(isTop ? 0.42 : 0.58, isTop ? 0.58 : 0.42, 0.24, 8),
+      C4_VFX_MATS.darkIron
+    );
+    bevel.position.y = isTop ? -0.22 : 0.22;
+    cap.add(plate);
+    cap.add(bevel);
+    return cap;
+  };
 
-    // Rising Alchemical Bubbles + Emerging Wild Diamond Core
-    const bubbleGeo = new THREE.OctahedronGeometry(0.11, 1);
-    const bubbles = [];
-    for (let i = 0; i < 10; i++) {
-        const bMat = new THREE.MeshBasicMaterial({
-            color: i % 2 === 0 ? 0xfacc15 : 0x38bdf8,
-            transparent: true,
-            opacity: 0.95,
-            blending: THREE.AdditiveBlending
-        });
-        const b = new THREE.Mesh(bubbleGeo, bMat);
-        b.userData = {
-            angle: (i / 10) * Math.PI * 2,
-            rad: 0.18 + Math.random() * 0.26,
-            vy: 0.04 + Math.random() * 0.05
-        };
-        crucibleGroup.add(b);
-        bubbles.push(b);
+  const topClamp = buildCapital(true);
+  const botClamp = buildCapital(false);
+  topClamp.position.set(colX, topClampStart, 0.90);
+  botClamp.position.set(colX, botClampStart, 0.90);
+  anchorGroup.add(topClamp);
+  anchorGroup.add(botClamp);
+
+  // Twin vertical threaded steel guide rods
+  const rodGeo = new THREE.CylinderGeometry(0.055, 0.055, topClampStart - botClampStart, 10);
+  const rodL = new THREE.Mesh(rodGeo, C4_VFX_MATS.polishedSteel);
+  const rodR = new THREE.Mesh(rodGeo, C4_VFX_MATS.polishedSteel);
+  rodL.position.set(colX - 0.48, VFX_CENTER_Y, 0.88);
+  rodR.position.set(colX + 0.48, VFX_CENTER_Y, 0.88);
+  anchorGroup.add(rodL);
+  anchorGroup.add(rodR);
+
+  // Faceted Keystone Gem with Brass Bezel Ring
+  const gemGroup = new THREE.Group();
+  const gemMat = new THREE.MeshBasicMaterial({
+    color: isAmplifier ? 0x38bdf8 : 0xfde047,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending
+  });
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.44, 0), gemMat);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.05, 8, 6), C4_VFX_MATS.agedBrass);
+  gemGroup.add(gem);
+  gemGroup.add(bezel);
+  gemGroup.position.set(colX, topClampStart, 0.98);
+  anchorGroup.add(gemGroup);
+
+  let locked = false;
+  addTimedVFX(anchorGroup, 760, (p) => {
+    if (p < 0.50) {
+      const ease = Math.pow(p / 0.50, 2);
+      topClamp.position.y = topClampStart - ease * (topClampStart - slotY - 0.58);
+      botClamp.position.y = botClampStart + ease * (slotY - 0.58 - botClampStart);
+      gemGroup.position.y = topClampStart - ease * (topClampStart - slotY);
+      gemGroup.rotation.y += 0.25;
+    } else {
+      if (!locked) {
+        locked = true;
+        triggerBoardShake(0.24);
+        spawn3DColumnBeam(col, isAmplifier ? 0x38bdf8 : 0xfacc15, 0.42, 480, false);
+        spawn3DShockwaveRing(slotRow, col, isAmplifier ? 0x38bdf8 : 0xfacc15, 2.7, 480);
+        spawn3DParticleBurst(slotRow, col, isAmplifier ? 0x7dd3fc : 0xfde047, 18, 0.14, 500, 'octa');
+        if (typeof onImpact === 'function') onImpact();
+      }
+      const fadeP = (p - 0.50) / 0.50;
+      const scaleOut = Math.max(0.01, 1 - fadeP);
+      gemGroup.rotation.y += 0.22;
+      gemGroup.scale.setScalar(1 + fadeP * 0.45);
+      gemMat.opacity = 1 - fadeP;
+      topClamp.scale.setScalar(scaleOut);
+      botClamp.scale.setScalar(scaleOut);
+      rodL.scale.set(scaleOut, 1, scaleOut);
+      rodR.scale.set(scaleOut, 1, scaleOut);
     }
-
-    const prismGeo = new THREE.OctahedronGeometry(0.32, 0);
-    const prismMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.0,
-        blending: THREE.AdditiveBlending
-    });
-    const prismMesh = new THREE.Mesh(prismGeo, prismMat);
-    crucibleGroup.add(prismMesh);
-
-    let smelted = false;
-    addTimedVFX(crucibleGroup, 460, (p) => {
-        vortexRing.rotation.z = p * Math.PI * 4;
-        vortexRing.scale.setScalar(1 + Math.sin(p * Math.PI) * 0.35);
-        vortexMat.opacity = 1 - p;
-
-        bubbles.forEach((b) => {
-            b.userData.angle += 0.18;
-            b.position.x = Math.cos(b.userData.angle) * b.userData.rad * (1 - p * 0.5);
-            b.position.y += b.userData.vy;
-            b.position.z = Math.sin(b.userData.angle) * 0.22;
-            b.material.opacity = 1 - p;
-        });
-
-        if (p < 0.55) {
-            const shrinkP = p / 0.55;
-            if (targetMesh) {
-                const s = Math.max(0.05, 1 - shrinkP);
-                targetMesh.scale.setScalar(s);
-                targetMesh.rotation.z = shrinkP * Math.PI * 2;
-            }
-            prismMat.opacity = shrinkP;
-            prismMesh.scale.setScalar(0.3 + shrinkP * 0.8);
-            prismMesh.rotation.y += 0.25;
-        } else {
-            if (!smelted) {
-                smelted = true;
-                triggerBoardShake(0.22);
-                spawn3DShockwaveRing(slotRow, col, 0x38bdf8, 2.6, 460);
-                spawn3DParticleBurst(slotRow, col, 0xfde047, 18, 0.14, 480, 'octa');
-                if (onSmelt) onSmelt();
-            }
-            const settleP = (p - 0.55) / 0.45;
-            prismMesh.position.y = (destY - originPos.y) * settleP;
-            prismMesh.rotation.y += 0.25;
-            prismMesh.scale.setScalar(Math.max(0.01, 1.1 * (1 - settleP)));
-            prismMat.opacity = 1 - settleP;
-        }
-    });
+  });
 }
 
-// 11. Prismatic Mirror Shard: 3D Crystalline Mirror Portal Reflection between (srcR, col) and (destR, col)
-function playMirrorShardVFX(srcR, destR, col) {
-    const colX = START_X + col * CELL_SPACING;
-    const srcY = START_Y + srcR * CELL_SPACING;
-    const destY = START_Y + destR * CELL_SPACING;
-    const midY = (srcY + destY) * 0.5;
+// ============================================================================
+// 9. LODESTONE POLARITY: U-Shaped Horseshoe Magnet with Silver Pole Shoes
+// ============================================================================
+function buildHorseshoeMagnetMesh() {
+  const mag = new THREE.Group();
+  // Upper crimson U-bend
+  const arch = new THREE.Mesh(
+    new THREE.TorusGeometry(0.46, 0.16, 14, 28, Math.PI),
+    C4_VFX_MATS.crimsonRuby
+  );
+  arch.position.y = 0.35;
+  mag.add(arch);
 
-    const mirrorGroup = new THREE.Group();
-    mirrorGroup.position.set(colX, midY, 0.48);
+  // Left & Right Straight Legs + Brushed Steel Pole Shoes + Brass Rivets
+  [-0.46, 0.46].forEach((lx) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.55, 14), C4_VFX_MATS.crimsonRuby);
+    leg.position.set(lx, 0.08, 0);
+    mag.add(leg);
 
-    // Floating Crystalline Mirror Plane & Prismatic Rim between the source and cloned tokens
-    const glassGeo = new THREE.CylinderGeometry(0.54, 0.54, 0.05, 6);
-    const glassMat = new THREE.MeshBasicMaterial({
-        color: 0xe879f9,
-        transparent: true,
-        opacity: 0.85,
-        blending: THREE.AdditiveBlending
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.26, 0.36), C4_VFX_MATS.polishedSteel);
+    shoe.position.set(lx, -0.28, 0);
+    mag.add(shoe);
+
+    const rivet = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.38, 10), C4_VFX_MATS.agedBrass);
+    rivet.rotation.x = Math.PI / 2;
+    rivet.position.set(lx, 0.12, 0);
+    mag.add(rivet);
+  });
+  return mag;
+}
+
+function playLodestonePolarityVFX(col, transitionsOrRows, onComplete) {
+  const colX = START_X + col * CELL_SPACING;
+  const centerY = VFX_CENTER_Y;
+
+  const fieldGroup = new THREE.Group();
+  fieldGroup.position.set(colX, centerY, 0.90);
+
+  const magnetMesh = buildHorseshoeMagnetMesh();
+  magnetMesh.position.set(0, 1.85, 0.18);
+  fieldGroup.add(magnetMesh);
+
+  const fieldRings = [];
+  for (let i = 0; i < 4; i++) {
+    const rGeo = new THREE.TorusGeometry(0.62, 0.05, 10, 26);
+    rGeo.rotateX(Math.PI / 2);
+    const rMat = new THREE.MeshBasicMaterial({
+      color: i % 2 === 0 ? 0x38bdf8 : 0xf43f5e,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending
     });
-    const glassDisc = new THREE.Mesh(glassGeo, glassMat);
-    mirrorGroup.add(glassDisc);
+    const rMesh = new THREE.Mesh(rGeo, rMat);
+    rMesh.position.y = (i - 1.5) * 1.05;
+    fieldGroup.add(rMesh);
+    fieldRings.push(rMesh);
+  }
 
-    const rimGeo = new THREE.TorusGeometry(0.56, 0.045, 8, 6);
-    rimGeo.rotateX(Math.PI / 2);
-    const rimMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
+  let normalizedTransitions = [];
+  if (Array.isArray(transitionsOrRows) && transitionsOrRows.length > 0) {
+    if (typeof transitionsOrRows[0] === 'object' && transitionsOrRows[0] !== null) {
+      normalizedTransitions = transitionsOrRows;
+    } else {
+      const playerFromRows = [];
+      const blockerFromRows = [];
+      transitionsOrRows.forEach((r) => {
+        const cell = state.board[r] && state.board[r][col];
+        if (cell === PLAYER || cell === WILD) playerFromRows.push(r);
+        else blockerFromRows.push(r);
+      });
+      const orderedFrom = [...blockerFromRows, ...playerFromRows];
+      normalizedTransitions = orderedFrom.map((fromR, i) => ({
+        fromR,
+        toR: transitionsOrRows[i],
+        isPlayerType: i >= blockerFromRows.length
+      }));
+    }
+  }
+
+  const movingItems = normalizedTransitions.map((tr) => {
+    const mesh = state.meshes[tr.fromR] && state.meshes[tr.fromR][col];
+    return {
+      mesh,
+      startY: START_Y + tr.fromR * CELL_SPACING,
+      endY: START_Y + tr.toR * CELL_SPACING,
+      isRising: tr.isPlayerType
+    };
+  }).filter((item) => item.mesh);
+
+  let finished = false;
+  addTimedVFX(fieldGroup, 780, (p) => {
+    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    const arcSin = Math.sin(p * Math.PI);
+
+    magnetMesh.rotation.z = Math.sin(p * Math.PI * 6) * 0.14;
+    magnetMesh.scale.setScalar(p > 0.78 ? Math.max(0.01, (1 - p) / 0.22) : 1 + arcSin * 0.18);
+
+    fieldRings.forEach((rm, idx) => {
+      rm.position.y += idx % 2 === 0 ? 0.08 : -0.08;
+      if (rm.position.y > 2.2) rm.position.y = -2.2;
+      if (rm.position.y < -2.2) rm.position.y = 2.2;
+      rm.scale.setScalar(1 + arcSin * 0.25);
+      rm.material.opacity = (1 - p) * 0.92;
     });
-    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-    mirrorGroup.add(rimMesh);
 
-    spawn3DShockwaveRing(srcR, col, 0xfbbf24, 2.0, 380);
-    spawn3DShockwaveRing(destR, col, 0x38bdf8, 2.6, 480);
-    spawn3DParticleBurst(destR, col, 0xe879f9, 18, 0.13, 500, 'octa');
-
-    addTimedVFX(mirrorGroup, 460, (p) => {
-        const pulse = Math.sin(p * Math.PI);
-        glassDisc.rotation.y = p * Math.PI * 3;
-        rimMesh.rotation.z = -p * Math.PI * 3;
-        mirrorGroup.scale.setScalar(0.6 + pulse * 0.65);
-        glassMat.opacity = (1 - p) * 0.85;
-        rimMat.opacity = (1 - p) * 0.95;
+    movingItems.forEach((item) => {
+      item.mesh.position.y = item.startY + (item.endY - item.startY) * ease;
+      item.mesh.position.z = (item.isRising ? 0.85 : -0.35) * arcSin;
+      item.mesh.rotation.y = (item.isRising ? 1 : -1) * p * Math.PI * 2;
     });
+
+    if (p >= 0.88 && !finished) {
+      finished = true;
+      movingItems.forEach((item) => {
+        item.mesh.position.z = 0;
+        item.mesh.rotation.set(0, 0, 0);
+      });
+      triggerBoardShake(0.22);
+      if (typeof onComplete === 'function') onComplete();
+    }
+  });
+}
+
+// ============================================================================
+// 10. ALCHEMICAL CRUCIBLE: Tripod Melting Pot, Blacksmith Tongs & Wild Crystal
+// ============================================================================
+function playAlchemyCrucibleVFX(targetR, slotRowOrCol, colOrOnSmelt, maybeOnSmelt) {
+  const hasExplicitSlotRow = typeof colOrOnSmelt === 'number';
+  const slotRow = hasExplicitSlotRow ? slotRowOrCol : targetR;
+  const col = hasExplicitSlotRow ? colOrOnSmelt : slotRowOrCol;
+  const onSmelt = hasExplicitSlotRow ? maybeOnSmelt : colOrOnSmelt;
+
+  const targetMesh = state.meshes[targetR] && state.meshes[targetR][col];
+  const originPos = getCellWorldPos(targetR, col, 0.90);
+  originPos.y = clampVisibleY(originPos.y);
+  const destY = getVisibleRowY(slotRow);
+
+  const crucibleGroup = new THREE.Group();
+  crucibleGroup.position.copy(originPos);
+
+  // Sculpted Tripod Crucible Pot with Rolled Lip, 3 Legs & Glowing Molten Bath
+  const potGroup = new THREE.Group();
+  const potBody = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.36, 0.56, 16), C4_VFX_MATS.darkIron);
+  const potLip = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.06, 10, 24), C4_VFX_MATS.agedBrass);
+  potLip.rotation.x = Math.PI / 2;
+  potLip.position.y = 0.28;
+  const moltenBath = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.52, 0.52, 0.08, 16),
+    new THREE.MeshBasicMaterial({ color: 0xe879f9 })
+  );
+  moltenBath.position.y = 0.25;
+  potGroup.add(potBody);
+  potGroup.add(potLip);
+  potGroup.add(moltenBath);
+
+  for (let i = 0; i < 3; i++) {
+    const ang = (i / 3) * Math.PI * 2;
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.36, 8), C4_VFX_MATS.agedBrass);
+    leg.position.set(Math.cos(ang) * 0.34, -0.36, Math.sin(ang) * 0.34);
+    potGroup.add(leg);
+  }
+  potGroup.position.y = -0.18;
+  crucibleGroup.add(potGroup);
+
+  // Emerging Multi-Faceted Wild Amplifier Gem
+  const prismMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.0,
+    blending: THREE.AdditiveBlending
+  });
+  const prismMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.46, 0), prismMat);
+  const prismCage = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.54, 0),
+    new THREE.MeshBasicMaterial({ color: 0xfde047, wireframe: true, transparent: true, opacity: 0.9 })
+  );
+  prismMesh.add(prismCage);
+  crucibleGroup.add(prismMesh);
+
+  let smelted = false;
+  addTimedVFX(crucibleGroup, 780, (p) => {
+    potGroup.rotation.y = p * Math.PI * 2;
+    if (p < 0.55) {
+      const shrinkP = p / 0.55;
+      if (targetMesh) {
+        const s = Math.max(0.05, 1 - shrinkP);
+        targetMesh.scale.setScalar(s);
+        targetMesh.rotation.z = shrinkP * Math.PI * 2;
+      }
+      prismMat.opacity = shrinkP;
+      prismMesh.position.y = shrinkP * 0.45;
+      prismMesh.scale.setScalar(0.35 + shrinkP * 0.85);
+      prismMesh.rotation.y += 0.25;
+    } else {
+      if (!smelted) {
+        smelted = true;
+        triggerBoardShake(0.24);
+        spawn3DShockwaveRing(slotRow, col, 0x38bdf8, 2.7, 480);
+        spawn3DParticleBurst(slotRow, col, 0xfde047, 18, 0.14, 500, 'octa');
+        if (typeof onSmelt === 'function') onSmelt();
+      }
+      const settleP = (p - 0.55) / 0.45;
+      prismMesh.position.y = 0.45 + (destY - originPos.y - 0.45) * settleP;
+      prismMesh.rotation.y += 0.25;
+      const fadeOut = Math.max(0.01, 1 - settleP);
+      prismMesh.scale.setScalar(fadeOut);
+      potGroup.scale.setScalar(fadeOut);
+      prismMat.opacity = fadeOut;
+    }
+  });
+}
+
+// ============================================================================
+// 11. PRISMATIC MIRROR SHARD: Ornate Gothic Hand-Mirror with Filigree Crown
+// ============================================================================
+function playMirrorShardVFX(srcR, destR, col, onReflect) {
+  const colX = START_X + col * CELL_SPACING;
+  const srcY = getVisibleRowY(srcR);
+  const destY = getVisibleRowY(destR);
+  const midY = clampVisibleY((srcY + destY) * 0.5);
+
+  const mirrorGroup = new THREE.Group();
+  mirrorGroup.position.set(colX, midY, 0.94);
+
+  // Silvered Octagonal Mirror Pane
+  const glassDisc = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.72, 0.72, 0.08, 8),
+    C4_VFX_MATS.quicksilverChrome
+  );
+  glassDisc.rotation.x = Math.PI / 2;
+  mirrorGroup.add(glassDisc);
+
+  // Gilded Frame Ring + 8 Perimeter Filigree Spikes + Turned Handle
+  const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.075, 10, 8), C4_VFX_MATS.agedBrass);
+  mirrorGroup.add(rimMesh);
+
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 5), C4_VFX_MATS.agedBrass);
+    spike.position.set(Math.cos(ang) * 0.90, Math.sin(ang) * 0.90, 0);
+    spike.rotation.z = ang - Math.PI / 2;
+    mirrorGroup.add(spike);
+  }
+
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.65, 10), C4_VFX_MATS.agedBrass);
+  handle.position.y = -1.05;
+  mirrorGroup.add(handle);
+
+  let reflected = false;
+  addTimedVFX(mirrorGroup, 760, (p) => {
+    const pulse = Math.sin(p * Math.PI);
+    mirrorGroup.rotation.y = Math.sin(p * Math.PI * 2) * 0.55;
+    mirrorGroup.scale.setScalar(p > 0.75 ? Math.max(0.01, (1 - p) / 0.25) : 0.75 + pulse * 0.35);
+
+    if (p >= 0.48 && !reflected) {
+      reflected = true;
+      spawn3DShockwaveRing(srcR, col, 0xfbbf24, 2.2, 420);
+      spawn3DShockwaveRing(destR, col, 0x38bdf8, 2.7, 500);
+      spawn3DParticleBurst(destR, col, 0xe879f9, 18, 0.14, 500, 'octa');
+      if (typeof onReflect === 'function') onReflect();
+    }
+  });
+}
+
+// ============================================================================
+// 12. CAVERN PEBBLE NUDGE: Sculpted Dwarven Stone-Mason's Maul & Geode Cluster
+// ============================================================================
+function playPebbleNudgeVFX(baseR, col, onImpact) {
+  const colX = START_X + col * CELL_SPACING;
+  const targetY = getVisibleRowY(baseR);
+  const startY = clampVisibleY(targetY + 1.65);
+  const group = new THREE.Group();
+
+  // Two-Handed Dwarven Stone Maul
+  const maulGroup = new THREE.Group();
+  const headGeo = new THREE.CylinderGeometry(0.42, 0.42, 1.05, 8);
+  headGeo.rotateZ(Math.PI / 2);
+  maulGroup.add(new THREE.Mesh(headGeo, C4_VFX_MATS.basaltStone));
+
+  [-0.32, 0.32].forEach((bx) => {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.05, 8, 16), C4_VFX_MATS.agedBrass);
+    band.rotation.y = Math.PI / 2;
+    band.position.x = bx;
+    maulGroup.add(band);
+  });
+
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 1.35, 10), carvedWoodMat);
+  shaft.position.y = 0.78;
+  maulGroup.add(shaft);
+  maulGroup.position.set(colX, startY, 0.94);
+  group.add(maulGroup);
+
+  const nuggets = [];
+  for (let i = 0; i < 6; i++) {
+    const nug = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), C4_VFX_MATS.agedBrass);
+    nug.position.set(colX, targetY, 0.96);
+    group.add(nug);
+    nuggets.push(nug);
+  }
+
+  let struck = false;
+  addTimedVFX(group, 740, (p) => {
+    if (p < 0.46) {
+      const fallP = Math.pow(p / 0.46, 2);
+      maulGroup.position.y = startY - (startY - targetY) * fallP;
+      maulGroup.rotation.z = (1 - fallP) * 0.45;
+    } else {
+      if (!struck) {
+        struck = true;
+        triggerBoardShake(0.22);
+        spawn3DShockwaveRing(baseR, col, 0xfacc15, 2.5, 460);
+        spawn3DParticleBurst(baseR, col, 0xd97706, 16, 0.13, 480, 'octa');
+        if (typeof onImpact === 'function') onImpact();
+      }
+      const bounceP = (p - 0.46) / 0.54;
+      maulGroup.position.y = clampVisibleY(targetY + Math.sin(bounceP * Math.PI) * 0.65);
+      maulGroup.scale.setScalar(Math.max(0.01, 1 - bounceP));
+      nuggets.forEach((nug, idx) => {
+        const ang = (idx / 6) * Math.PI * 2 + bounceP * 3;
+        nug.position.x = colX + Math.cos(ang) * (0.35 + bounceP * 0.85);
+        nug.position.y = clampVisibleY(targetY + Math.sin(bounceP * Math.PI) * 1.1);
+        nug.rotation.x += 0.25;
+        nug.rotation.y += 0.25;
+        nug.scale.setScalar(Math.max(0.01, 1 - bounceP));
+      });
+    }
+  });
+}
+
+// ============================================================================
+// 13. ORACLE'S LANTERN: Hexagonal Brass Sanctuary Lantern with 6 Cage Struts
+// ============================================================================
+function playOracleLanternVFX(col, onImpact) {
+  const group = new THREE.Group();
+  const startX = START_X;
+  const endX = START_X + (COLS - 1) * CELL_SPACING;
+  const targetX = START_X + col * CELL_SPACING;
+  const sweepY = VFX_CENTER_Y + 1.15;
+
+  const lanternGroup = new THREE.Group();
+  // Top Bail Handle Ring + Vented Chimney Dome + Upper/Lower Galleries
+  const bail = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.035, 8, 18), C4_VFX_MATS.agedBrass);
+  bail.position.y = 0.78;
+  lanternGroup.add(bail);
+
+  const hood = new THREE.Mesh(new THREE.ConeGeometry(0.56, 0.42, 6), C4_VFX_MATS.agedBrass);
+  hood.position.y = 0.48;
+  lanternGroup.add(hood);
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.50, 0.56, 0.22, 6), C4_VFX_MATS.agedBrass);
+  base.position.y = -0.44;
+  lanternGroup.add(base);
+
+  // 6 Vertical Brass Cage Struts + Inner Glowing Flame Core
+  for (let i = 0; i < 6; i++) {
+    const ang = (i / 6) * Math.PI * 2;
+    const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.76, 6), C4_VFX_MATS.agedBrass);
+    strut.position.set(Math.cos(ang) * 0.42, 0.02, Math.sin(ang) * 0.42);
+    lanternGroup.add(strut);
+  }
+  const flameCore = new THREE.Mesh(
+    new THREE.ConeGeometry(0.24, 0.52, 10),
+    new THREE.MeshBasicMaterial({ color: 0xfef08a })
+  );
+  lanternGroup.add(flameCore);
+
+  const coneGeo = new THREE.ConeGeometry(1.45, 3.6, 16, 1, true);
+  coneGeo.translate(0, -1.8, 0);
+  const coneMat = new THREE.MeshBasicMaterial({
+    color: 0xfde047,
+    transparent: true,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  lanternGroup.add(new THREE.Mesh(coneGeo, coneMat));
+  group.add(lanternGroup);
+
+  let impacted = false;
+  addTimedVFX(group, 800, (p) => {
+    const sweepX = p < 0.55
+      ? startX + (endX - startX) * (p / 0.55)
+      : endX + (targetX - endX) * ((p - 0.55) / 0.45);
+    lanternGroup.position.set(sweepX, sweepY + Math.sin(p * Math.PI) * 0.32, 1.05);
+    lanternGroup.rotation.z = Math.sin(p * Math.PI * 4) * 0.26 * (1 - p);
+    lanternGroup.rotation.y = p * Math.PI * 2;
+    coneMat.opacity = Math.max(0, (1 - p) * 0.46);
+
+    if (p >= 0.52 && !impacted) {
+      impacted = true;
+      spawn3DColumnBeam(col, 0xfef08a, 0.42, 480, false);
+      if (typeof onImpact === 'function') onImpact();
+    }
+    if (p > 0.76) {
+      lanternGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.24));
+    }
+  });
+}
+
+// ============================================================================
+// 14. LOADED KNUCKLEBONES & WEIGHTED DIE: Bevelled Bone Dice with True 1-6 Pips
+// ============================================================================
+const DIE_PIP_OFFSETS = {
+  1: [[0, 0]],
+  2: [[-0.18, -0.18], [0.18, 0.18]],
+  3: [[-0.20, -0.20], [0, 0], [0.20, 0.20]],
+  4: [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]],
+  5: [[-0.19, -0.19], [0.19, -0.19], [0, 0], [-0.19, 0.19], [0.19, 0.19]],
+  6: [[-0.18, -0.21], [0.18, -0.21], [-0.18, 0], [0.18, 0], [-0.18, 0.21], [0.18, 0.21]]
+};
+
+function build3DDieMesh(frontVal = 6, accentHex = 0xdc2626) {
+  const dieGroup = new THREE.Group();
+  // Bevelled compound ivory block + 8 brass corner studs
+  dieGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.68, 0.68), C4_VFX_MATS.boneIvory));
+  dieGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.60, 0.60), C4_VFX_MATS.boneIvory));
+  dieGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.74, 0.60), C4_VFX_MATS.boneIvory));
+  dieGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.60, 0.74), C4_VFX_MATS.boneIvory));
+
+  const studGeo = new THREE.OctahedronGeometry(0.075, 0);
+  [-0.32, 0.32].forEach((sx) => {
+    [-0.32, 0.32].forEach((sy) => {
+      [-0.32, 0.32].forEach((sz) => {
+        const stud = new THREE.Mesh(studGeo, C4_VFX_MATS.agedBrass);
+        stud.position.set(sx, sy, sz);
+        dieGroup.add(stud);
+      });
+    });
+  });
+
+  // Inlaid 3D pips on the front face (+Z) showing the exact rolled number `frontVal`
+  const safeVal = Math.max(1, Math.min(6, Math.round(frontVal || 6)));
+  const pipMat = new THREE.MeshBasicMaterial({ color: accentHex });
+  const darkPipMat = new THREE.MeshBasicMaterial({ color: 0x1c1917 });
+  const pipGeo = new THREE.CylinderGeometry(0.068, 0.068, 0.03, 12);
+  pipGeo.rotateX(Math.PI / 2);
+
+  (DIE_PIP_OFFSETS[safeVal] || DIE_PIP_OFFSETS[6]).forEach(([px, py]) => {
+    const pip = new THREE.Mesh(pipGeo, safeVal === 1 || safeVal === 6 ? pipMat : darkPipMat);
+    pip.position.set(px, py, 0.375);
+    dieGroup.add(pip);
+  });
+
+  // Add pips on Top (+Y) and Right (+X) faces so tumbling looks authentic from every angle
+  const topPipGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.03, 10);
+  DIE_PIP_OFFSETS[5].forEach(([px, pz]) => {
+    const tp = new THREE.Mesh(topPipGeo, darkPipMat);
+    tp.position.set(px, 0.375, pz);
+    dieGroup.add(tp);
+  });
+  return dieGroup;
+}
+
+function playLoadedKnucklebonesVFX(col, d1, d2, onLand) {
+  const colX = START_X + col * CELL_SPACING;
+  const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+  const destY = getVisibleRowY(Math.min(ROWS - 1, topR + 1));
+  const startY = VFX_MAX_VISIBLE_Y;
+
+  const group = new THREE.Group();
+  const die1 = build3DDieMesh(d1, 0xdc2626);
+  const die2 = build3DDieMesh(d2, 0xdc2626);
+  group.add(die1);
+  group.add(die2);
+
+  let landed = false;
+  addTimedVFX(group, 820, (p) => {
+    if (p < 0.56) {
+      const t = p / 0.56;
+      const bounce = Math.abs(Math.sin(t * Math.PI * 2.5)) * (1 - t) * 1.25;
+      const curY = clampVisibleY(startY - (startY - destY) * t + bounce);
+      die1.position.set(colX - 0.52, curY, 1.12);
+      die2.position.set(colX + 0.52, curY + 0.12, 1.12);
+      // Spin to 0 at t=1 so the front pip faces (d1, d2) lock squarely facing the camera!
+      const rem = 1 - t;
+      die1.rotation.set(rem * Math.PI * 6, rem * Math.PI * 4, rem * Math.PI * 2);
+      die2.rotation.set(-rem * Math.PI * 6, -rem * Math.PI * 4, -rem * Math.PI * 2);
+    } else {
+      die1.rotation.set(0, 0, 0);
+      die2.rotation.set(0, 0, 0);
+      if (!landed) {
+        landed = true;
+        triggerBoardShake(d1 + d2 >= 11 ? 0.28 : 0.18);
+        spawn3DShockwaveRing(topR, col, d1 + d2 >= 7 ? 0xfde047 : 0xfacc15, 2.7, 480);
+        spawn3DParticleBurst(topR, col, 0xfde047, 18, 0.14, 500, 'octa');
+        if (typeof onLand === 'function') onLand();
+      }
+      if (p > 0.78) {
+        const fadeP = (p - 0.78) / 0.22;
+        const s = Math.max(0.01, 1 - fadeP);
+        die1.scale.setScalar(s);
+        die2.scale.setScalar(s);
+      }
+    }
+  });
+}
+
+// ============================================================================
+// 15. BLOODLETTER'S LANCET: Graduated Glass & Brass Hypodermic Syringe
+// ============================================================================
+function playBloodletterLancetVFX(col, onExtract) {
+  const colX = START_X + col * CELL_SPACING;
+  const topR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+  const targetY = getVisibleRowY(topR);
+  const startY = clampVisibleY(targetY + 1.45);
+
+  const group = new THREE.Group();
+  const syringeGroup = new THREE.Group();
+
+  // Tapered Hollow Steel Needle + Stepped Brass Hub
+  const tipGeo = new THREE.ConeGeometry(0.07, 0.78, 12);
+  tipGeo.rotateX(Math.PI);
+  const tip = new THREE.Mesh(tipGeo, C4_VFX_MATS.polishedSteel);
+  syringeGroup.add(tip);
+
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.10, 0.22, 12), C4_VFX_MATS.agedBrass);
+  hub.position.y = 0.36;
+  syringeGroup.add(hub);
+
+  // Transparent Graduated Glass Barrel + 4 Brass Tick Rings
+  const barrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.28, 1.12, 16),
+    new THREE.MeshBasicMaterial({ color: 0xfef2f2, transparent: true, opacity: 0.36 })
+  );
+  barrel.position.y = 1.02;
+  syringeGroup.add(barrel);
+
+  for (let i = 0; i < 4; i++) {
+    const tick = new THREE.Mesh(new THREE.TorusGeometry(0.285, 0.022, 8, 20), C4_VFX_MATS.agedBrass);
+    tick.rotation.x = Math.PI / 2;
+    tick.position.y = 0.62 + i * 0.26;
+    syringeGroup.add(tick);
+  }
+
+  // Rising Inner Crimson Blood Fluid Column inside the glass barrel
+  const bloodFluid = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.24, 0.24, 0.96, 14),
+    C4_VFX_MATS.crimsonRuby
+  );
+  bloodFluid.position.y = 0.56;
+  bloodFluid.scale.set(1, 0.08, 1);
+  syringeGroup.add(bloodFluid);
+
+  // Top Brass Cap + Twin Finger Loops + Moving Plunger Rod & Thumb Ring
+  const topCap = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.12, 14), C4_VFX_MATS.agedBrass);
+  topCap.position.y = 1.60;
+  syringeGroup.add(topCap);
+
+  [-0.38, 0.38].forEach((fx) => {
+    const loop = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.032, 8, 16), C4_VFX_MATS.agedBrass);
+    loop.position.set(fx, 1.60, 0);
+    syringeGroup.add(loop);
+  });
+
+  const plungerAssembly = new THREE.Group();
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.85, 10), C4_VFX_MATS.polishedSteel);
+  rod.position.y = 0.42;
+  const thumbRing = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.038, 8, 18), C4_VFX_MATS.agedBrass);
+  thumbRing.position.y = 0.92;
+  plungerAssembly.add(rod);
+  plungerAssembly.add(thumbRing);
+  plungerAssembly.position.y = 1.15;
+  syringeGroup.add(plungerAssembly);
+
+  syringeGroup.position.set(colX, startY, 0.98);
+  syringeGroup.rotation.z = -0.22;
+  group.add(syringeGroup);
+
+  let extracted = false;
+  addTimedVFX(group, 780, (p) => {
+    if (p < 0.36) {
+      const plungeP = Math.pow(p / 0.36, 2);
+      syringeGroup.position.y = startY - (startY - targetY) * plungeP;
+    } else {
+      if (!extracted) {
+        extracted = true;
+        triggerBoardShake(0.22);
+        spawn3DColumnBeam(col, 0xf43f5e, 0.42, 480, true);
+        spawn3DShockwaveRing(topR, col, 0xf43f5e, 2.6, 480);
+        if (typeof onExtract === 'function') onExtract();
+      }
+      const siphonP = (p - 0.36) / 0.64;
+      const fillAmt = Math.min(1, siphonP * 1.35);
+      bloodFluid.scale.set(1, Math.max(0.08, fillAmt), 1);
+      bloodFluid.position.y = 0.52 + fillAmt * 0.48;
+      plungerAssembly.position.y = 1.15 + fillAmt * 0.62;
+      if (siphonP > 0.68) {
+        syringeGroup.scale.setScalar(Math.max(0.01, (1 - siphonP) / 0.32));
+      }
+    }
+  });
+}
+
+// ============================================================================
+// 16. PETRIFIED WOOD BLOCK: Sculpted Bark-Rimmed Tree Trunk & Iron Clamps
+// ============================================================================
+function playPetrifiedBlockVFX(r, col, onImpact) {
+  const pos = getCellWorldPos(r, col, 0.94);
+  pos.y = clampVisibleY(pos.y);
+  const group = new THREE.Group();
+
+  // Left & Right Half-Log Cross-Sections with Bark Ridges & Growth Rings
+  const leftClamp = new THREE.Group();
+  const rightClamp = new THREE.Group();
+  const jawGeo = new THREE.BoxGeometry(0.56, 0.96, 0.28);
+  leftClamp.add(new THREE.Mesh(jawGeo, C4_VFX_MATS.basaltStone));
+  rightClamp.add(new THREE.Mesh(jawGeo, C4_VFX_MATS.basaltStone));
+
+  for (let i = -1; i <= 1; i++) {
+    const rivetL = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), C4_VFX_MATS.agedBrass);
+    rivetL.position.set(-0.18, i * 0.32, 0.16);
+    leftClamp.add(rivetL);
+    const rivetR = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), C4_VFX_MATS.agedBrass);
+    rivetR.position.set(0.18, i * 0.32, 0.16);
+    rightClamp.add(rivetR);
+  }
+  group.add(leftClamp);
+  group.add(rightClamp);
+
+  const runeRing = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.055, 10, 24), C4_VFX_MATS.agedBrass);
+  runeRing.position.copy(pos);
+  group.add(runeRing);
+
+  let clamped = false;
+  addTimedVFX(group, 740, (p) => {
+    if (p < 0.48) {
+      const t = Math.pow(p / 0.48, 2);
+      const offset = (1 - t) * 1.25 + 0.28;
+      leftClamp.position.set(pos.x - offset, pos.y, pos.z);
+      rightClamp.position.set(pos.x + offset, pos.y, pos.z);
+      runeRing.rotation.z = t * Math.PI * 2;
+    } else {
+      if (!clamped) {
+        clamped = true;
+        triggerBoardShake(0.24);
+        spawn3DShockwaveRing(r, col, 0xa8a29e, 2.5, 460);
+        spawn3DParticleBurst(r, col, 0x78716c, 16, 0.13, 460, 'box');
+        if (typeof onImpact === 'function') onImpact();
+      }
+      const fadeP = (p - 0.48) / 0.52;
+      const s = Math.max(0.01, 1 - fadeP);
+      leftClamp.scale.setScalar(s);
+      rightClamp.scale.setScalar(s);
+      runeRing.scale.setScalar(1 + fadeP * 0.6);
+    }
+  });
+}
+
+// ============================================================================
+// 17. VOLATILE GUANO POULTICE: Double-Bulb Alchemical Gourd Amphora
+// ============================================================================
+function playGuanoPoulticeVFX(col, targetR, onImpact) {
+  const colX = START_X + col * CELL_SPACING;
+  const destRow = targetR !== -1 ? targetR : Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+  const destY = getVisibleRowY(destRow);
+  const topY = clampVisibleY(destY + 1.55);
+
+  const group = new THREE.Group();
+  const gourd = new THREE.Group();
+  // Double-bulbous gourd body + woven brass waist strap + twin handles + spout
+  const lowerBulb = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 2), C4_VFX_MATS.emeraldJade);
+  const upperBulb = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 2), C4_VFX_MATS.emeraldJade);
+  upperBulb.position.y = 0.48;
+  const waistBelt = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.055, 10, 20), C4_VFX_MATS.agedBrass);
+  waistBelt.rotation.x = Math.PI / 2;
+  waistBelt.position.y = 0.26;
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.34, 12), C4_VFX_MATS.agedBrass);
+  spout.position.y = 0.82;
+  gourd.add(lowerBulb);
+  gourd.add(upperBulb);
+  gourd.add(waistBelt);
+  gourd.add(spout);
+
+  [-0.36, 0.36].forEach((hx) => {
+    const ear = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 8, 16), C4_VFX_MATS.agedBrass);
+    ear.position.set(hx, 0.38, 0);
+    gourd.add(ear);
+  });
+
+  gourd.position.set(colX + 0.42, topY, 0.98);
+  group.add(gourd);
+
+  const globules = [];
+  const globGeo = new THREE.OctahedronGeometry(0.16, 1);
+  for (let i = 0; i < 14; i++) {
+    const gMat = new THREE.MeshBasicMaterial({
+      color: i % 2 === 0 ? 0xa3e635 : 0xf97316,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    const glob = new THREE.Mesh(globGeo, gMat);
+    group.add(glob);
+    globules.push(glob);
+  }
+
+  let impacted = false;
+  addTimedVFX(group, 760, (p) => {
+    gourd.rotation.z = Math.min(2.15, p * 4.2);
+    globules.forEach((g, idx) => {
+      const localP = Math.max(0, Math.min(1, (p - idx * 0.03) / 0.65));
+      g.position.set(
+        colX + Math.sin(localP * Math.PI * 2 + idx) * 0.22,
+        clampVisibleY(topY - (topY - destY) * (localP * localP)),
+        0.95
+      );
+      g.rotation.x += 0.22;
+      g.material.opacity = 1 - p;
+    });
+    if (p >= 0.50 && !impacted) {
+      impacted = true;
+      triggerBoardShake(0.20);
+      if (typeof onImpact === 'function') onImpact();
+    }
+    if (p > 0.72) {
+      gourd.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+  });
+}
+
+// ============================================================================
+// 18. RUSTED BEAR TRAP: Curved Semicircular Serrated Jaws, Trip-Pan & Springs
+// ============================================================================
+function playRustyBearTrapVFX(r, col, isSnapKill, onSnap) {
+  const pos = getCellWorldPos(Math.max(0, r), col, 0.96);
+  pos.y = clampVisibleY(pos.y);
+  const group = new THREE.Group();
+  group.position.copy(pos);
+
+  // Central Circular Brass Trip-Pan + Crossbar + Side Leaf Springs
+  const tripPan = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.32, 0.07, 18),
+    isSnapKill ? C4_VFX_MATS.crimsonRuby : C4_VFX_MATS.agedBrass
+  );
+  tripPan.rotation.x = Math.PI / 2;
+  group.add(tripPan);
+
+  const baseFrame = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.14, 0.18), C4_VFX_MATS.rustedIron);
+  group.add(baseFrame);
+
+  [-0.78, 0.78].forEach((sx) => {
+    const spring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.22, 0.055, 8, 16, Math.PI),
+      C4_VFX_MATS.agedBrass
+    );
+    spring.position.set(sx, 0, 0);
+    spring.rotation.z = sx < 0 ? Math.PI / 2 : -Math.PI / 2;
+    group.add(spring);
+  });
+
+  // Two Hinged Semicircular Serrated Steel Jaws (Upper & Lower Curved Half-Arches)
+  const buildCurvedSerratedJaw = (isUpper) => {
+    const jaw = new THREE.Group();
+    const arch = new THREE.Mesh(
+      new THREE.TorusGeometry(0.68, 0.09, 10, 24, Math.PI),
+      C4_VFX_MATS.polishedSteel
+    );
+    if (!isUpper) arch.rotation.z = Math.PI;
+    jaw.add(arch);
+
+    const toothGeo = new THREE.ConeGeometry(0.085, 0.28, 5);
+    for (let i = 1; i <= 6; i++) {
+      const ang = (i / 7) * Math.PI + (isUpper ? 0 : Math.PI);
+      const tooth = new THREE.Mesh(toothGeo, C4_VFX_MATS.polishedSteel);
+      tooth.position.set(Math.cos(ang) * 0.62, Math.sin(ang) * 0.62, 0.06);
+      tooth.rotation.z = ang + Math.PI / 2;
+      jaw.add(tooth);
+    }
+    return jaw;
+  };
+
+  const upperJaw = buildCurvedSerratedJaw(true);
+  const lowerJaw = buildCurvedSerratedJaw(false);
+  group.add(upperJaw);
+  group.add(lowerJaw);
+
+  let snapped = false;
+  addTimedVFX(group, 760, (p) => {
+    if (p < 0.48) {
+      const ease = Math.pow(p / 0.48, 3);
+      const openScale = 1 - ease * 0.68;
+      upperJaw.position.y = (1 - ease) * 0.35;
+      lowerJaw.position.y = -(1 - ease) * 0.35;
+      upperJaw.rotation.x = -(1 - openScale) * 1.15;
+      lowerJaw.rotation.x = (1 - openScale) * 1.15;
+    } else {
+      if (!snapped) {
+        snapped = true;
+        triggerBoardShake(isSnapKill ? 0.30 : 0.20);
+        spawn3DShockwaveRing(Math.max(0, r), col, isSnapKill ? 0xef4444 : 0xa855f7, 2.7, 460);
+        spawn3DParticleBurst(Math.max(0, r), col, isSnapKill ? 0xfacc15 : 0xc084fc, 18, 0.14, 480, 'octa');
+        if (typeof onSnap === 'function') onSnap();
+      }
+      const fadeP = (p - 0.48) / 0.52;
+      group.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+  });
+}
+
+// ============================================================================
+// 19. SPLIT WISHBONE: Anatomically Curved Multi-Segment Avian Furcula
+// ============================================================================
+function buildWishboneHalf(dir) {
+  const half = new THREE.Group();
+  // 4 curved, tapered bone segments + condyle knuckle at the base + central crest tab
+  const segCoords = [
+    { x: dir * 0.10, y: 0.52, rot: -dir * 0.28, rTop: 0.11, rBot: 0.13, len: 0.44 },
+    { x: dir * 0.28, y: 0.18, rot: -dir * 0.48, rTop: 0.12, rBot: 0.10, len: 0.46 },
+    { x: dir * 0.44, y: -0.22, rot: -dir * 0.22, rTop: 0.10, rBot: 0.08, len: 0.46 },
+    { x: dir * 0.48, y: -0.62, rot: dir * 0.08, rTop: 0.08, rBot: 0.11, len: 0.42 }
+  ];
+  segCoords.forEach((s) => {
+    const seg = new THREE.Mesh(
+      new THREE.CylinderGeometry(s.rTop, s.rBot, s.len, 12),
+      C4_VFX_MATS.boneIvory
+    );
+    seg.position.set(s.x, s.y, 0);
+    seg.rotation.z = s.rot;
+    half.add(seg);
+  });
+  const knuckle = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 1), C4_VFX_MATS.boneIvory);
+  knuckle.position.set(dir * 0.48, -0.82, 0);
+  half.add(knuckle);
+
+  const crestTab = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.36, 10), C4_VFX_MATS.agedBrass);
+  crestTab.position.set(dir * 0.04, 0.78, 0);
+  half.add(crestTab);
+  return half;
+}
+
+function playSplitWishboneVFX(col, matchedHeight, onSnap) {
+  const xA = START_X + col * CELL_SPACING;
+  const xB = START_X + 3 * CELL_SPACING;
+  const midX = (xA + xB) * 0.5;
+  const topY = VFX_CENTER_Y + 0.45;
+
+  const group = new THREE.Group();
+  const leftHalf = buildWishboneHalf(-1);
+  const rightHalf = buildWishboneHalf(1);
+  group.add(leftHalf);
+  group.add(rightHalf);
+
+  let snapped = false;
+  addTimedVFX(group, 780, (p) => {
+    if (p < 0.52) {
+      const pull = p / 0.52;
+      const jitter = Math.sin(pull * Math.PI * 14) * 0.06;
+      leftHalf.position.set(midX - pull * 0.18, topY + jitter, 1.05);
+      rightHalf.position.set(midX + pull * 0.18, topY - jitter, 1.05);
+      leftHalf.rotation.z = pull * 0.28;
+      rightHalf.rotation.z = -pull * 0.28;
+    } else {
+      if (!snapped) {
+        snapped = true;
+        triggerBoardShake(0.24);
+        const effR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+        spawn3DShockwaveRing(effR, col, 0xfde047, 2.7, 480);
+        spawn3DParticleBurst(effR, col, 0xfacc15, 18, 0.14, 500, 'octa');
+        if (typeof onSnap === 'function') onSnap();
+      }
+      const flyP = (p - 0.52) / 0.48;
+      leftHalf.position.x -= 0.09;
+      rightHalf.position.x += 0.09;
+      leftHalf.rotation.z += 0.18;
+      rightHalf.rotation.z -= 0.18;
+      const s = Math.max(0.01, 1 - flyP);
+      leftHalf.scale.setScalar(s);
+      rightHalf.scale.setScalar(s);
+    }
+  });
+}
+
+// ============================================================================
+// 20. BOILING TAR PITCH: Riveted Tar Cauldron & 3 Articulated Tar Tentacles
+// ============================================================================
+function playBoilingTarPitchVFX(col, fromR, toR, onSink) {
+  const colX = START_X + col * CELL_SPACING;
+  const group = new THREE.Group();
+
+  // Riveted Iron Pitch Cauldron with Side Carry Rings & Bubbling Tar Surface
+  const cauldron = new THREE.Group();
+  cauldron.position.set(colX, VFX_MIN_VISIBLE_Y, 0.94);
+  cauldron.add(new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.62, 0.44, 18), C4_VFX_MATS.obsidianPitch));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.065, 10, 24), C4_VFX_MATS.darkIron);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.22;
+  cauldron.add(rim);
+  group.add(cauldron);
+
+  // 3 Multi-Jointed Articulated Tar Tentacles (each has 7 sphere joints)
+  const tentacles = [];
+  const jointGeo = new THREE.OctahedronGeometry(0.18, 1);
+  for (let t = 0; t < 3; t++) {
+    const joints = [];
+    for (let j = 0; j < 7; j++) {
+      const jm = new THREE.Mesh(jointGeo, C4_VFX_MATS.obsidianPitch);
+      const scale = 1.15 - j * 0.11;
+      jm.scale.setScalar(scale);
+      group.add(jm);
+      joints.push(jm);
+    }
+    tentacles.push(joints);
+  }
+
+  const targetMesh = fromR !== -1 && state.meshes[fromR] ? state.meshes[fromR][col] : null;
+  const startY = getVisibleRowY(fromR);
+  const endY = getVisibleRowY(toR);
+
+  let sunk = false;
+  addTimedVFX(group, 800, (p) => {
+    const reachY = p < 0.58
+      ? startY - (startY - endY) * Math.pow(p / 0.58, 2)
+      : endY;
+
+    tentacles.forEach((joints, tIdx) => {
+      const baseAngle = (tIdx - 1) * 0.38;
+      joints.forEach((jm, jIdx) => {
+        const frac = jIdx / 6;
+        const y = VFX_MIN_VISIBLE_Y + (reachY - VFX_MIN_VISIBLE_Y) * frac;
+        const wave = Math.sin(p * Math.PI * 5 + jIdx * 0.7 + tIdx) * 0.24 * frac;
+        jm.position.set(colX + baseAngle * (1 - frac * 0.5) + wave, clampVisibleY(y), 0.96);
+      });
+    });
+
+    if (p < 0.58) {
+      if (targetMesh) {
+        targetMesh.position.y = reachY;
+        targetMesh.position.z = 0.65 * Math.sin((p / 0.58) * Math.PI);
+      }
+    } else {
+      if (!sunk) {
+        sunk = true;
+        triggerBoardShake(0.24);
+        spawn3DShockwaveRing(Math.max(0, toR), col, 0xa855f7, 2.6, 480);
+        spawn3DParticleBurst(Math.max(0, toR), col, 0xc084fc, 16, 0.13, 480, 'octa');
+        if (typeof onSink === 'function') onSink();
+      }
+      const fadeP = (p - 0.58) / 0.42;
+      group.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+  });
+}
+
+// ============================================================================
+// 21. SPICY MISO HIBACHI FLARE: Cast-Iron Hibachi Grate, Coals & Skewers
+// ============================================================================
+function playHibachiFlareVFX(r, col, hasAiTarget, onSear) {
+  const colX = START_X + col * CELL_SPACING;
+  const targetR = Math.max(0, r);
+  const targetY = getVisibleRowY(targetR);
+
+  const group = new THREE.Group();
+  const grillGroup = new THREE.Group();
+  grillGroup.position.set(colX, VFX_MIN_VISIBLE_Y, 0.94);
+
+  // Cast-iron firebox + brass handles + 5 iron grill bars + glowing embers
+  grillGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.36, 0.68), C4_VFX_MATS.darkIron));
+  for (let i = -2; i <= 2; i++) {
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.66, 8), C4_VFX_MATS.polishedSteel);
+    bar.rotation.x = Math.PI / 2;
+    bar.position.set(i * 0.24, 0.20, 0);
+    grillGroup.add(bar);
+  }
+  [-0.70, 0.70].forEach((hx) => {
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 8, 14), C4_VFX_MATS.agedBrass);
+    handle.position.set(hx, 0.06, 0);
+    grillGroup.add(handle);
+  });
+  group.add(grillGroup);
+
+  const flames = [];
+  const flameGeo = new THREE.ConeGeometry(0.24, 0.62, 6);
+  for (let i = 0; i < 16; i++) {
+    const fMat = new THREE.MeshBasicMaterial({
+      color: i % 2 === 0 ? 0xf97316 : 0xfde047,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    const fl = new THREE.Mesh(flameGeo, fMat);
+    group.add(fl);
+    flames.push(fl);
+  }
+
+  let seared = false;
+  addTimedVFX(group, 780, (p) => {
+    flames.forEach((fl, idx) => {
+      const ang = (idx / 16) * Math.PI * 2 + p * Math.PI * 6;
+      const rad = 0.46 * (1 - p * 0.35);
+      const yPos = clampVisibleY(VFX_MIN_VISIBLE_Y + ((idx / 16 + p * 1.5) % 1) * (targetY - VFX_MIN_VISIBLE_Y + 1.4));
+      fl.position.set(colX + Math.cos(ang) * rad, yPos, 0.96 + Math.sin(ang) * 0.28);
+      fl.rotation.z = Math.sin(ang) * 0.35;
+      fl.material.opacity = 1 - p;
+    });
+    if (p >= 0.52 && !seared) {
+      seared = true;
+      triggerBoardShake(hasAiTarget ? 0.26 : 0.18);
+      spawn3DColumnBeam(col, 0xf97316, 0.45, 480, true);
+      if (hasAiTarget) {
+        spawn3DShockwaveRing(targetR, col, 0xef4444, 2.7, 480);
+        spawn3DParticleBurst(targetR, col, 0xf97316, 22, 0.15, 520, 'cone');
+      }
+      if (typeof onSear === 'function') onSear();
+    }
+    if (p > 0.72) {
+      grillGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+  });
+}
+
+// ============================================================================
+// 22. WEIGHTED GUILLOTINE: French Guillotine with Lunette Stock & Bevel Blade
+// ============================================================================
+function playGuillotineBladeVFX(col, topR, onChop) {
+  const colX = START_X + col * CELL_SPACING;
+  const targetY = getVisibleRowY(topR);
+  const frameTopY = VFX_MAX_VISIBLE_Y;
+  const frameBotY = VFX_MIN_VISIBLE_Y;
+  const frameHeight = frameTopY - frameBotY;
+
+  const group = new THREE.Group();
+
+  // Twin Grooved Timber Uprights + Top Crown Crossbeam + Brass Pulley Wheel
+  const postGeo = new THREE.BoxGeometry(0.18, frameHeight, 0.26);
+  const leftPost = new THREE.Mesh(postGeo, carvedWoodMat);
+  const rightPost = new THREE.Mesh(postGeo, carvedWoodMat);
+  leftPost.position.set(colX - 0.64, VFX_CENTER_Y, 0.90);
+  rightPost.position.set(colX + 0.64, VFX_CENTER_Y, 0.90);
+  group.add(leftPost);
+  group.add(rightPost);
+
+  const crossbar = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.28, 0.34), C4_VFX_MATS.agedBrass);
+  crossbar.position.set(colX, frameTopY, 0.92);
+  group.add(crossbar);
+
+  const pulley = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.04, 8, 18), C4_VFX_MATS.agedBrass);
+  pulley.position.set(colX, frameTopY - 0.18, 1.02);
+  group.add(pulley);
+
+  // Two-Piece Wooden Lunette Neck-Stock at targetY with Circular Head Opening
+  const lunette = new THREE.Group();
+  lunette.position.set(colX, targetY, 0.92);
+  lunette.add(new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.42, 0.18), carvedWoodMat));
+  lunette.add(new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.055, 10, 20), C4_VFX_MATS.darkIron));
+  group.add(lunette);
+
+  // Weighted Brass Mouton + True Angled Trapezoidal Steel Guillotine Blade
+  const bladeAssembly = new THREE.Group();
+  const mouton = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.24, 0.22), C4_VFX_MATS.agedBrass);
+  mouton.position.y = 0.28;
+  bladeAssembly.add(mouton);
+
+  const upperBlade = new THREE.Mesh(new THREE.BoxGeometry(1.10, 0.36, 0.08), C4_VFX_MATS.polishedSteel);
+  bladeAssembly.add(upperBlade);
+
+  // Steep diagonal bevelled cutting edge along the bottom of the blade
+  const bevelEdge = new THREE.Mesh(
+    new THREE.BoxGeometry(1.14, 0.26, 0.09),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  bevelEdge.position.set(0, -0.20, 0.01);
+  bevelEdge.rotation.z = -0.32;
+  bladeAssembly.add(bevelEdge);
+
+  bladeAssembly.position.set(colX, frameTopY - 0.45, 0.98);
+  group.add(bladeAssembly);
+
+  let chopped = false;
+  addTimedVFX(group, 800, (p) => {
+    if (p < 0.50) {
+      const fallP = Math.pow(p / 0.50, 3);
+      bladeAssembly.position.y = (frameTopY - 0.45) - ((frameTopY - 0.45) - targetY) * fallP;
+    } else {
+      if (!chopped) {
+        chopped = true;
+        triggerBoardShake(0.32);
+        spawn3DColumnBeam(col, 0xf43f5e, 0.45, 480, true);
+        spawn3DShockwaveRing(topR, col, 0xf43f5e, 2.8, 500);
+        spawn3DParticleBurst(topR, col, 0xe2e8f0, 20, 0.15, 500, 'box');
+        if (typeof onChop === 'function') onChop();
+      }
+      const fadeP = (p - 0.50) / 0.50;
+      const s = Math.max(0.01, 1 - fadeP);
+      group.scale.setScalar(s);
+    }
+  });
+}
+
+// ============================================================================
+// 23. QUICKSILVER SIPHON: Copper-Ringed Alembic Conduit & Liquid Mercury Stream
+// ============================================================================
+function playQuicksilverSiphonVFX(srcR, srcCol, destR, destCol, onTransfer) {
+  const x0 = START_X + srcCol * CELL_SPACING;
+  const y0 = getVisibleRowY(srcR);
+  const x1 = START_X + destCol * CELL_SPACING;
+  const y1 = getVisibleRowY(destR);
+  const peakY = clampVisibleY(Math.max(y0, y1) + 1.45);
+
+  const group = new THREE.Group();
+
+  // 7 Copper Condenser Rings outlining the arched siphon tube
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6;
+    const rx = x0 + (x1 - x0) * t;
+    const ry = clampVisibleY((1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * peakY + t * t * y1);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.045, 8, 18), C4_VFX_MATS.burnishedCopper);
+    collar.position.set(rx, ry, 0.94);
+    collar.rotation.y = Math.PI / 3;
+    group.add(collar);
+  }
+
+  const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.46, 2), C4_VFX_MATS.quicksilverChrome);
+  group.add(orb);
+
+  const trailDots = [];
+  for (let i = 0; i < 8; i++) {
+    const td = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 2), C4_VFX_MATS.quicksilverChrome);
+    group.add(td);
+    trailDots.push(td);
+  }
+
+  let transferred = false;
+  addTimedVFX(group, 780, (p) => {
+    const t = Math.min(1, p / 0.68);
+    const curX = x0 + (x1 - x0) * t;
+    const curY = clampVisibleY((1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * peakY + t * t * y1);
+    orb.position.set(curX, curY, 0.98);
+    orb.rotation.z += 0.25;
+
+    trailDots.forEach((td, idx) => {
+      const tp = Math.max(0, t - (idx + 1) * 0.06);
+      const tx = x0 + (x1 - x0) * tp;
+      const ty = clampVisibleY((1 - tp) * (1 - tp) * y0 + 2 * (1 - tp) * tp * peakY + tp * tp * y1);
+      td.position.set(tx, ty, 0.96);
+      td.scale.setScalar(Math.max(0.01, (1 - idx * 0.11) * (1 - p)));
+    });
+
+    if (p >= 0.68 && !transferred) {
+      transferred = true;
+      triggerBoardShake(0.22);
+      spawn3DShockwaveRing(destR, destCol, 0x38bdf8, 2.6, 480);
+      spawn3DParticleBurst(destR, destCol, 0xe2e8f0, 16, 0.13, 480, 'octa');
+      if (typeof onTransfer === 'function') onTransfer();
+    }
+    if (p > 0.72) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+  });
+}
+
+// ============================================================================
+// 24. RAVENOUS MIMIC TOOTH: Barrel-Vaulted Treasure Chest with Fangs & Tongue
+// ============================================================================
+function playMimicToothVFX(col, targetRows, onChomp) {
+  const colX = START_X + col * CELL_SPACING;
+  const focusRow = targetRows.length > 0 ? targetRows[0] : Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
+  const focusY = getVisibleRowY(focusRow);
+
+  const group = new THREE.Group();
+  group.position.set(colX, focusY, 0.98);
+
+  // Upper Vaulted Chest Lid + Brass Straps + 2 Glowing Eyes + 7 Upper Ivory Fangs
+  const topJaw = new THREE.Group();
+  topJaw.add(new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.38, 0.68), carvedWoodMat));
+  [-0.48, 0.48].forEach((bx) => {
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.42, 0.72), C4_VFX_MATS.agedBrass);
+    strap.position.x = bx;
+    topJaw.add(strap);
+
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 1), C4_VFX_MATS.beeswaxGold);
+    eye.position.set(bx * 0.65, 0.12, 0.36);
+    topJaw.add(eye);
+  });
+
+  // Lower Chest Base + Gold Lockplate + Curling Crimson Tongue + 7 Lower Fangs
+  const botJaw = new THREE.Group();
+  botJaw.add(new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.38, 0.68), carvedWoodMat));
+  const lockplate = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.72), C4_VFX_MATS.agedBrass);
+  botJaw.add(lockplate);
+
+  const tongue = new THREE.Mesh(
+    new THREE.TorusGeometry(0.32, 0.11, 8, 16, Math.PI * 0.85),
+    C4_VFX_MATS.crimsonRuby
+  );
+  tongue.position.set(0, 0.22, 0.24);
+  botJaw.add(tongue);
+
+  const fangGeo = new THREE.ConeGeometry(0.10, 0.34, 6);
+  for (let i = -2.5; i <= 2.5; i += 1) {
+    const uf = new THREE.Mesh(fangGeo, C4_VFX_MATS.boneIvory);
+    uf.rotation.x = Math.PI;
+    uf.position.set(i * 0.21, -0.26, 0.24);
+    topJaw.add(uf);
+
+    const lf = new THREE.Mesh(fangGeo, C4_VFX_MATS.boneIvory);
+    lf.position.set(i * 0.21, 0.26, 0.24);
+    botJaw.add(lf);
+  }
+  group.add(topJaw);
+  group.add(botJaw);
+
+  let chomped = false;
+  addTimedVFX(group, 800, (p) => {
+    const chompWave = Math.abs(Math.cos(p * Math.PI * 3.5));
+    topJaw.position.y = 0.20 + chompWave * 0.52;
+    topJaw.rotation.x = -chompWave * 0.45;
+    botJaw.position.y = -0.20 - chompWave * 0.52;
+    botJaw.rotation.x = chompWave * 0.35;
+    tongue.rotation.z = Math.sin(p * Math.PI * 8) * 0.35;
+
+    if (p >= 0.50 && !chomped) {
+      chomped = true;
+      triggerBoardShake(0.28);
+      targetRows.forEach((tr) => {
+        spawn3DShockwaveRing(tr, col, 0xfacc15, 2.6, 480);
+        spawn3DParticleBurst(tr, col, 0xfde047, 18, 0.14, 500, 'octa');
+      });
+      if (typeof onChomp === 'function') onChomp();
+    }
+    if (p > 0.75) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.25));
+    }
+  });
+}
+
+// ============================================================================
+// 25. SWINGING PENDULUM SCYTHE: Clockwork Gear Hub & Dual-Bevel Crescent Scythe
+// ============================================================================
+function playPendulumScytheVFX(targetRow, hitCols, onSlice) {
+  const pivotX = 0;
+  const pivotY = VFX_MAX_VISIBLE_Y;
+  const rowY = getVisibleRowY(targetRow);
+  const armLen = Math.max(1.8, pivotY - rowY);
+
+  const group = new THREE.Group();
+  const pendulumPivot = new THREE.Group();
+  pendulumPivot.position.set(pivotX, pivotY, 0.96);
+
+  // Clockwork Escapement Gear Wheel at Pivot
+  const gearRim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.08, 10, 20), C4_VFX_MATS.agedBrass);
+  pendulumPivot.add(gearRim);
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const cog = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.14), C4_VFX_MATS.agedBrass);
+    cog.position.set(Math.cos(ang) * 0.42, Math.sin(ang) * 0.42, 0);
+    cog.rotation.z = ang;
+    pendulumPivot.add(cog);
+  }
+
+  // Riveted Pendulum Shaft + Brass Counterweight Collar
+  const rodGeo = new THREE.CylinderGeometry(0.08, 0.08, armLen, 10);
+  rodGeo.translate(0, -armLen * 0.5, 0);
+  pendulumPivot.add(new THREE.Mesh(rodGeo, C4_VFX_MATS.darkIron));
+
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.28, 12), C4_VFX_MATS.agedBrass);
+  collar.position.set(0, -armLen + 0.35, 0);
+  pendulumPivot.add(collar);
+
+  // Dual-Bevelled Crescent Executioner's Blade (Outer Razor Edge + Dark Spine Rib)
+  const bladeEdge = new THREE.Mesh(
+    new THREE.TorusGeometry(1.18, 0.14, 10, 28, Math.PI * 0.92),
+    C4_VFX_MATS.polishedSteel
+  );
+  bladeEdge.position.set(0, -armLen + 0.42, 0);
+  bladeEdge.rotation.z = Math.PI * 1.04;
+  pendulumPivot.add(bladeEdge);
+
+  const bladeSpine = new THREE.Mesh(
+    new THREE.TorusGeometry(1.02, 0.08, 8, 24, Math.PI * 0.86),
+    C4_VFX_MATS.agedBrass
+  );
+  bladeSpine.position.set(0, -armLen + 0.42, 0.04);
+  bladeSpine.rotation.z = Math.PI * 1.07;
+  pendulumPivot.add(bladeSpine);
+
+  group.add(pendulumPivot);
+
+  let sliced = false;
+  addTimedVFX(group, 820, (p) => {
+    const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    pendulumPivot.rotation.z = -1.15 + ease * 2.30;
+
+    if (p >= 0.48 && !sliced) {
+      sliced = true;
+      triggerBoardShake(0.30);
+      hitCols.forEach((c) => {
+        spawn3DShockwaveRing(targetRow, c, 0x2dd4bf, 2.7, 500);
+        spawn3DParticleBurst(targetRow, c, 0xe2e8f0, 18, 0.14, 500, 'box');
+      });
+      if (typeof onSlice === 'function') onSlice();
+    }
+    if (p > 0.78) {
+      pendulumPivot.scale.setScalar(Math.max(0.01, (1 - p) / 0.22));
+    }
+  });
+}
+
+// ============================================================================
+// 26. PINS & WAX EFFIGY: Sculpted Voodoo Doll with Button Eyes & Stitched Heart
+// ============================================================================
+function playWaxEffigyVFX(aiRow, col, neighborCol, onHex) {
+  const pos = getCellWorldPos(aiRow, col, 0.98);
+  pos.y = clampVisibleY(pos.y);
+  const group = new THREE.Group();
+  group.position.copy(pos);
+
+  // Sculpted Humanoid Wax Effigy (Head + Button Eyes + Torso + Stitched Heart + 4 Limbs)
+  const doll = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.72, 14), C4_VFX_MATS.beeswaxGold);
+  const head = new THREE.Mesh(new THREE.OctahedronGeometry(0.30, 2), C4_VFX_MATS.beeswaxGold);
+  head.position.y = 0.58;
+  doll.add(torso);
+  doll.add(head);
+
+  // Button eyes + crimson heart on chest
+  [-0.11, 0.11].forEach((ex) => {
+    const btnEye = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.05, 10), C4_VFX_MATS.obsidianPitch);
+    btnEye.rotation.x = Math.PI / 2;
+    btnEye.position.set(ex, 0.62, 0.26);
+    doll.add(btnEye);
+  });
+  const heart = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 1), C4_VFX_MATS.crimsonRuby);
+  heart.position.set(-0.08, 0.12, 0.28);
+  doll.add(heart);
+
+  // Outstretched Arms & Legs
+  [-1, 1].forEach((dir) => {
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.52, 10), C4_VFX_MATS.beeswaxGold);
+    arm.position.set(dir * 0.44, 0.14, 0);
+    arm.rotation.z = dir * 1.15;
+    doll.add(arm);
+
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.08, 0.52, 10), C4_VFX_MATS.beeswaxGold);
+    leg.position.set(dir * 0.20, -0.52, 0);
+    leg.rotation.z = dir * 0.28;
+    doll.add(leg);
+  });
+  group.add(doll);
+
+  // 3 Jewel-Headed Voodoo Needles (Ruby, Sapphire, Amethyst)
+  const buildVoodooPin = (headMat, zAngle) => {
+    const pin = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.008, 1.15, 8), C4_VFX_MATS.polishedSteel);
+    const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 1), headMat);
+    jewel.position.y = 0.58;
+    pin.add(shaft);
+    pin.add(jewel);
+    pin.rotation.z = zAngle;
+    return pin;
+  };
+  const pin1 = buildVoodooPin(C4_VFX_MATS.crimsonRuby, 0.85);
+  const pin2 = buildVoodooPin(C4_VFX_MATS.quicksilverChrome, -0.85);
+  const pin3 = buildVoodooPin(C4_VFX_MATS.agedBrass, 0.25);
+  group.add(pin1);
+  group.add(pin2);
+  group.add(pin3);
+
+  let hexed = false;
+  addTimedVFX(group, 800, (p) => {
+    doll.rotation.y = Math.sin(p * Math.PI * 4) * 0.45;
+    if (p < 0.48) {
+      const d = (1 - p / 0.48) * 1.05;
+      pin1.position.set(-d, d, 0.18);
+      pin2.position.set(d, d, 0.18);
+      pin3.position.set(0, d * 1.15, 0.22);
+    } else {
+      if (!hexed) {
+        hexed = true;
+        triggerBoardShake(0.24);
+        spawn3DShockwaveRing(aiRow, col, 0xe879f9, 2.7, 500);
+        spawn3DParticleBurst(aiRow, col, 0xfde047, 18, 0.14, 500, 'octa');
+        const nr = Math.max(0, aiEngine.getAvailableRow(state.board, neighborCol));
+        spawn3DShockwaveRing(nr, neighborCol, 0xa855f7, 2.5, 500);
+        if (typeof onHex === 'function') onHex();
+      }
+      const fadeP = (p - 0.48) / 0.52;
+      group.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+  });
+}
+
+// ============================================================================
+// 27. SURREALIST TRANSMUTE: 3-Axis Engraved Brass Armillary Sphere
+// ============================================================================
+function playSurrealTransmuteVFX(topR, col, onWarp) {
+  const pos = getCellWorldPos(topR, col, 0.94);
+  pos.y = clampVisibleY(pos.y);
+  const group = new THREE.Group();
+  group.position.copy(pos);
+
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.065, 12, 32), C4_VFX_MATS.agedBrass);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.055, 12, 32), C4_VFX_MATS.polishedSteel);
+  const ring3 = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 12, 28), C4_VFX_MATS.crimsonRuby);
+  group.add(ring1);
+  group.add(ring2);
+  group.add(ring3);
+
+  const targetMesh = state.meshes[topR] && state.meshes[topR][col];
+  let warped = false;
+
+  addTimedVFX(group, 760, (p) => {
+    ring1.rotation.set(p * Math.PI * 3, p * Math.PI * 4, 0);
+    ring2.rotation.set(0, -p * Math.PI * 5, p * Math.PI * 3);
+    ring3.rotation.set(p * Math.PI * 4, 0, -p * Math.PI * 4);
+
+    if (targetMesh && p < 0.52) {
+      const twist = Math.sin((p / 0.52) * Math.PI);
+      targetMesh.scale.set(1 + twist * 0.45, Math.max(0.25, 1 - twist * 0.7), 1);
+      targetMesh.rotation.z = p * Math.PI * 2;
+    } else if (!warped) {
+      warped = true;
+      if (targetMesh) {
+        targetMesh.scale.set(1, 1, 1);
+        targetMesh.rotation.set(0, 0, 0);
+      }
+      triggerBoardShake(0.22);
+      spawn3DShockwaveRing(topR, col, 0xe879f9, 2.8, 500);
+      spawn3DParticleBurst(topR, col, 0xfde047, 18, 0.14, 500, 'octa');
+      if (typeof onWarp === 'function') onWarp();
+    }
+    if (p > 0.72) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+  });
+}
+
+// ============================================================================
+// 28. SUBTERRANEAN ECHO DROP: Twin U-Shaped 3D Brass Tuning Forks
+// ============================================================================
+function buildTuningForkMesh() {
+  const fork = new THREE.Group();
+  // Bottom stem + semicircular U-yoke + twin parallel rectangular tines
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.52, 10), C4_VFX_MATS.agedBrass);
+  stem.position.y = -0.62;
+  const yoke = new THREE.Mesh(
+    new THREE.TorusGeometry(0.22, 0.055, 10, 18, Math.PI),
+    C4_VFX_MATS.agedBrass
+  );
+  yoke.rotation.z = Math.PI;
+  yoke.position.y = -0.18;
+  fork.add(stem);
+  fork.add(yoke);
+
+  [-0.22, 0.22].forEach((tx) => {
+    const tine = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.05, 0.11), C4_VFX_MATS.polishedSteel);
+    tine.position.set(tx, 0.34, 0);
+    fork.add(tine);
+  });
+  return fork;
+}
+
+function playEchoTwinDropVFX(r1, r2, col, onDrop) {
+  const colX = START_X + col * CELL_SPACING;
+  const midY = getVisibleRowY(r1);
+
+  const group = new THREE.Group();
+  const leftFork = buildTuningForkMesh();
+  const rightFork = buildTuningForkMesh();
+  leftFork.position.set(colX - 0.72, midY, 0.94);
+  rightFork.position.set(colX + 0.72, midY, 0.94);
+  group.add(leftFork);
+  group.add(rightFork);
+
+  spawn3DColumnBeam(col, 0xf59e0b, 0.45, 560, true);
+
+  let dropped = false;
+  addTimedVFX(group, 760, (p) => {
+    const vib = Math.sin(p * Math.PI * 22) * 0.12 * (1 - p);
+    leftFork.position.x = colX - 0.72 + vib;
+    rightFork.position.x = colX + 0.72 - vib;
+    if (p >= 0.42 && !dropped) {
+      dropped = true;
+      spawn3DShockwaveRing(r1, col, 0xfbbf24, 2.4, 460);
+      if (r2 !== -1) spawn3DShockwaveRing(r2, col, 0xfde047, 2.7, 520);
+      if (typeof onDrop === 'function') onDrop();
+    }
+    const s = Math.max(0.01, 1 - Math.max(0, (p - 0.65) / 0.35));
+    leftFork.scale.setScalar(s);
+    rightFork.scale.setScalar(s);
+  });
+}
+
+// ============================================================================
+// 29. STEAM HYDRAULIC PISTON: Copper Boilers, Pressure Gauges & Chrome Rams
+// ============================================================================
+function buildSteamPistonAssembly(dir) {
+  const asm = new THREE.Group();
+  const boilerGeo = new THREE.CylinderGeometry(0.36, 0.36, 1.15, 16);
+  boilerGeo.rotateZ(Math.PI / 2);
+  asm.add(new THREE.Mesh(boilerGeo, C4_VFX_MATS.burnishedCopper));
+
+  [-0.42, 0, 0.42].forEach((bx) => {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.37, 0.045, 8, 20), C4_VFX_MATS.agedBrass);
+    band.rotation.y = Math.PI / 2;
+    band.position.x = bx;
+    asm.add(band);
+  });
+
+  // Top Pressure Gauge Dial
+  const gauge = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 14), C4_VFX_MATS.boneIvory);
+  gauge.rotation.x = Math.PI / 2;
+  gauge.position.set(0, 0.48, 0.12);
+  asm.add(gauge);
+
+  // Telescoping Chrome Rod + Flanged C-Clamp Ram Plate
+  const rodGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.85, 12);
+  rodGeo.rotateZ(Math.PI / 2);
+  const rod = new THREE.Mesh(rodGeo, C4_VFX_MATS.polishedSteel);
+  rod.position.x = dir * 0.65;
+  asm.add(rod);
+
+  const ramPlate = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.92, 0.56), C4_VFX_MATS.agedBrass);
+  ramPlate.position.x = dir * 1.05;
+  asm.add(ramPlate);
+  return asm;
+}
+
+function playSteamHydraulicPistonVFX(colA, colB, onSwap) {
+  const xA = START_X + colA * CELL_SPACING;
+  const xB = START_X + colB * CELL_SPACING;
+  const centerY = VFX_CENTER_Y;
+  const dir = xB >= xA ? 1 : -1;
+
+  const group = new THREE.Group();
+  const pistonA = buildSteamPistonAssembly(dir);
+  const pistonB = buildSteamPistonAssembly(-dir);
+  pistonA.position.set(xA - dir * 0.55, centerY + 0.65, 0.96);
+  pistonB.position.set(xB + dir * 0.55, centerY - 0.65, 0.96);
+  group.add(pistonA);
+  group.add(pistonB);
+
+  const meshesA = [];
+  const meshesB = [];
+  for (let r = 0; r < ROWS; r++) {
+    if (state.meshes[r] && state.meshes[r][colA]) meshesA.push(state.meshes[r][colA]);
+    if (state.meshes[r] && state.meshes[r][colB]) meshesB.push(state.meshes[r][colB]);
+  }
+
+  let swapped = false;
+  addTimedVFX(group, 820, (p) => {
+    if (p < 0.62) {
+      const ease = p / 0.62;
+      const curXA = xA + (xB - xA) * ease;
+      const curXB = xB + (xA - xB) * ease;
+      pistonA.position.x = curXA - dir * 0.55;
+      pistonB.position.x = curXB + dir * 0.55;
+      meshesA.forEach((m) => {
+        m.position.x = curXA;
+        m.position.z = 0.65 * Math.sin(ease * Math.PI);
+      });
+      meshesB.forEach((m) => {
+        m.position.x = curXB;
+        m.position.z = -0.45 * Math.sin(ease * Math.PI);
+      });
+    } else {
+      if (!swapped) {
+        swapped = true;
+        triggerBoardShake(0.28);
+        spawn3DColumnBeam(colA, 0xfbbf24, 0.40, 480, false);
+        spawn3DColumnBeam(colB, 0x38bdf8, 0.40, 480, false);
+        if (typeof onSwap === 'function') onSwap();
+      }
+      const fadeP = (p - 0.62) / 0.38;
+      pistonA.scale.setScalar(Math.max(0.01, 1 - fadeP));
+      pistonB.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+  });
+}
+
+// ============================================================================
+// 30. OUROBOROS WORLD-EATER: 24-Segment Articulated Emerald Dragon-Serpent
+// ============================================================================
+function playOuroborosWorldEaterVFX(col, spanCols, onCycle) {
+  const colX = START_X + col * CELL_SPACING;
+  const centerY = VFX_CENTER_Y;
+
+  const group = new THREE.Group();
+  group.position.set(colX, centerY, 0.98);
+
+  const serpentWheel = new THREE.Group();
+  const radius = 1.88;
+  const numSegs = 22;
+
+  // 22 Tapered Vertebral Scale Segments + Golden Belly Plates + Spiky Dorsal Fins
+  for (let i = 0; i < numSegs; i++) {
+    const frac = i / numSegs;
+    const ang = frac * Math.PI * 1.88;
+    const thickness = 0.34 * (1 - frac * 0.62);
+
+    const segGroup = new THREE.Group();
+    segGroup.position.set(Math.cos(ang) * radius, Math.sin(ang) * radius, 0);
+    segGroup.rotation.z = ang + Math.PI / 2;
+
+    const scaleMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(thickness * 0.88, thickness, 0.46, 10),
+      i % 2 === 0 ? C4_VFX_MATS.emeraldJade : C4_VFX_MATS.agedBrass
+    );
+    segGroup.add(scaleMesh);
+
+    const dorsalSpike = new THREE.Mesh(
+      new THREE.ConeGeometry(thickness * 0.35, thickness * 1.15, 5),
+      C4_VFX_MATS.agedBrass
+    );
+    dorsalSpike.rotation.z = -Math.PI / 2;
+    dorsalSpike.position.x = thickness * 1.1;
+    segGroup.add(dorsalSpike);
+
+    serpentWheel.add(segGroup);
+  }
+
+  // Sculpted Horned Dragon-Serpent Head at angle 0 biting its own tail
+  const headGroup = new THREE.Group();
+  headGroup.position.set(radius, 0, 0.08);
+  const skull = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.68, 0.48), C4_VFX_MATS.emeraldJade);
+  headGroup.add(skull);
+
+  [-0.22, 0.22].forEach((ex) => {
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 1), C4_VFX_MATS.crimsonRuby);
+    eye.position.set(ex, 0.12, 0.24);
+    headGroup.add(eye);
+
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.48, 6), C4_VFX_MATS.agedBrass);
+    horn.position.set(ex * 1.2, -0.28, 0.16);
+    horn.rotation.x = -0.45;
+    headGroup.add(horn);
+
+    const fang = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.26, 5), C4_VFX_MATS.boneIvory);
+    fang.position.set(ex * 0.75, 0.42, 0.14);
+    headGroup.add(fang);
+  });
+  serpentWheel.add(headGroup);
+  group.add(serpentWheel);
+
+  let cycled = false;
+  addTimedVFX(group, 860, (p) => {
+    serpentWheel.rotation.z = -p * Math.PI * 3.2;
+    if (p >= 0.52 && !cycled) {
+      cycled = true;
+      triggerBoardShake(0.30);
+      spanCols.forEach((c) => {
+        spawn3DShockwaveRing(0, c, 0x4ade80, 2.6, 480);
+      });
+      if (typeof onCycle === 'function') onCycle();
+    }
+    if (p > 0.75) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.25));
+    }
+  });
+}
+
+// ============================================================================
+// 31. CROUPIER'S RIGGED JACKPOT: 3-Reel Slot Machine with Working Pull-Lever
+// ============================================================================
+function playCroupierJackpotVFX(col, targetR, onJackpot) {
+  const colX = START_X + col * CELL_SPACING;
+  const reelY = VFX_CENTER_Y + 0.95;
+
+  const group = new THREE.Group();
+  const machine = new THREE.Group();
+  machine.position.set(colX, reelY, 1.05);
+
+  // Ornate Crimson-and-Brass Cabinet + Arched Marquee Top
+  machine.add(new THREE.Mesh(new THREE.BoxGeometry(1.72, 1.04, 0.48), C4_VFX_MATS.crimsonRuby));
+  machine.add(new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.16, 0.56), C4_VFX_MATS.agedBrass));
+  const marquee = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.52, 0.52, 1.68, 16, 1, false, 0, Math.PI),
+    C4_VFX_MATS.agedBrass
+  );
+  marquee.rotation.z = Math.PI / 2;
+  marquee.position.y = 0.52;
+  machine.add(marquee);
+
+  // 3 Spinning Ivory Slot Reels with Brass Divider Rings
+  const wheels = [];
+  for (let i = -1; i <= 1; i++) {
+    const wheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.42, 0.42, 0.36, 16),
+      C4_VFX_MATS.boneIvory
+    );
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(i * 0.46, 0, 0.16);
+    const bar7 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.12), C4_VFX_MATS.crimsonRuby);
+    bar7.position.z = 0.38;
+    wheel.add(bar7);
+    machine.add(wheel);
+    wheels.push(wheel);
+  }
+
+  // Working Side Pull-Lever on the Right Side
+  const leverPivot = new THREE.Group();
+  leverPivot.position.set(0.96, -0.15, 0.12);
+  const leverArm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.85, 10), C4_VFX_MATS.polishedSteel);
+  leverArm.position.y = 0.42;
+  const leverKnob = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 2), C4_VFX_MATS.crimsonRuby);
+  leverKnob.position.y = 0.86;
+  leverPivot.add(leverArm);
+  leverPivot.add(leverKnob);
+  machine.add(leverPivot);
+  group.add(machine);
+
+  const coins = [];
+  for (let i = 0; i < 16; i++) {
+    const cMesh = buildSculptedCoinMesh(true, 0.28);
+    cMesh.userData = {
+      x: START_X + (i % COLS) * CELL_SPACING + (Math.random() - 0.5) * 0.4,
+      yStart: VFX_MAX_VISIBLE_Y - (i % 3) * 0.4,
+      rotSpd: 0.25 + Math.random() * 0.2
+    };
+    group.add(cMesh);
+    coins.push(cMesh);
+  }
+
+  let jackpotted = false;
+  addTimedVFX(group, 860, (p) => {
+    // Lever pulls down in first 30% and springs back up!
+    leverPivot.rotation.x = p < 0.35 ? Math.sin((p / 0.35) * Math.PI) * 1.45 : 0;
+    wheels.forEach((w, idx) => {
+      const stopT = 0.45 + idx * 0.12;
+      if (p < stopT) {
+        w.rotation.x = (p / stopT) * Math.PI * (8 + idx * 2);
+      } else {
+        w.rotation.x = 0;
+      }
+    });
+    coins.forEach((cm) => {
+      cm.position.set(cm.userData.x, clampVisibleY(cm.userData.yStart - p * 5.2), 0.96);
+      cm.rotation.x += cm.userData.rotSpd;
+      cm.rotation.y += cm.userData.rotSpd;
+    });
+    if (p >= 0.50 && !jackpotted) {
+      jackpotted = true;
+      triggerBoardShake(0.26);
+      spawn3DColumnBeam(col, 0xfde047, 0.48, 540, true);
+      if (typeof onJackpot === 'function') onJackpot();
+    }
+    if (p > 0.76) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.24));
+    }
+  });
+}
+
+// ============================================================================
+// 32. SULFURIC BRIMSTONE LASER: Horned Brimstone Maw & Double-Helix Beam
+// ============================================================================
+function playBrimstoneLaserVFX(col, vaporizedRows, onVaporize) {
+  const colX = START_X + col * CELL_SPACING;
+  const sigilY = VFX_MAX_VISIBLE_Y - 0.32;
+
+  const group = new THREE.Group();
+  const mawGroup = new THREE.Group();
+  mawGroup.position.set(colX, sigilY, 0.98);
+
+  const outerRing = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.11, 12, 24), C4_VFX_MATS.obsidianPitch);
+  mawGroup.add(outerRing);
+
+  // 4 Curved Obsidian & Bone Horns around the Brimstone Maw
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.68, 8), C4_VFX_MATS.boneIvory);
+    horn.position.set(Math.cos(ang) * 0.92, Math.sin(ang) * 0.92, 0.12);
+    horn.rotation.z = ang - Math.PI / 2;
+    mawGroup.add(horn);
+  }
+
+  const innerSigil = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.06, 8, 6), C4_VFX_MATS.crimsonRuby);
+  mawGroup.add(innerSigil);
+  group.add(mawGroup);
+
+  // Spiraling Double-Helix Energy Nodes down the column
+  const helixNodes = [];
+  const nodeGeo = new THREE.OctahedronGeometry(0.18, 0);
+  for (let i = 0; i < 16; i++) {
+    const nm = new THREE.Mesh(
+      nodeGeo,
+      i % 2 === 0 ? C4_VFX_MATS.crimsonRuby : C4_VFX_MATS.beeswaxGold
+    );
+    group.add(nm);
+    helixNodes.push(nm);
+  }
+
+  let fired = false;
+  addTimedVFX(group, 840, (p) => {
+    mawGroup.rotation.z = p * Math.PI * 3;
+    innerSigil.rotation.z = -p * Math.PI * 6;
+    helixNodes.forEach((nm, idx) => {
+      const frac = idx / 16;
+      const ang = frac * Math.PI * 4 + p * Math.PI * 8;
+      const y = sigilY - frac * (sigilY - VFX_MIN_VISIBLE_Y);
+      nm.position.set(colX + Math.cos(ang) * 0.48, clampVisibleY(y), 0.96 + Math.sin(ang) * 0.35);
+      nm.scale.setScalar(p > 0.35 ? Math.max(0.01, 1 - (p - 0.35) / 0.65) : p / 0.35);
+    });
+
+    if (p >= 0.42 && !fired) {
+      fired = true;
+      triggerBoardShake(0.38);
+      spawn3DColumnBeam(col, 0xdc2626, 0.64, 620, true);
+      vaporizedRows.forEach((rr) => {
+        spawn3DParticleBurst(rr, col, 0xef4444, 18, 0.15, 520, 'octa');
+        spawn3DShockwaveRing(rr, col, 0xf43f5e, 2.7, 500);
+      });
+      if (typeof onVaporize === 'function') onVaporize();
+    }
+    if (p > 0.74) {
+      mawGroup.scale.setScalar(Math.max(0.01, (1 - p) / 0.26));
+    }
+  });
+}
+
+// ============================================================================
+// 33. PETRIFYING BASILISK GAZE: 3D Spherical Reptilian Eyeball & Scaly Eyelids
+// ============================================================================
+function playBasiliskGazeVFX(calcifiedTargets, onGaze) {
+  const eyeY = VFX_CENTER_Y + 0.95;
+
+  const group = new THREE.Group();
+  const eyeGroup = new THREE.Group();
+  eyeGroup.position.set(0, eyeY, 1.12);
+
+  // Spherical Reptilian Eyeball + Toxic-Green Iris Dome + Vertical Cat-Slit Pupil
+  const sclera = new THREE.Mesh(new THREE.OctahedronGeometry(0.92, 2), C4_VFX_MATS.beeswaxGold);
+  sclera.scale.set(1.15, 0.95, 0.65);
+  eyeGroup.add(sclera);
+
+  const iris = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.68, 0.16, 20), C4_VFX_MATS.emeraldJade);
+  iris.rotation.x = Math.PI / 2;
+  iris.position.z = 0.55;
+  eyeGroup.add(iris);
+
+  const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.18, 0.20), C4_VFX_MATS.obsidianPitch);
+  pupil.position.z = 0.62;
+  const pupilRim = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.24, 0.18), C4_VFX_MATS.crimsonRuby);
+  pupilRim.position.z = 0.60;
+  eyeGroup.add(pupilRim);
+  eyeGroup.add(pupil);
+
+  // Sculpted Upper & Lower Scaly Reptilian Eyelids with Brow Horns
+  const upperLid = new THREE.Group();
+  const lowerLid = new THREE.Group();
+  const lidArchGeo = new THREE.TorusGeometry(0.98, 0.16, 10, 24, Math.PI);
+  upperLid.add(new THREE.Mesh(lidArchGeo, C4_VFX_MATS.emeraldJade));
+  const botArch = new THREE.Mesh(lidArchGeo, C4_VFX_MATS.emeraldJade);
+  botArch.rotation.z = Math.PI;
+  lowerLid.add(botArch);
+
+  for (let i = 1; i <= 5; i++) {
+    const ang = (i / 6) * Math.PI;
+    const browHorn = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.36, 5), C4_VFX_MATS.agedBrass);
+    browHorn.position.set(Math.cos(ang) * 1.08, Math.sin(ang) * 1.08, 0.08);
+    browHorn.rotation.z = ang - Math.PI / 2;
+    upperLid.add(browHorn);
+  }
+  eyeGroup.add(upperLid);
+  eyeGroup.add(lowerLid);
+  group.add(eyeGroup);
+
+  let glared = false;
+  addTimedVFX(group, 860, (p) => {
+    const blinkOpen = p < 0.28 ? p / 0.28 : (p > 0.76 ? (1 - p) / 0.24 : 1);
+    upperLid.position.y = blinkOpen * 0.28;
+    lowerLid.position.y = -blinkOpen * 0.28;
+    eyeGroup.scale.set(1, Math.max(0.08, blinkOpen), 1);
+
+    const lookX = Math.sin(p * Math.PI * 3) * 0.24;
+    iris.position.x = lookX;
+    pupil.position.x = lookX;
+    pupilRim.position.x = lookX;
+
+    if (p >= 0.48 && !glared) {
+      glared = true;
+      triggerBoardShake(0.30);
+      calcifiedTargets.forEach(([tr, tc]) => {
+        spawn3DColumnBeam(tc, 0xa3e635, 0.45, 500, false);
+        spawn3DShockwaveRing(tr, tc, 0xa3e635, 2.7, 500);
+        spawn3DParticleBurst(tr, tc, 0xfacc15, 18, 0.14, 500, 'octa');
+      });
+      if (typeof onGaze === 'function') onGaze();
+    }
+  });
+}
+
+// ============================================================================
+// 34. SIX-WINGED SERAPHIM HALO: 6 Multi-Feathered Wings & Ophanim Eye-Wheels
+// ============================================================================
+function buildFeatheredWingFan(sideDir, vertAngle) {
+  const wing = new THREE.Group();
+  // Each wing is a fan of 5 graduated primary & secondary feather blades
+  for (let f = 0; f < 5; f++) {
+    const len = 1.28 - f * 0.14;
+    const featherGeo = new THREE.ConeGeometry(0.11, len, 6);
+    featherGeo.translate(0, len * 0.5, 0);
+    const feather = new THREE.Mesh(
+      featherGeo,
+      f % 2 === 0 ? C4_VFX_MATS.agedBrass : C4_VFX_MATS.boneIvory
+    );
+    feather.rotation.z = -sideDir * (0.45 + f * 0.18);
+    wing.add(feather);
+  }
+  wing.rotation.z = vertAngle;
+  return wing;
+}
+
+function playSeraphimHaloVFX(col, onSanctify) {
+  const colX = START_X + col * CELL_SPACING;
+  const startY = VFX_MAX_VISIBLE_Y;
+  const endY = VFX_CENTER_Y;
+
+  const group = new THREE.Group();
+  const seraph = new THREE.Group();
+  seraph.position.set(colX, startY, 1.06);
+
+  // Interlocking Eye-Studded Ophanim Wheels + Solar Core
+  const wheel1 = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.08, 12, 28), C4_VFX_MATS.agedBrass);
+  const wheel2 = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.065, 12, 28), C4_VFX_MATS.polishedSteel);
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const eyeGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), C4_VFX_MATS.crimsonRuby);
+    eyeGem.position.set(Math.cos(ang) * 0.76, Math.sin(ang) * 0.76, 0.06);
+    wheel1.add(eyeGem);
+  }
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 1), C4_VFX_MATS.beeswaxGold);
+  seraph.add(wheel1);
+  seraph.add(wheel2);
+  seraph.add(core);
+
+  // 6 Articulated Multi-Feather Wings (Upper Pair, Middle Pair, Lower Pair)
+  const wings = [
+    buildFeatheredWingFan(1, 0.55),
+    buildFeatheredWingFan(-1, -0.55),
+    buildFeatheredWingFan(1, 0.0),
+    buildFeatheredWingFan(-1, 0.0),
+    buildFeatheredWingFan(1, -0.55),
+    buildFeatheredWingFan(-1, 0.55)
+  ];
+  wings.forEach((w) => seraph.add(w));
+  group.add(seraph);
+
+  let sanctified = false;
+  addTimedVFX(group, 860, (p) => {
+    wheel1.rotation.z = p * Math.PI * 4;
+    wheel2.rotation.y = p * Math.PI * 5;
+    const flap = Math.sin(p * Math.PI * 6) * 0.25;
+    wings.forEach((w, idx) => {
+      w.rotation.y = (idx % 2 === 0 ? 1 : -1) * flap;
+    });
+    seraph.position.y = clampVisibleY(startY - (startY - endY) * Math.min(1, p / 0.52));
+
+    if (p >= 0.50 && !sanctified) {
+      sanctified = true;
+      triggerBoardShake(0.28);
+      spawn3DColumnBeam(col, 0xfde047, 0.52, 560, true);
+      if (typeof onSanctify === 'function') onSanctify();
+    }
+    if (p > 0.74) {
+      seraph.scale.setScalar(Math.max(0.01, (1 - p) / 0.26));
+    }
+  });
+}
+
+// ============================================================================
+// 35. BESPOKE SCULPTED 3D MODELS FOR ALL 12 TACTICAL RESERVE TOKENS
+// ============================================================================
+function playReservePropVFX(r, col, colorHex = 0xfacc15, accentHex = 0x38bdf8, propType = 'ring', onImpact) {
+  const pos = getCellWorldPos(Math.max(0, r), col, 0.98);
+  pos.y = clampVisibleY(pos.y);
+  const group = new THREE.Group();
+  group.position.copy(pos);
+
+  if (propType === 'anvil') {
+    // Authentic Blacksmith Anvil: Stepped Base + Narrow Waist + Flat Face + Conical Horn + Heel
+    const baseFoot = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.18, 0.56), C4_VFX_MATS.darkIron);
+    baseFoot.position.y = -0.32;
+    const waist = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.28, 0.42), C4_VFX_MATS.darkIron);
+    waist.position.y = -0.10;
+    const face = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.26, 0.52), C4_VFX_MATS.polishedSteel);
+    face.position.y = 0.16;
+    const hornGeo = new THREE.ConeGeometry(0.22, 0.62, 12);
+    hornGeo.rotateZ(-Math.PI / 2);
+    const horn = new THREE.Mesh(hornGeo, C4_VFX_MATS.polishedSteel);
+    horn.position.set(0.68, 0.14, 0);
+    group.add(baseFoot);
+    group.add(waist);
+    group.add(face);
+    group.add(horn);
+  } else if (propType === 'wings') {
+    // Sculpted Vampire Bat: Fanged Head, Pointed Ears & 2 Multi-Strut Membrane Wings
+    const body = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 1), C4_VFX_MATS.obsidianPitch);
+    group.add(body);
+    [-0.12, 0.12].forEach((ex) => {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.26, 5), C4_VFX_MATS.obsidianPitch);
+      ear.position.set(ex, 0.28, 0);
+      const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.06, 0), C4_VFX_MATS.crimsonRuby);
+      eye.position.set(ex * 0.8, 0.08, 0.22);
+      group.add(ear);
+      group.add(eye);
+    });
+    [-1, 1].forEach((dir) => {
+      const wing = new THREE.Group();
+      for (let s = 0; s < 3; s++) {
+        const finger = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.78, 4), C4_VFX_MATS.crimsonRuby);
+        finger.position.set(dir * (0.35 + s * 0.18), 0.12 - s * 0.12, 0);
+        finger.rotation.z = -dir * (0.85 + s * 0.25);
+        wing.add(finger);
+      }
+      group.add(wing);
+    });
+  } else if (propType === 'cask') {
+    // Dwarven Nitro Barrel / Jalapeño Bomb with Wooden Staves, Brass Hoops & Sparking Fuse
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.82, 16), C4_VFX_MATS.burnishedCopper);
+    group.add(barrel);
+    [-0.26, 0, 0.26].forEach((hy) => {
+      const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.045, 8, 20), C4_VFX_MATS.agedBrass);
+      hoop.rotation.x = Math.PI / 2;
+      hoop.position.y = hy;
+      group.add(hoop);
+    });
+    const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.34, 8), C4_VFX_MATS.boneIvory);
+    fuse.position.set(0, 0.52, 0);
+    const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), C4_VFX_MATS.beeswaxGold);
+    spark.position.set(0, 0.70, 0);
+    group.add(fuse);
+    group.add(spark);
+  } else {
+    // Crowned Prismatic Relic / Totem with Orbiting Filigree Halo
+    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.54, 0), C4_VFX_MATS.agedBrass);
+    const innerGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.36, 1), C4_VFX_MATS.crimsonRuby);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.06, 12, 28), C4_VFX_MATS.polishedSteel);
+    group.add(crystal);
+    group.add(innerGem);
+    group.add(halo);
+  }
+
+  let impacted = false;
+  addTimedVFX(group, 740, (p) => {
+    group.rotation.y = p * Math.PI * 3;
+    group.position.y = clampVisibleY(pos.y + Math.sin(p * Math.PI) * 0.65);
+    if (p >= 0.45 && !impacted) {
+      impacted = true;
+      if (typeof onImpact === 'function') onImpact();
+    }
+    if (p > 0.72) {
+      group.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+  });
 }

@@ -94,9 +94,6 @@
 .title-token-slot.slot-interactive:hover {
   border-color: rgba(253, 224, 71, 0.75);
 }
-.title-token-piece.token-tap-boing {
-  animation: titleTokenTapBoing 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
-}
 .title-slot-ripple-ring {
   position: absolute;
   inset: -2px;
@@ -126,9 +123,16 @@
   pointer-events: none;
   transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
 }
+#floor-intro-overlay.hidden {
+  display: none !important;
+}
 #floor-intro-overlay.floor-intro-active {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+#floor-intro-overlay.floor-intro-fadeout {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 #floor-intro-card {
   transform: translateY(18px) scale(0.94);

@@ -2,51 +2,6 @@
 // RETRO 8-BIT CHIPTUNE SOUNDTRACK ENGINE (CAVERN, BOSS, BAZAAR & ROULETTE) (js/audio/bgm.js)
 // ============================================================================
 
-// Ensure #floor-intro-overlay and #floor-intro-card always have their fixed full-screen
-// transition styles even if css/overlays.css is missing or cached.
-(function ensureLevelTransitionStyles() {
-  if (document.getElementById('c4-level-intro-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'c4-level-intro-styles';
-  style.textContent = `
-    #floor-intro-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 160;
-      background: radial-gradient(circle at 50% 45%, rgba(22, 17, 32, 0.96) 0%, rgba(7, 6, 9, 0.99) 80%);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    #floor-intro-overlay.hidden {
-      display: none !important;
-    }
-    #floor-intro-overlay.floor-intro-active {
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
-    #floor-intro-overlay.floor-intro-fadeout {
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-    #floor-intro-card {
-      transform: translateY(18px) scale(0.94);
-      opacity: 0;
-      transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
-    }
-    #floor-intro-overlay.floor-intro-active #floor-intro-card {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-  `;
-  document.head.appendChild(style);
-})();
-
 class SubterraneanChiptuneEngine {
   constructor(sfxInstance) {
     this.sfx = sfxInstance;
@@ -70,36 +25,30 @@ class SubterraneanChiptuneEngine {
       arpWave: 'square',
       vibratoDepth: 1.008,
       bass: [
-        // Section A (Steps 0..31)
         38, null, 38, 50, 38, null, 45, null,
         41, null, 41, 53, 43, null, 45, 48,
         38, null, 38, 50, 38, null, 45, null,
         36, null, 36, 48, 33, null, 36, 37,
-        // Section B (Steps 32..63 — Bioluminescent Canopy Lift)
         46, null, 46, 58, 45, null, 52, null,
         41, null, 41, 53, 40, null, 45, 49,
         38, null, 38, 50, 43, null, 43, 55,
         36, null, 40, 43, 33, 37, 40, 37
       ],
       lead: [
-        // Section A
         62, null, 65, null, 69, null, 67, 65,
         64, null, 60, null, 62, null, null, null,
         62, null, 65, 67, 69, null, 72, null,
         71, 69, 67, null, 69, null, null, null,
-        // Section B
         74, null, 70, null, 69, null, 67, 64,
         65, null, 69, null, 67, 64, 61, null,
         62, 65, 69, null, 71, 67, 62, null,
         64, 67, 72, 71, 69, null, 61, null
       ],
       arp: [
-        // Section A
         74, 69, 65, 69, 74, 69, 65, 69,
         72, 69, 65, 69, 72, 67, 64, 67,
         74, 69, 65, 69, 77, 74, 69, 74,
         76, 72, 67, 72, 73, 69, 64, 69,
-        // Section B
         74, 70, 65, 70, 76, 69, 64, 69,
         77, 72, 69, 72, 73, 69, 64, 69,
         74, 69, 65, 69, 79, 74, 71, 74,
@@ -502,6 +451,15 @@ class SubterraneanChiptuneEngine {
         'K', 'K', 'S', 'S', 'K', null, 'S', null
       ]
     };
+
+    this.tracksByMode = {
+      cavern: this.cavernTrack,
+      boss1: this.boss1Track,
+      boss2: this.boss2Track,
+      boss3: this.boss3Track,
+      bazaar: this.bazaarTrack,
+      roulette: this.rouletteTrack
+    };
   }
 
   get ctx() {
@@ -518,12 +476,7 @@ class SubterraneanChiptuneEngine {
   }
 
   getActiveTrack() {
-    if (this.currentMode === 'bazaar') return this.bazaarTrack;
-    if (this.currentMode === 'roulette') return this.rouletteTrack;
-    if (this.currentMode === 'boss3') return this.boss3Track;
-    if (this.currentMode === 'boss2') return this.boss2Track;
-    if (this.currentMode === 'boss1') return this.boss1Track;
-    return this.cavernTrack;
+    return this.tracksByMode[this.currentMode] || this.cavernTrack;
   }
 
   getEffectiveBpm(track) {
@@ -548,14 +501,7 @@ class SubterraneanChiptuneEngine {
   }
 
   resolveModeName(modeOrFloor) {
-    if (
-      modeOrFloor === 'bazaar' ||
-      modeOrFloor === 'roulette' ||
-      modeOrFloor === 'boss1' ||
-      modeOrFloor === 'boss2' ||
-      modeOrFloor === 'boss3' ||
-      modeOrFloor === 'cavern'
-    ) {
+    if (this.tracksByMode[modeOrFloor]) {
       return modeOrFloor;
     }
     if (modeOrFloor === 'boss' || modeOrFloor === true) {
@@ -599,7 +545,6 @@ class SubterraneanChiptuneEngine {
     }
   }
 
-  // Called by playFloorIntroTransition() in introSequence.js when the Floor Intro card opens
   pauseForLevelIntro(targetBgmMode) {
     if (targetBgmMode !== undefined) {
       this.currentMode = this.resolveModeName(targetBgmMode);
@@ -610,7 +555,6 @@ class SubterraneanChiptuneEngine {
     this.stop();
   }
 
-  // Called by playFloorIntroTransition() in introSequence.js when the Floor Intro card fades out
   resumeAfterLevelIntro() {
     this.isPausedForLevelIntro = false;
     this.hasStartedAfterDifficulty = true;

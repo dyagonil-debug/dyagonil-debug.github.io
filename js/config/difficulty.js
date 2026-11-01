@@ -1,7 +1,6 @@
 // ============================================================================
-// 1.4 THEMED CAVERN DESCENT DIFFICULTY TIERS (js/config/difficulty.js)
+// THEMED CAVERN DESCENT DIFFICULTY TIERS (js/config/difficulty.js)
 // ============================================================================
-
 const DIFFICULTY_STORAGE_KEY = 'c4_subterranean_difficulty';
 
 const DIFFICULTY_TIERS = {
@@ -34,10 +33,6 @@ const DIFFICULTY_TIERS = {
     preSpawnStones: 0,
     bossHeadstartTokens: 0,
     starterGambitId: 'obsidian_cat',
-
-    // Scaled-Back Easy AI Profile:
-    // Caps search depth at D1–D2 across all 9 floors, raises blunder & missed-block rates,
-    // reduces Column 4 center bias by 85%, and stops AI from sniping Gilded/Amplifier slots.
     depthByFloor: [1, 1, 1, 1, 1, 2, 1, 2, 2],
     blunderByFloor: [0.55, 0.52, 0.45, 0.48, 0.45, 0.40, 0.42, 0.38, 0.35],
     missBlockByFloor: [0.48, 0.45, 0.38, 0.42, 0.38, 0.32, 0.35, 0.30, 0.25],
@@ -154,16 +149,13 @@ function getFloorConfig(floorIdx) {
   const isPreBoss = isPreBossFloorIndex(floorIdx);
   const diff = getActiveDifficulty();
   const clampedIdx = Math.max(0, Math.min(floorIdx, TOTAL_FLOORS - 1));
-  const depthArr = diff.depthByFloor || [2, 3, 3, 4, 4, 5, 5, 6, 7];
-  const blunderArr = diff.blunderByFloor || [0.18, 0.15, 0.12, 0.10, 0.08, 0.06, 0.04, 0.02, 0.0];
-  const missBlockArr = diff.missBlockByFloor || [0.08, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
   // Disable Boss final-HP phase enrage on Easy mode so Bosses stay approachable
   const isEasy = diff.id === 'EASY';
   const phaseEnrage = (!isEasy && isBoss && typeof state !== 'undefined' && state.bossMaxHp > 1 && state.bossHp === 1) ? 1 : 0;
-  const depth = Math.min(8, depthArr[clampedIdx] + phaseEnrage);
-  const floorBlunderRate = blunderArr[clampedIdx] * (phaseEnrage ? 0.4 : 1.0);
-  const floorMissBlockRate = missBlockArr[clampedIdx] * (phaseEnrage ? 0.0 : 1.0);
+  const depth = Math.min(8, diff.depthByFloor[clampedIdx] + phaseEnrage);
+  const floorBlunderRate = diff.blunderByFloor[clampedIdx] * (phaseEnrage ? 0.4 : 1.0);
+  const floorMissBlockRate = diff.missBlockByFloor[clampedIdx] * (phaseEnrage ? 0.0 : 1.0);
   const aiPrecisionPct = Math.round((1 - floorBlunderRate) * 100);
 
   const rawStability = isBoss ? 13 : (isPreBoss ? 14 : 15);
@@ -191,31 +183,32 @@ function getFloorConfig(floorIdx) {
         ? `PRE-BOSS VANGUARD (AI Level ${floorNum}/9 • Negamax Depth ${depth} • ${aiPrecisionPct}% Precision): Guards the Boss chamber on a procedurally carved board topology! Master the warped geometry before the multi-HP Boss fight next floor.`
         : `Standard Cavern Guardian (AI Level ${floorNum}/9 • Negamax Depth ${depth} • ${aiPrecisionPct}% Precision). Fights on a classic 7x6 grid with no special boss countdown ability—use this floor to build Gold economy!`
     };
-  } else {
-    const bossNumber = Math.floor(floorIdx / 3);
-    const defaultPools = [BOSS_POOLS_BY_ACT.EASY[0], BOSS_POOLS_BY_ACT.MEDIUM[0], BOSS_POOLS_BY_ACT.HARD[0]];
-    const arch = (state.shuffledBossPool && state.shuffledBossPool[bossNumber])
-      ? state.shuffledBossPool[bossNumber]
-      : defaultPools[bossNumber % 3];
-    const effInterval = getEffectiveBossInterval(arch);
-    const maxHp = bossNumber === 0 ? 2 : 3;
-    return {
-      floor: floorNum,
-      isBoss: true,
-      isPreBoss: false,
-      maxHp,
-      boss: `${arch.icon} ${arch.name}`,
-      bossArchetype: arch,
-      bossInterval: effInterval,
-      depth,
-      floorBlunderRate,
-      floorMissBlockRate,
-      aiPrecisionPct,
-      stability: baseStability,
-      telegraph: arch.shortTelegraph,
-      fullRule: `${arch.poolLabel.toUpperCase()} (${maxHp} HP Phases • AI Lv.${floorNum} D${depth} • Trigger every ${effInterval}T): ${arch.fullRule} Each Connect-4 you score depletes 1 Boss HP, calcifies your winning token into neutral Petrified Stone, and continues the battle on the same board until all ${maxHp} HP are depleted!`
-    };
   }
+
+  const bossNumber = Math.floor(floorIdx / 3);
+  const defaultPools = [BOSS_POOLS_BY_ACT.EASY[0], BOSS_POOLS_BY_ACT.MEDIUM[0], BOSS_POOLS_BY_ACT.HARD[0]];
+  const arch = (state.shuffledBossPool && state.shuffledBossPool[bossNumber])
+    ? state.shuffledBossPool[bossNumber]
+    : defaultPools[bossNumber % 3];
+  const effInterval = getEffectiveBossInterval(arch);
+  const maxHp = bossNumber === 0 ? 2 : 3;
+
+  return {
+    floor: floorNum,
+    isBoss: true,
+    isPreBoss: false,
+    maxHp,
+    boss: `${arch.icon} ${arch.name}`,
+    bossArchetype: arch,
+    bossInterval: effInterval,
+    depth,
+    floorBlunderRate,
+    floorMissBlockRate,
+    aiPrecisionPct,
+    stability: baseStability,
+    telegraph: arch.shortTelegraph,
+    fullRule: `${arch.poolLabel.toUpperCase()} (${maxHp} HP Phases • AI Lv.${floorNum} D${depth} • Trigger every ${effInterval}T): ${arch.fullRule} Each Connect-4 you score depletes 1 Boss HP, calcifies your winning token into neutral Petrified Stone, and continues the battle on the same board until all ${maxHp} HP are depleted!`
+  };
 }
 
 if (typeof window !== 'undefined') {

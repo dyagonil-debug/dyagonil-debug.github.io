@@ -16,13 +16,41 @@ const C4_MEDALLION_SPECS = {
       '#fbbf24', '#fde047', '#ca8a04',
       '<path d="M26 14 H38 M32 14 V19" stroke="#fde047" stroke-width="2.2" stroke-linecap="round"/><polygon points="22,20 42,20 46,44 18,44" fill="#1c1917" stroke="url(#grad)" stroke-width="2.2" stroke-linejoin="round"/><circle cx="32" cy="32" r="7" fill="url(#grad)"/><ellipse cx="32" cy="32" rx="10" ry="5.5" stroke="#fef08a" stroke-width="1.5" fill="none"/><circle cx="32" cy="32" r="2.5" fill="#070609"/><path d="M20 48 H44" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>'
     ],
+    loaded_knucklebones: [
+      '#fde047', '#fef3c7', '#d97706',
+      '<rect x="14" y="18" width="18" height="18" rx="3.5" fill="url(#grad)" stroke="#ffffff" stroke-width="1.8" transform="rotate(-10 23 27)"/><circle cx="19" cy="23" r="1.8" fill="#1c1917"/><circle cx="27" cy="31" r="1.8" fill="#1c1917"/><circle cx="23" cy="27" r="1.8" fill="#dc2626"/><rect x="31" y="27" width="19" height="19" rx="3.5" fill="url(#grad)" stroke="#ffffff" stroke-width="1.8" transform="rotate(12 40 36)"/><circle cx="36" cy="32" r="1.7" fill="#1c1917"/><circle cx="45" cy="32" r="1.7" fill="#1c1917"/><circle cx="36" cy="41" r="1.7" fill="#1c1917"/><circle cx="45" cy="41" r="1.7" fill="#1c1917"/><circle cx="40.5" cy="36.5" r="2" fill="#dc2626"/>'
+    ],
+    leech_lancet: [
+      '#f43f5e', '#fb7185', '#9f1239',
+      '<line x1="16" y1="48" x2="44" y2="20" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/><polygon points="41,15 51,13 49,23" fill="url(#grad)" stroke="#ffe4e6" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 42 L28 36" stroke="#f43f5e" stroke-width="5" stroke-linecap="round"/><path d="M48 28 C48 33, 42 36, 45 41 C47 44, 51 41, 48 28 Z" fill="#e11d48" stroke="#fecdd3" stroke-width="1.2"/>'
+    ],
     petrified: [
       '#78716c', '#a8a29e', '#57534e',
       '<rect x="18" y="18" width="28" height="28" rx="5" fill="url(#grad)" stroke="#e7e5e4" stroke-width="1.8"/><circle cx="32" cy="32" r="9" stroke="#292524" stroke-width="1.8" stroke-dasharray="6 3" fill="none"/><circle cx="32" cy="32" r="4" stroke="#292524" stroke-width="1.5" fill="none"/><path d="M22 22 L28 28 M42 38 L35 34" stroke="#44403c" stroke-width="1.8" stroke-linecap="round"/>'
     ],
+    jar_of_flies: [
+      '#84cc16', '#a3e635', '#4d7c0f',
+      '<rect x="24" y="13" width="16" height="5" rx="1.5" fill="#d97706" stroke="#fef3c7" stroke-width="1.4"/><path d="M21 18 H43 L46 24 V46 C46 49, 43 51, 40 51 H24 C21 51, 18 49, 18 46 V24 Z" fill="#14261c" fill-opacity="0.8" stroke="#a3e635" stroke-width="2"/><circle cx="27" cy="31" r="2.3" fill="#fde047"/><ellipse cx="25" cy="29" rx="2.5" ry="1.2" fill="#ecfccb" transform="rotate(-30 25 29)"/><circle cx="37" cy="36" r="2.3" fill="#fde047"/><ellipse cx="39" cy="34" rx="2.5" ry="1.2" fill="#ecfccb" transform="rotate(30 39 34)"/><circle cx="31" cy="43" r="2.3" fill="#a3e635"/>'
+    ],
     pickaxe: [
       '#f59e0b', '#38bdf8', '#0284c7',
       '<line x1="18" y1="46" x2="42" y2="22" stroke="#d97706" stroke-width="4" stroke-linecap="round"/><path d="M25 17 C33 13, 45 19, 49 27 C43 24, 34 21, 25 17 Z" fill="url(#grad)" stroke="#e0f2fe" stroke-width="1.8" stroke-linejoin="round"/><circle cx="38" cy="24" r="2.5" fill="#fbbf24"/><path d="M46 14 L50 12 M51 19 L54 18" stroke="#fde047" stroke-width="1.8" stroke-linecap="round"/>'
+    ],
+    guano_fertilizer: [
+      '#a3e635', '#f97316', '#15803d',
+      '<path d="M18 36 C18 24, 46 24, 46 36 C46 44, 39 48, 32 48 C25 48, 18 44, 18 36 Z" fill="url(#grad)" stroke="#ecfccb" stroke-width="2"/><path d="M24 22 Q28 14 24 11 M32 20 Q36 12 32 9 M40 22 Q44 14 40 11" stroke="#a3e635" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="28" cy="36" r="3" fill="#fde047"/><circle cx="37" cy="38" r="2.5" fill="#fde047"/>'
+    ],
+    rusty_bear_trap: [
+      '#fb923c', '#94a3b8', '#7c2d12',
+      '<path d="M14 38 C18 22, 46 22, 50 38" stroke="url(#grad)" stroke-width="3.5" fill="none"/><path d="M14 38 C18 48, 46 48, 50 38" stroke="url(#grad)" stroke-width="3.5" fill="none"/><polyline points="18,34 22,26 26,34 30,25 34,34 38,26 42,34 46,28" stroke="#fef3c7" stroke-width="2" fill="none"/><circle cx="32" cy="38" r="4.5" fill="#ef4444" stroke="#fde047" stroke-width="1.5"/>'
+    ],
+    divining_wishbone: [
+      '#fde047', '#fef3c7', '#b45309',
+      '<path d="M20 48 C22 34, 29 26, 32 20 C35 26, 42 34, 44 48" stroke="url(#grad)" stroke-width="4.5" stroke-linecap="round" fill="none"/><line x1="32" y1="11" x2="32" y2="20" stroke="#fef3c7" stroke-width="4.5" stroke-linecap="round"/><path d="M25 22 L39 28" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/>'
+    ],
+    tar_bubble: [
+      '#a855f7', '#475569', '#09070d',
+      '<path d="M14 42 Q32 34 50 42 L48 50 H16 Z" fill="url(#grad)" stroke="#cbd5e1" stroke-width="1.8"/><circle cx="26" cy="30" r="6.5" fill="#1e1b24" stroke="#a855f7" stroke-width="2"/><circle cx="39" cy="24" r="4.5" fill="#1e1b24" stroke="#fbbf24" stroke-width="1.8"/><path d="M24 27 A3 3 0 0 1 28 27" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none"/>'
     ],
     tectonic_anchor: [
       '#fbbf24', '#fde047', '#b45309',
@@ -36,21 +64,41 @@ const C4_MEDALLION_SPECS = {
       '#38bdf8', '#f43f5e', '#0284c7',
       '<path d="M20 24 V35 C20 43, 44 43, 44 35 V24" stroke="url(#grad)" stroke-width="6.5" stroke-linecap="round" fill="none"/><rect x="16.5" y="19" width="7" height="6" rx="1.5" fill="#e2e8f0"/><rect x="40.5" y="19" width="7" height="6" rx="1.5" fill="#e2e8f0"/><circle cx="32" cy="16" r="5" fill="#fbbf24" stroke="#fef9c3" stroke-width="1.6"/><path d="M25 14 L28 11 M39 14 L36 11" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>'
     ],
+    hibachi: [
+      '#fb923c', '#f97316', '#dc2626',
+      '<path d="M32 12 C38 22, 46 25, 43 37 C41 44, 35 48, 32 48 C29 48, 23 44, 21 37 C18 25, 26 22, 32 12 Z" fill="url(#grad)" stroke="#fde047" stroke-width="1.8"/><path d="M32 24 C35 30, 38 33, 36 40 C35 43, 33 45, 32 45 C31 45, 29 43, 28 40 C26 33, 29 30, 32 24 Z" fill="#fef08a"/><path d="M16 50 H48" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>'
+    ],
     alchemy_crucible: [
       '#e879f9', '#c084fc', '#0284c7',
       '<path d="M26 14 H38 M28 14 V22 L17 40 C15 44, 18 49, 23 49 H41 C46 49, 49 44, 47 40 L36 22 V14" fill="#1e1b24" stroke="url(#grad)" stroke-width="2.2" stroke-linejoin="round"/><path d="M20 41 Q32 37 44 41 L45 45 C44 48, 20 48, 19 45 Z" fill="#fbbf24"/><polygon points="32,23 38,31 32,39 26,31" fill="#38bdf8" stroke="#fef08a" stroke-width="1.5"/><circle cx="25" cy="20" r="2" fill="#fde047"/><circle cx="39" cy="19" r="1.6" fill="#e879f9"/>'
+    ],
+    guillotine_blade: [
+      '#f43f5e', '#e2e8f0', '#475569',
+      '<line x1="18" y1="12" x2="18" y2="52" stroke="#d97706" stroke-width="3.5" stroke-linecap="round"/><line x1="46" y1="12" x2="46" y2="52" stroke="#d97706" stroke-width="3.5" stroke-linecap="round"/><polygon points="21,16 43,16 43,34 21,26" fill="url(#grad)" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="32" cy="44" r="5" fill="#fbbf24" stroke="#f43f5e" stroke-width="1.8"/>'
+    ],
+    mercury_siphon: [
+      '#38bdf8', '#e2e8f0', '#64748b',
+      '<path d="M18 44 V22 C18 14, 34 14, 34 22 V36 C34 42, 46 42, 46 34 V26" stroke="url(#grad)" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="46" cy="22" r="4.5" fill="#fbbf24" stroke="#ffffff" stroke-width="1.5"/>'
+    ],
+    mimic_tooth: [
+      '#fbbf24', '#f43f5e', '#7f1d1d',
+      '<rect x="14" y="18" width="36" height="28" rx="5" fill="url(#grad)" stroke="#fde047" stroke-width="2.2"/><polygon points="18,26 22,34 26,26 30,34 34,26 38,34 42,26 46,34" fill="#ffffff" stroke="#fecdd3" stroke-width="1"/><circle cx="32" cy="22" r="2.8" fill="#fde047"/>'
     ],
     inversion: [
       '#38bdf8', '#2dd4bf', '#a855f7',
       '<path d="M22 44 V20 L16 26 M42 20 V44 L48 38" stroke="url(#grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="32" cy="32" rx="16" ry="7" stroke="#c084fc" stroke-width="1.8" stroke-dasharray="4 3" fill="none"/><circle cx="32" cy="24" r="3.5" fill="#fbbf24"/><circle cx="32" cy="40" r="3.5" fill="#2dd4bf"/>'
     ],
+    pendulum_scythe: [
+      '#2dd4bf', '#e2e8f0', '#0f766e',
+      '<line x1="32" y1="10" x2="32" y2="38" stroke="#fde047" stroke-width="3" stroke-linecap="round"/><path d="M12 32 C22 46, 42 46, 52 32 C42 40, 22 40, 12 32 Z" fill="url(#grad)" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/><circle cx="32" cy="12" r="3" fill="#fbbf24"/>'
+    ],
+    wax_effigy: [
+      '#e879f9', '#fcd34d', '#78350f',
+      '<circle cx="32" cy="20" r="6" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8"/><path d="M21 30 H43 L38 48 H26 Z" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8" stroke-linejoin="round"/><line x1="16" y1="22" x2="35" y2="35" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/><circle cx="15" cy="21" r="2.5" fill="#f43f5e"/><line x1="48" y1="24" x2="30" y2="37" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/><circle cx="49" cy="23" r="2.5" fill="#38bdf8"/>'
+    ],
     transmute: [
       '#f472b6', '#e879f9', '#f59e0b',
       '<polygon points="32,12 48,32 32,52 16,32" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="32" r="7" fill="#fbbf24" stroke="#ffffff" stroke-width="1.5"/><path d="M16 16 L20 20 M48 16 L44 20 M16 48 L20 44 M48 48 L44 44" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>'
-    ],
-    hibachi: [
-      '#fb923c', '#f97316', '#dc2626',
-      '<path d="M32 12 C38 22, 46 25, 43 37 C41 44, 35 48, 32 48 C29 48, 23 44, 21 37 C18 25, 26 22, 32 12 Z" fill="url(#grad)" stroke="#fde047" stroke-width="1.8"/><path d="M32 24 C35 30, 38 33, 36 40 C35 43, 33 45, 32 45 C31 45, 29 43, 28 40 C26 33, 29 30, 32 24 Z" fill="#fef08a"/><path d="M16 50 H48" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>'
     ],
     echo_drop: [
       '#fde047', '#fbbf24', '#d97706',
@@ -60,29 +108,37 @@ const C4_MEDALLION_SPECS = {
       '#f0abfc', '#38bdf8', '#e879f9',
       '<polygon points="27,11 47,19 39,51 17,43" fill="url(#grad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/><line x1="23" y1="39" x2="41" y2="21" stroke="#fef08a" stroke-width="1.8" stroke-dasharray="3 2"/><circle cx="27" cy="40" r="4.2" fill="#fbbf24" stroke="#fef3c7" stroke-width="1.3"/><polygon points="35,17 41,23 35,29 29,23" fill="#fef08a" stroke="#ffffff" stroke-width="1.3"/>'
     ],
+    hydraulic_piston: [
+      '#fb923c', '#f59e0b', '#475569',
+      '<rect x="12" y="22" width="14" height="20" rx="3" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8"/><rect x="38" y="22" width="14" height="20" rx="3" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8"/><line x1="26" y1="28" x2="38" y2="28" stroke="#38bdf8" stroke-width="3"/><line x1="26" y1="36" x2="38" y2="36" stroke="#fde047" stroke-width="3"/>'
+    ],
     abyssal_upheaval: [
       '#a855f7', '#c084fc', '#f43f5e',
       '<rect x="20" y="20" width="24" height="24" rx="4" fill="#1e1b24" stroke="url(#grad)" stroke-width="2.2" transform="rotate(15 32 32)"/><path d="M14 28 A18 18 0 0 1 48 22" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" fill="none"/><polygon points="49,17 51,25 43,24" fill="#38bdf8"/><path d="M50 36 A18 18 0 0 1 16 42" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" fill="none"/><polygon points="15,47 13,39 21,40" fill="#fbbf24"/>'
     ],
-    jar_of_flies: [
-      '#84cc16', '#a3e635', '#4d7c0f',
-      '<rect x="24" y="13" width="16" height="5" rx="1.5" fill="#d97706" stroke="#fef3c7" stroke-width="1.4"/><path d="M21 18 H43 L46 24 V46 C46 49, 43 51, 40 51 H24 C21 51, 18 49, 18 46 V24 Z" fill="#14261c" fill-opacity="0.8" stroke="#a3e635" stroke-width="2"/><circle cx="27" cy="31" r="2.3" fill="#fde047"/><ellipse cx="25" cy="29" rx="2.5" ry="1.2" fill="#ecfccb" transform="rotate(-30 25 29)"/><circle cx="37" cy="36" r="2.3" fill="#fde047"/><ellipse cx="39" cy="34" rx="2.5" ry="1.2" fill="#ecfccb" transform="rotate(30 39 34)"/><circle cx="31" cy="43" r="2.3" fill="#a3e635"/>'
+    ouroboros_fang: [
+      '#4ade80', '#2dd4bf', '#065f46',
+      '<circle cx="32" cy="32" r="15" stroke="url(#grad)" stroke-width="5.5" stroke-dasharray="78 14" fill="none"/><polygon points="43,19 50,24 41,28" fill="#fde047"/><circle cx="44" cy="22" r="1.5" fill="#dc2626"/>'
+    ],
+    croupier_jackpot: [
+      '#fde047', '#f59e0b', '#b91c1c',
+      '<rect x="14" y="18" width="36" height="28" rx="5" fill="#1c1917" stroke="url(#grad)" stroke-width="2.2"/><rect x="19" y="24" width="7" height="14" rx="1.5" fill="#fef3c7"/><rect x="28.5" y="24" width="7" height="14" rx="1.5" fill="#fef3c7"/><rect x="38" y="24" width="7" height="14" rx="1.5" fill="#fef3c7"/><text x="32" y="35" text-anchor="middle" fill="#dc2626" font-family="monospace" font-weight="bold" font-size="11">777</text>'
     ],
     brimstone_beam: [
       '#f43f5e', '#ef4444', '#991b1b',
       '<rect x="25" y="10" width="14" height="44" fill="url(#grad)" opacity="0.85"/><rect x="29" y="10" width="6" height="44" fill="#fef08a"/><path d="M22 18 H42 M20 32 H44 M22 46 H42" stroke="#fca5a5" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="32" r="9" stroke="#fde047" stroke-width="1.8" fill="none"/>'
     ],
+    basilisk_gaze: [
+      '#a3e635', '#facc15', '#3f6212',
+      '<path d="M10 32 C20 17, 44 17, 54 32 C44 47, 20 47, 10 32 Z" fill="url(#grad)" stroke="#ecfccb" stroke-width="2"/><polygon points="32,20 36,32 32,44 28,32" fill="#09070d" stroke="#ef4444" stroke-width="1.4"/>'
+    ],
+    seraphim_halo: [
+      '#fde047', '#38bdf8', '#f43f5e',
+      '<ellipse cx="32" cy="18" rx="16" ry="5.5" stroke="#fde047" stroke-width="3" fill="none"/><path d="M12 28 C20 22, 26 26, 30 32 C22 36, 16 35, 12 28 Z" fill="url(#grad)" stroke="#ffffff" stroke-width="1.5"/><path d="M52 28 C44 22, 38 26, 34 32 C42 36, 48 35, 52 28 Z" fill="url(#grad)" stroke="#ffffff" stroke-width="1.5"/><circle cx="32" cy="34" r="5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>'
+    ],
     dead_weight: [
       '#a855f7', '#78716c', '#4c1d95',
       '<polygon points="16,46 20,24 32,18 44,24 48,46" fill="url(#grad)" stroke="#c4b5fd" stroke-width="2" stroke-linejoin="round"/><path d="M27 18 C27 12, 37 12, 37 18" stroke="#e9d5ff" stroke-width="2.5" fill="none"/><path d="M28 31 L36 39 M36 31 L28 39" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>'
-    ],
-    tremor: [
-      '#f59e0b', '#f97316', '#78350f',
-      '<polygon points="12,48 26,22 36,36 42,26 52,48" fill="url(#grad)" stroke="#fed7aa" stroke-width="1.8" stroke-linejoin="round"/><polyline points="26,22 29,33 24,40 31,48" stroke="#fde047" stroke-width="2.2" fill="none"/>'
-    ],
-    stalactite: [
-      '#7dd3fc', '#38bdf8', '#0369a1',
-      '<polygon points="20,12 44,12 32,50" fill="url(#grad)" stroke="#e0f2fe" stroke-width="2" stroke-linejoin="round"/><line x1="32" y1="12" x2="32" y2="44" stroke="#bae6fd" stroke-width="1.5"/><circle cx="32" cy="52" r="2.5" fill="#fde047"/>'
     ]
   },
 
@@ -90,6 +146,10 @@ const C4_MEDALLION_SPECS = {
     fools_penny: [
       '#facc15', '#eab308', '#a16207',
       '<circle cx="32" cy="32" r="18" fill="url(#grad)" stroke="#fef08a" stroke-width="2.2"/><circle cx="32" cy="32" r="13" stroke="#713f12" stroke-width="1.5" stroke-dasharray="4 2" fill="none"/><polyline points="28,15 34,27 29,34 36,48" stroke="#422006" stroke-width="2.2" fill="none"/><text x="32" y="37" text-anchor="middle" fill="#fef9c3" font-family="monospace" font-weight="bold" font-size="15">&#162;</text>'
+    ],
+    loaded_die: [
+      '#fde047', '#fef3c7', '#b45309',
+      '<rect x="16" y="16" width="32" height="32" rx="7" fill="url(#grad)" stroke="#ffffff" stroke-width="2"/><circle cx="24" cy="24" r="2.8" fill="#1c1917"/><circle cx="40" cy="24" r="2.8" fill="#1c1917"/><circle cx="24" cy="40" r="2.8" fill="#1c1917"/><circle cx="40" cy="40" r="2.8" fill="#1c1917"/><circle cx="32" cy="32" r="3.4" fill="#dc2626"/>'
     ],
     anvil: [
       '#cbd5e1', '#94a3b8', '#334155',
@@ -107,20 +167,52 @@ const C4_MEDALLION_SPECS = {
       '#f97316', '#ef4444', '#b91c1c',
       '<path d="M24 22 C20 30, 23 44, 34 49 C42 52, 46 45, 43 38 C39 31, 34 22, 24 22 Z" fill="url(#grad)" stroke="#fecaca" stroke-width="1.8"/><path d="M24 22 C22 17, 26 14, 31 15" stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="34" cy="14" r="3" fill="#fde047"/><path d="M34 9 V19 M29 14 H39" stroke="#f97316" stroke-width="1.8" stroke-linecap="round"/>'
     ],
+    acid_slug: [
+      '#a3e635', '#4ade80', '#15803d',
+      '<path d="M14 40 C14 26, 30 22, 38 30 C42 34, 46 32, 48 26 C51 34, 48 44, 38 44 H18 C15 44, 14 42, 14 40 Z" fill="url(#grad)" stroke="#ecfccb" stroke-width="2"/><line x1="22" y1="26" x2="19" y2="18" stroke="#a3e635" stroke-width="2.5" stroke-linecap="round"/><line x1="28" y1="25" x2="28" y2="17" stroke="#a3e635" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="17" r="2" fill="#fde047"/><circle cx="28" cy="16" r="2" fill="#fde047"/>'
+    ],
+    parasite_egg: [
+      '#c084fc', '#a855f7', '#4c1d95',
+      '<ellipse cx="32" cy="34" rx="14" ry="17" fill="url(#grad)" stroke="#f3e8ff" stroke-width="2"/><polyline points="22,30 29,35 34,29 42,34" stroke="#fde047" stroke-width="2" fill="none"/><circle cx="28" cy="41" r="2.5" fill="#fde047"/><circle cx="36" cy="24" r="2" fill="#fde047"/>'
+    ],
+    powder_keg: [
+      '#f97316', '#b45309', '#451a03',
+      '<rect x="18" y="18" width="28" height="30" rx="6" fill="url(#grad)" stroke="#fed7aa" stroke-width="2"/><line x1="18" y1="26" x2="46" y2="26" stroke="#94a3b8" stroke-width="3"/><line x1="18" y1="40" x2="46" y2="40" stroke="#94a3b8" stroke-width="3"/><path d="M32 18 V12 L38 10" stroke="#fde047" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="39" cy="10" r="2.5" fill="#ef4444"/>'
+    ],
+    quicksilver_glob: [
+      '#38bdf8', '#e2e8f0', '#475569',
+      '<path d="M32 12 C42 26, 46 33, 46 40 C46 48, 39 52, 32 52 C25 52, 18 48, 18 40 C18 33, 22 26, 32 12 Z" fill="url(#grad)" stroke="#ffffff" stroke-width="2"/><ellipse cx="27" cy="36" rx="3" ry="6" fill="#ffffff" opacity="0.7"/>'
+    ],
     midas_eye: [
       '#fde047', '#facc15', '#b45309',
       '<path d="M12 32 C20 19, 44 19, 52 32 C44 45, 20 45, 12 32 Z" fill="url(#grad)" stroke="#fef9c3" stroke-width="2.2" stroke-linejoin="round"/><circle cx="32" cy="32" r="7.5" fill="#1c1917" stroke="#fde047" stroke-width="1.8"/><polygon points="32,27 36,32 32,37 28,32" fill="#38bdf8"/><path d="M32 13 V17 M32 47 V51 M19 18 L22 21 M45 18 L42 21" stroke="#fde047" stroke-width="2" stroke-linecap="round"/>'
+    ],
+    eclipse_idol: [
+      '#fde047', '#a855f7', '#09070d',
+      '<circle cx="32" cy="32" r="15" fill="#09070d" stroke="#fde047" stroke-width="3"/><path d="M32 11 V15 M32 49 V53 M11 32 H15 M49 32 H53 M17 17 L20 20 M47 47 L44 44 M47 17 L44 20 M17 47 L20 44" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round"/><circle cx="32" cy="32" r="6" stroke="#c084fc" stroke-width="1.5" fill="none"/>'
     ]
   },
 
   gambits: {
+    shrinking_shroom: [
+      '#84cc16', '#a3e635', '#15803d',
+      '<path d="M16 32 C16 18, 48 18, 48 32 Z" fill="url(#grad)" stroke="#ecfccb" stroke-width="2" stroke-linejoin="round"/><path d="M27 32 V46 C27 49, 37 49, 37 46 V32" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><circle cx="25" cy="25" r="2.8" fill="#fef08a"/><circle cx="36" cy="23" r="2.2" fill="#fef08a"/><circle cx="41" cy="28" r="1.8" fill="#fef08a"/>'
+    ],
+    lucky_rabbit_paw: [
+      '#fde047', '#fcd34d', '#b45309',
+      '<ellipse cx="32" cy="36" rx="10" ry="12" fill="url(#grad)" stroke="#fef9c3" stroke-width="2"/><circle cx="22" cy="22" r="3.5" fill="url(#grad)" stroke="#fef9c3" stroke-width="1.5"/><circle cx="29" cy="18" r="3.5" fill="url(#grad)" stroke="#fef9c3" stroke-width="1.5"/><circle cx="36" cy="18" r="3.5" fill="url(#grad)" stroke="#fef9c3" stroke-width="1.5"/><circle cx="43" cy="22" r="3.5" fill="url(#grad)" stroke="#fef9c3" stroke-width="1.5"/>'
+    ],
     butter_crust: [
       '#fde047', '#fbbf24', '#d97706',
       '<path d="M18 18 C28 14, 42 18, 48 28 L20 48 Z" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><path d="M16 17 C28 12, 44 16, 50 28" stroke="#b45309" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="31" cy="29" r="3.2" fill="#dc2626"/><circle cx="26" cy="37" r="2.6" fill="#dc2626"/><circle cx="37" cy="34" r="2.4" fill="#fef08a"/>'
     ],
-    shrinking_shroom: [
-      '#84cc16', '#a3e635', '#15803d',
-      '<path d="M16 32 C16 18, 48 18, 48 32 Z" fill="url(#grad)" stroke="#ecfccb" stroke-width="2" stroke-linejoin="round"/><path d="M27 32 V46 C27 49, 37 49, 37 46 V32" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><circle cx="25" cy="25" r="2.8" fill="#fef08a"/><circle cx="36" cy="23" r="2.2" fill="#fef08a"/><circle cx="41" cy="28" r="1.8" fill="#fef08a"/>'
+    amber_flea: [
+      '#f59e0b', '#fde047', '#92400e',
+      '<polygon points="32,12 48,26 42,48 22,48 16,26" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><ellipse cx="32" cy="32" rx="6" ry="8" fill="#451a03"/><path d="M24 28 L19 25 M24 34 L18 35 M40 28 L45 25 M40 34 L46 35" stroke="#451a03" stroke-width="2" stroke-linecap="round"/>'
+    ],
+    plumb_bob: [
+      '#fbbf24', '#38bdf8', '#b45309',
+      '<line x1="32" y1="10" x2="32" y2="22" stroke="#fde047" stroke-width="2.5" stroke-linecap="round"/><polygon points="20,22 44,22 32,50" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="29" r="3.5" fill="#0f172a"/>'
     ],
     dali_clock: [
       '#2dd4bf', '#38bdf8', '#fbbf24',
@@ -134,6 +226,10 @@ const C4_MEDALLION_SPECS = {
       '#38bdf8', '#2dd4bf', '#0284c7',
       '<path d="M12 46 Q32 10 52 46" stroke="url(#grad)" stroke-width="3.5" stroke-linecap="round" fill="none"/><line x1="22" y1="31" x2="22" y2="48" stroke="#64748b" stroke-width="2"/><line x1="32" y1="24" x2="32" y2="48" stroke="#64748b" stroke-width="2"/><line x1="42" y1="31" x2="42" y2="48" stroke="#64748b" stroke-width="2"/><rect x="25" y="15" width="14" height="8" rx="3" fill="#fbbf24" stroke="#fef3c7" stroke-width="1.5"/>'
     ],
+    copper_retort: [
+      '#fb923c', '#f59e0b', '#9a3412',
+      '<circle cx="26" cy="36" r="11" fill="url(#grad)" stroke="#ffedd5" stroke-width="2"/><path d="M26 25 C26 16, 42 16, 48 28" stroke="url(#grad)" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="49" cy="34" r="3" fill="#2dd4bf"/>'
+    ],
     obsidian_cat: [
       '#fbbf24', '#a855f7', '#1e1b24',
       '<polygon points="18,28 18,14 27,22 37,22 46,14 46,28 43,45 21,45" fill="url(#grad)" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round"/><polygon points="23,31 29,31 26,35" fill="#fde047"/><polygon points="35,31 41,31 38,35" fill="#fde047"/><polygon points="30,38 34,38 32,41" fill="#f43f5e"/>'
@@ -142,9 +238,25 @@ const C4_MEDALLION_SPECS = {
       '#fb7185', '#f43f5e', '#f97316',
       '<circle cx="32" cy="32" r="17" fill="url(#grad)" stroke="#fde047" stroke-width="2"/><circle cx="26" cy="26" r="3" fill="#7f1d1d"/><circle cx="38" cy="28" r="2.5" fill="#7f1d1d"/><circle cx="30" cy="38" r="3" fill="#7f1d1d"/><path d="M38 36 C42 36, 44 41, 39 44" stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none"/>'
     ],
+    jeweler_loupe: [
+      '#2dd4bf', '#fde047', '#0f766e',
+      '<circle cx="28" cy="28" r="12" fill="#0f172a" stroke="url(#grad)" stroke-width="3.5"/><path d="M37 37 L48 48" stroke="#fbbf24" stroke-width="4.5" stroke-linecap="round"/><polygon points="28,21 34,28 28,35 22,28" fill="#2dd4bf"/>'
+    ],
+    crimson_chalice: [
+      '#f43f5e', '#fbbf24', '#881337',
+      '<path d="M20 16 H44 C44 30, 36 34, 32 34 C28 34, 20 30, 20 16 Z" fill="url(#grad)" stroke="#fef08a" stroke-width="2"/><line x1="32" y1="34" x2="32" y2="48" stroke="#fbbf24" stroke-width="3.5"/><line x1="22" y1="48" x2="42" y2="48" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>'
+    ],
+    flywheel_coil: [
+      '#38bdf8', '#fbbf24', '#0284c7',
+      '<circle cx="32" cy="32" r="16" stroke="url(#grad)" stroke-width="4" stroke-dasharray="7 3" fill="none"/><circle cx="32" cy="32" r="6" fill="#fbbf24" stroke="#ffffff" stroke-width="1.5"/><path d="M32 16 V26 M32 38 V48 M16 32 H26 M38 32 H48" stroke="#38bdf8" stroke-width="2.5"/>'
+    ],
     sacred_heart_prism: [
       '#fde047', '#f43f5e', '#f59e0b',
       '<path d="M32 49 C32 49, 14 37, 14 24 C14 17, 20 14, 26 16 C29 17, 31 20, 32 22 C33 20, 35 17, 38 16 C44 14, 50 17, 50 24 C50 37, 32 49, 32 49 Z" fill="url(#grad)" stroke="#fef08a" stroke-width="2" stroke-linejoin="round"/><polygon points="32,23 39,32 32,41 25,32" fill="#38bdf8" stroke="#ffffff" stroke-width="1.2"/>'
+    ],
+    alkahest_vial: [
+      '#a3e635', '#2dd4bf', '#3b0764',
+      '<rect x="27" y="12" width="10" height="5" rx="1.5" fill="#fbbf24"/><polygon points="27,17 37,17 45,34 39,50 25,50 19,34" fill="url(#grad)" stroke="#ecfccb" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="36" r="4.5" fill="#fde047"/>'
     ]
   },
 
@@ -365,7 +477,6 @@ function buildMedallionSvgUri(category, id, spec) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-// Populate C4_ICON_MANIFEST & C4_INLINE_SVG_URIS from the compact spec registry
 const C4_ICON_MANIFEST = {};
 const C4_INLINE_SVG_URIS = {};
 
@@ -392,7 +503,6 @@ function getC4IconUrl(category, id, preferInlineDataUri = true) {
 
 function renderC4IconHTML(category, id, sizeClass = '', altText = '') {
   const url = getC4IconUrl(category, id);
-  // Strip any HTML tags or quotes from altText so nested <img> tags can never corrupt attributes
   const safeAlt = String(altText || id || 'icon')
     .replace(/<[^>]*>/g, '')
     .replace(/"/g, '&quot;')
@@ -420,8 +530,6 @@ function patchRouletteInstanceOrPrototype() {
     targetProto._c4WheelPatched = true;
     const _origRender = targetProto.render;
     targetProto.render = function () {
-      // 1. Temporarily blank out wedge.icon so _origRender's ctx.fillText(wedge.icon, 0, -3)
-      // does NOT print raw <img src="data:image/svg+xml..."> HTML across the wheel
       const savedIcons = this.wedges.map((w) => w.icon);
       for (let i = 0; i < this.wedges.length; i++) {
         this.wedges[i].icon = '';
@@ -429,12 +537,10 @@ function patchRouletteInstanceOrPrototype() {
 
       _origRender.call(this);
 
-      // Restore HTML <img> icons for DOM badges, toasts & legend pills
       for (let i = 0; i < this.wedges.length; i++) {
         this.wedges[i].icon = savedIcons[i];
       }
 
-      // 2. Draw preloaded SVG medallion images cleanly inside each spinning wedge pocket
       const ctx = this.ctx;
       const cx = this.canvas.width / 2;
       const cy = this.canvas.height / 2;
@@ -488,7 +594,6 @@ function patchCatalogCollection(collection, category, sizeClass = '') {
 function patchGameCatalogsWithSVGIcons() {
   preloadRouletteWheelIcons();
 
-  // 1–6. Hydrate all game catalogs with inline SVG Medallions
   if (typeof CARD_CATALOG !== 'undefined') patchCatalogCollection(CARD_CATALOG, 'cards');
   if (typeof RESERVE_CATALOG !== 'undefined') patchCatalogCollection(RESERVE_CATALOG, 'reserves');
   if (typeof GAMBIT_CATALOG !== 'undefined') patchCatalogCollection(GAMBIT_CATALOG, 'gambits');
@@ -496,7 +601,6 @@ function patchGameCatalogsWithSVGIcons() {
   if (typeof BOSS_ARCHETYPES !== 'undefined') patchCatalogCollection(BOSS_ARCHETYPES, 'bosses');
   if (typeof ROULETTE_WEDGES !== 'undefined') patchCatalogCollection(ROULETTE_WEDGES, 'wheel');
 
-  // 7. Upgrade Inspector, HUD & Modal Icon Containers
   const iconElementIds = [
     'inspector-icon',
     'sheet-icon',
@@ -511,7 +615,6 @@ function patchGameCatalogsWithSVGIcons() {
     'tutorial-step-icon'
   ];
 
-  // Elements where only plain text should be shown (since #floor-intro-icon-wrap above it already renders the Boss medallion)
   const stripImgElementIds = new Set([
     'floor-intro-boss-name'
   ]);
@@ -540,7 +643,6 @@ function patchGameCatalogsWithSVGIcons() {
     });
   });
 
-  // 8. Patch Roulette Wheel 2D Canvas Renderer
   patchRouletteInstanceOrPrototype();
   window.addEventListener('DOMContentLoaded', patchRouletteInstanceOrPrototype, { once: true });
   window.addEventListener('load', patchRouletteInstanceOrPrototype, { once: true });

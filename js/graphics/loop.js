@@ -42,7 +42,8 @@ function animate() {
   camState.theta += (camState.targetTheta - camState.theta) * 0.1;
   camState.phi += (camState.targetPhi - camState.phi) * 0.1;
 
-  let shakeX = 0, shakeY = 0;
+  let shakeX = 0;
+  let shakeY = 0;
   if (boardShakeState.intensity > 0.005) {
     shakeX = (Math.random() - 0.5) * boardShakeState.intensity;
     shakeY = (Math.random() - 0.5) * boardShakeState.intensity;
@@ -68,7 +69,7 @@ function animate() {
     }
   }
 
-  tokensGroup.children.forEach(mesh => {
+  tokensGroup.children.forEach((mesh) => {
     const d = mesh.userData;
     if (mesh.position.y > d.targetY) {
       d.velY -= 0.035;
@@ -102,24 +103,29 @@ function animate() {
   }
   sporeGeo.attributes.position.needsUpdate = true;
 
+  const winW = window.innerWidth;
+  const winH = window.innerHeight;
+  const topY = START_Y + BOARD_H + 0.35;
+
   for (let c = 0; c < COLS; c++) {
     const colX = START_X + c * CELL_SPACING;
-    const topY = START_Y + BOARD_H + 0.35;
     projVec.set(colX, topY, 0);
     projVec.project(camera);
 
-    const sx = (projVec.x * 0.5 + 0.5) * window.innerWidth;
-    const sy = (-(projVec.y * 0.5) + 0.5) * window.innerHeight;
+    const sx = (projVec.x * 0.5 + 0.5) * winW;
+    const sy = (-(projVec.y * 0.5) + 0.5) * winH;
 
     const badge = colBadges[c];
-    badge.style.left = `${sx}px`;
-    badge.style.top = `${sy}px`;
+    if (badge) {
+      badge.style.left = `${sx}px`;
+      badge.style.top = `${sy}px`;
+    }
 
-    const numEl = document.getElementById(`col-num-${c}`);
-    if (c === state.previewCol) {
-      numEl.className = "text-xs font-mono-code font-bold text-amber-300 scale-125 transition";
-    } else {
-      numEl.className = "text-[10px] font-mono-code font-bold text-amber-400/75 mt-0.5";
+    const numEl = (typeof colNumEls !== 'undefined' && colNumEls[c]) || document.getElementById(`col-num-${c}`);
+    if (numEl) {
+      numEl.className = (c === state.previewCol)
+        ? 'text-xs font-mono-code font-bold text-amber-300 scale-125 transition'
+        : 'text-[10px] font-mono-code font-bold text-amber-400/75 mt-0.5';
     }
   }
 

@@ -1,20 +1,9 @@
 // ============================================================================
-// MID-RUN SAVE & RESUME PERSISTENCE ENGINE v4 (js/state/persistence.js)
+// MID-RUN SAVE & RESUME PERSISTENCE ENGINE (js/state/persistence.js)
 // ============================================================================
-// Fixes:
-// 1. Hides #intro-sequence-overlay, #title-opener-stage, #difficulty-modal, and
-//    #floor-intro-overlay on Resume/Continue without leaving inline display:none
-//    styles on #floor-intro-overlay or #difficulty-modal that would deadlock
-//    state.busy = true on subsequent Floor Intro transitions or Retries.
-// 2. Does not intercept initNewRun() during the Tutorial or auto-save tutorial
-//    boards, allowing the player to complete the full tutorial sequence first.
-// 3. Re-links state.meshes[r][c] to restored 3D Three.js token meshes.
-// ============================================================================
-
-const RUN_SAVE_STORAGE_KEY = 'c4_subterranean_saved_run_v1';
+const RUN_SAVE_STORAGE_KEY = 'c4_subterranean_saved_run_v2';
 const RUN_SAVE_SCHEMA_VERSION = 2;
 
-// Keys on `state` that represent transient UI/animation locks or timer IDs
 const TRANSIENT_STATE_KEYS = new Set([
   'busy',
   'isAnimating',
@@ -59,8 +48,6 @@ const SAFE_TRANSIENT_DEFAULTS = {
   selectedReserveIndex: null
 };
 
-// Gate lock: when a prior save exists at boot, block auto-saves until the
-// player explicitly chooses "Resume Delve" or "Abandon & Start Floor 1".
 let _saveGateLocked = false;
 let _bootCachedPayload = null;
 let _isRestoringRun = false;
@@ -69,10 +56,7 @@ function isTutorialCurrentlyActive() {
   if (typeof window !== 'undefined' && window.tutorialActive) return true;
   if (typeof tutorialActive !== 'undefined' && tutorialActive) return true;
   const tutEl = document.getElementById('tutorial-overlay');
-  if (tutEl && !tutEl.classList.contains('hidden') && tutEl.style.display !== 'none') {
-    return true;
-  }
-  return false;
+  return !!(tutEl && !tutEl.classList.contains('hidden') && tutEl.style.display !== 'none');
 }
 
 // ----------------------------------------------------------------------------
@@ -273,31 +257,25 @@ function reconstructThreeObject(node) {
           );
           geometry.rotateX(Math.PI / 2);
         }
-      } else if (gType === 'SphereGeometry' || gType === 'SphereBufferGeometry') {
-        geometry = new THREE.SphereGeometry(
-          p.radius ?? 0.42,
-          p.widthSegments ?? 24,
-          p.heightSegments ?? 16
-        );
-      } else if (gType === 'BoxGeometry' || gType === 'BoxBufferGeometry') {
-        geometry = new THREE.BoxGeometry(
-          p.width ?? 0.8,
-          p.height ?? 0.8,
-          p.depth ?? 0.25
-        );
       } else if (gType === 'TorusGeometry' || gType === 'TorusBufferGeometry') {
-        geometry = new THREE.TorusGeometry(
-          p.radius ?? 0.38,
-          p.tube ?? 0.08,
-          p.radialSegments ?? 16,
-          p.tubularSegments ?? 32
-        );
+        if (Math.abs((p.radius ?? 0) - 0.22) < 0.01 && typeof tokenInnerRingGeo !== 'undefined' && tokenInnerRingGeo) {
+          geometry = tokenInnerRingGeo;
+        } else if (Math.abs((p.radius ?? 0) - 0.36) < 0.01 && typeof enchantRingGeo !== 'undefined' && enchantRingGeo) {
+          geometry = enchantRingGeo;
+        } else {
+          geometry = new THREE.TorusGeometry(
+            p.radius ?? 0.38,
+            p.tube ?? 0.08,
+            p.radialSegments ?? 16,
+            p.tubularSegments ?? 32
+          );
+        }
+      } else if (gType === 'SphereGeometry' || gType === 'SphereBufferGeometry') {
+        geometry = new THREE.SphereGeometry(p.radius ?? 0.42, p.widthSegments ?? 24, p.heightSegments ?? 16);
+      } else if (gType === 'BoxGeometry' || gType === 'BoxBufferGeometry') {
+        geometry = new THREE.BoxGeometry(p.width ?? 0.8, p.height ?? 0.8, p.depth ?? 0.25);
       } else if (gType === 'RingGeometry' || gType === 'RingBufferGeometry') {
-        geometry = new THREE.RingGeometry(
-          p.innerRadius ?? 0.25,
-          p.outerRadius ?? 0.42,
-          p.thetaSegments ?? 32
-        );
+        geometry = new THREE.RingGeometry(p.innerRadius ?? 0.25, p.outerRadius ?? 0.42, p.thetaSegments ?? 32);
       } else if (gType === 'OctahedronGeometry' || gType === 'OctahedronBufferGeometry') {
         geometry = new THREE.OctahedronGeometry(p.radius ?? 0.4, p.detail ?? 0);
       } else if (gType === 'IcosahedronGeometry' || gType === 'IcosahedronBufferGeometry') {
@@ -307,31 +285,23 @@ function reconstructThreeObject(node) {
       } else if (typeof THREE[gType] === 'function') {
         geometry = new THREE[gType]();
       }
-    } catch (e) {}
+    } catch (_) {}
 
     if (!geometry) {
-      if (typeof tokenGeo !== 'undefined' && tokenGeo) {
-        geometry = tokenGeo;
-      } else {
-        geometry = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 28);
-        geometry.rotateX(Math.PI / 2);
-      }
+      geometry = (typeof tokenGeo !== 'undefined' && tokenGeo)
+        ? tokenGeo
+        : new THREE.CylinderGeometry(0.44, 0.44, 0.32, 28).rotateX(Math.PI / 2);
     }
 
     let material = null;
     const hexColor = node.mat.color ?? 0xffffff;
     if (!node.mat.transparent) {
-      if (hexColor === 0xfbbf24 && typeof playerMat !== 'undefined' && playerMat) {
-        material = playerMat;
-      } else if (hexColor === 0x14b8a6 && typeof aiMat !== 'undefined' && aiMat) {
-        material = aiMat;
-      } else if (hexColor === 0x78716c && typeof stoneMat !== 'undefined' && stoneMat) {
-        material = stoneMat;
-      } else if (hexColor === 0xe879f9 && typeof wildMat !== 'undefined' && wildMat) {
-        material = wildMat;
-      } else if (hexColor === 0xffffff && typeof winGlowMat !== 'undefined' && winGlowMat) {
-        material = winGlowMat;
-      }
+      if (hexColor === 0xfbbf24 && typeof playerMat !== 'undefined' && playerMat) material = playerMat;
+      else if (hexColor === 0x14b8a6 && typeof aiMat !== 'undefined' && aiMat) material = aiMat;
+      else if (hexColor === 0x78716c && typeof stoneMat !== 'undefined' && stoneMat) material = stoneMat;
+      else if (hexColor === 0xe879f9 && typeof wildMat !== 'undefined' && wildMat) material = wildMat;
+      else if (hexColor === 0xf59e0b && typeof brassInlayMat !== 'undefined' && brassInlayMat) material = brassInlayMat;
+      else if (hexColor === 0xffffff && typeof winGlowMat !== 'undefined' && winGlowMat) material = winGlowMat;
     }
 
     if (!material) {
@@ -422,7 +392,7 @@ function rebuildStateMeshesGridFromScene(tGroup) {
             if (state.meshes[r] && state.meshes[r][c] && state.meshes[r][c].userData) {
               state.meshes[r][c].position.y = state.meshes[r][c].userData.targetY ?? state.meshes[r][c].position.y;
             }
-          } catch (e) {}
+          } catch (_) {}
         }
       }
     }
@@ -441,25 +411,17 @@ function rebuildStateMeshesGridFromScene(tGroup) {
       }
       continue;
     }
-    if (typeof getBoardWorldPos === 'function') {
-      let bestR = -1;
-      let bestC = -1;
-      let bestDist = Infinity;
+
+    // Fallback spatial coordinate lookup using START_X, START_Y, CELL_SPACING
+    if (typeof START_X === 'number' && typeof START_Y === 'number' && typeof CELL_SPACING === 'number') {
+      const targetX = typeof ud.targetX === 'number' ? ud.targetX : child.position.x;
       const targetY = typeof ud.targetY === 'number' ? ud.targetY : child.position.y;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const wp = getBoardWorldPos(r, c);
-          if (!wp) continue;
-          const d = Math.hypot(child.position.x - wp.x, targetY - wp.y);
-          if (d < bestDist && d < 0.65) {
-            bestDist = d;
-            bestR = r;
-            bestC = c;
-          }
-        }
-      }
-      if (bestR !== -1 && bestC !== -1 && state.meshes[bestR]) {
-        state.meshes[bestR][bestC] = child;
+      const c = Math.round((targetX - START_X) / CELL_SPACING);
+      const r = Math.round((targetY - START_Y) / CELL_SPACING);
+      if (r >= 0 && r < rows && c >= 0 && c < cols && state.meshes[r]) {
+        ud.row = r;
+        ud.col = c;
+        state.meshes[r][c] = child;
       }
     }
   }
@@ -536,15 +498,9 @@ function saveCurrentRun(force = false) {
         floorIndex: getZeroBasedFloorIndex(state),
         tokensOnBoard: countPlayerOrAiTokensOnBoard(state),
         difficulty: state.difficulty || 'MEDIUM',
-        gambitCount: Array.isArray(state.gambits)
-          ? state.gambits.length
-          : (Array.isArray(state.activeGambits) ? state.activeGambits.length : 0),
-        cardCount: Array.isArray(state.hand)
-          ? state.hand.length
-          : (Array.isArray(state.cards) ? state.cards.length : 0),
-        reserveCount: Array.isArray(state.reserves)
-          ? state.reserves.length
-          : (Array.isArray(state.reservePouch) ? state.reservePouch.length : 0)
+        gambitCount: Array.isArray(state.gambits) ? state.gambits.length : 0,
+        cardCount: Array.isArray(state.hand) ? state.hand.length : 0,
+        reserveCount: Array.isArray(state.reservePouch) ? state.reservePouch.length : 0
       },
       stateSnapshot: cleanState,
       tokens3DSnapshot: serializeGroupChildren(tGroup),
@@ -555,7 +511,7 @@ function saveCurrentRun(force = false) {
     _bootCachedPayload = payload;
     updateCheckpointPillUI(true);
     return true;
-  } catch (e) {
+  } catch (_) {
     return false;
   }
 }
@@ -565,15 +521,11 @@ function loadSavedRunPayload() {
     const raw = localStorage.getItem(RUN_SAVE_STORAGE_KEY);
     if (!raw) return _bootCachedPayload || null;
     const parsed = JSON.parse(raw);
-    if (
-      !parsed ||
-      !parsed.stateSnapshot ||
-      typeof parsed.stateSnapshot !== 'object'
-    ) {
+    if (!parsed || !parsed.stateSnapshot || typeof parsed.stateSnapshot !== 'object') {
       return _bootCachedPayload || null;
     }
     return parsed;
-  } catch (e) {
+  } catch (_) {
     return _bootCachedPayload || null;
   }
 }
@@ -587,7 +539,7 @@ function clearSavedRun() {
   _saveGateLocked = false;
   try {
     localStorage.removeItem(RUN_SAVE_STORAGE_KEY);
-  } catch (e) {}
+  } catch (_) {}
   updateCheckpointPillUI(false);
 }
 
@@ -595,24 +547,12 @@ function clearSavedRun() {
 // 4. RESTORING THE SAVED RUN & DISMISSING ALL TITLE/MODAL GATES
 // ----------------------------------------------------------------------------
 function dismissAnyTitleOrSplashOverlays() {
-  // 1. Permanently dismiss boot/title/splash overlays
   const bootAndTitleIds = [
     'intro-sequence-overlay',
     'terminal-boot-stage',
     'dyagonil-splash-stage',
     'title-opener-stage',
-    'tutorial-overlay',
-    'title-screen',
-    'title-modal',
-    'title-overlay',
-    'splash-screen',
-    'splash-overlay',
-    'intro-overlay',
-    'intro-screen',
-    'boot-gate',
-    'terminal-gate',
-    'crt-gate',
-    'opening-overlay'
+    'tutorial-overlay'
   ];
 
   for (const id of bootAndTitleIds) {
@@ -627,8 +567,6 @@ function dismissAnyTitleOrSplashOverlays() {
     }
   }
 
-  // 2. Hide reusable game modals via CSS classes and CLEAR any inline display/opacity/pointerEvents
-  //    so future Floor Intro transitions, Difficulty modals, or Game Over modals never deadlock!
   const reusableModalIds = [
     'difficulty-modal',
     'floor-intro-overlay',
@@ -658,7 +596,6 @@ function dismissAnyTitleOrSplashOverlays() {
 
   document.body.classList.remove('modal-occluded');
 
-  // Ensure BGM starts playing if enabled when entering gameplay directly
   if (
     typeof bgm !== 'undefined' &&
     bgm &&
@@ -667,9 +604,9 @@ function dismissAnyTitleOrSplashOverlays() {
     userSettings.musicEnabled &&
     !(typeof sfx !== 'undefined' && sfx && sfx.muted)
   ) {
-    bgm.isPausedForIntro = false;
+    bgm.isPausedForLevelIntro = false;
     bgm.isPausedForModal = false;
-    try { bgm.play(); } catch (e) {}
+    try { bgm.play(); } catch (_) {}
   }
 }
 
@@ -691,35 +628,12 @@ function syncSceneAndHudAfterRestore(payload) {
   if (eGroup && payload && Array.isArray(payload.enchant3DSnapshot) && payload.enchant3DSnapshot.length > 0) {
     restoreGroupChildren(eGroup, payload.enchant3DSnapshot);
   } else if (typeof rebuildEnchantmentRings === 'function') {
-    try { rebuildEnchantmentRings(); } catch (e) {}
+    try { rebuildEnchantmentRings(); } catch (_) {}
   }
 
-  const hudSyncFns = [
-    'syncHUD',
-    'updateHUD',
-    'renderHUD',
-    'refreshHUD',
-    'renderCardsHUD',
-    'renderHand',
-    'renderArcaneCards',
-    'renderReservesHUD',
-    'renderReserves',
-    'renderReserveTokens',
-    'renderGambitsHUD',
-    'renderGambits',
-    'updateFloorBanner',
-    'updateHeaderHUD',
-    'updateTurnIndicator',
-    'updateTelemetryBadges',
-    'syncSettingsUI'
-  ];
-  for (const fnName of hudSyncFns) {
-    if (typeof window[fnName] === 'function') {
-      try {
-        window[fnName]();
-      } catch (e) {}
-    }
-  }
+  if (typeof updateHUD === 'function') updateHUD();
+  if (typeof updateTelemetryBadges === 'function') updateTelemetryBadges();
+  if (typeof syncSettingsUI === 'function') syncSettingsUI();
 }
 
 function resumeSavedRun() {
@@ -741,7 +655,7 @@ function resumeSavedRun() {
     if (typeof startFloorMatch === 'function') {
       try {
         startFloorMatch(false);
-      } catch (e) {}
+      } catch (_) {}
     }
 
     // 3. Re-apply the exact mid-floor snapshot (board matrix, hand, reserves, gambits, turn)
@@ -764,27 +678,27 @@ function resumeSavedRun() {
 
     // 5. Set active turn status banner or trigger AI move if saved on AI's turn
     if (state.turn === AI || state.currentTurn === AI) {
-      const aiTriggerFns = ['triggerAiTurn', 'executeAiTurn', 'runAiTurn', 'scheduleAiMove', 'aiMove'];
+      const aiTriggerFns = ['triggerAITurn', 'triggerAiTurn', 'executeAiTurn', 'runAiTurn', 'scheduleAiMove', 'aiMove'];
       setTimeout(() => {
         for (const fnName of aiTriggerFns) {
           if (typeof window[fnName] === 'function') {
             try {
               window[fnName]();
               break;
-            } catch (e) {}
+            } catch (_) {}
           }
         }
       }, 450);
     } else if (typeof setStatusBanner === 'function') {
       try {
         setStatusBanner(true, 'Checkpoint restored — Your Turn! Drag across columns to aim.');
-      } catch (e) {}
+      } catch (_) {}
     }
 
     if (typeof showToast === 'function') {
       try {
         showToast('CHECKPOINT RESTORED');
-      } catch (e) {}
+      } catch (_) {}
     }
   } finally {
     _isRestoringRun = false;
@@ -954,7 +868,7 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
   if (resumeBtn) {
     resumeBtn.addEventListener('click', () => {
       if (typeof sfx !== 'undefined' && sfx && typeof sfx.playCardChime === 'function') {
-        try { sfx.playCardChime(); } catch (e) {}
+        try { sfx.playCardChime(); } catch (_) {}
       }
       closePrompt();
       resumeSavedRun();
@@ -964,12 +878,12 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
   if (abandonBtn) {
     abandonBtn.addEventListener('click', () => {
       if (typeof sfx !== 'undefined' && sfx && typeof sfx.playHoverTick === 'function') {
-        try { sfx.playHoverTick(); } catch (e) {}
+        try { sfx.playHoverTick(); } catch (_) {}
       }
       clearSavedRun();
       closePrompt();
       if (typeof onAbandonCallback === 'function') {
-        try { onAbandonCallback(); } catch (e) {}
+        try { onAbandonCallback(); } catch (_) {}
       } else {
         dismissAnyTitleOrSplashOverlays();
         if (typeof initNewRun === 'function') initNewRun();
@@ -1016,7 +930,7 @@ function mountCheckpointPillUI() {
     const ok = saveCurrentRun(true);
     if (ok) {
       if (typeof showToast === 'function') {
-        try { showToast('CHECKPOINT SAVED'); } catch (e) {}
+        try { showToast('CHECKPOINT SAVED'); } catch (_) {}
       }
     } else if (hasSavedRun()) {
       promptResumeIfAvailable();
@@ -1084,11 +998,7 @@ function installAutoSaveHooks() {
 
   // 2. Clear saved run automatically when a run finishes in defeat or final victory
   const terminalFunctionsToClearOn = [
-    'triggerGameOver',
-    'handleDefeat',
     'handleFloorDefeat',
-    'showRunVictoryModal',
-    'handleRunVictory',
     'showGameOverModal'
   ];
 
@@ -1124,23 +1034,17 @@ function installAutoSaveHooks() {
     try {
       const boardSig = Array.isArray(state.board) ? JSON.stringify(state.board) : '';
       const floorSig = getZeroBasedFloorIndex(state);
-      const turnSig = state.turn || state.currentTurn || 0;
-      const handSig = Array.isArray(state.hand)
-        ? state.hand.length
-        : (Array.isArray(state.cards) ? state.cards.length : 0);
-      const resSig = Array.isArray(state.reserves)
-        ? state.reserves.length
-        : (Array.isArray(state.reservePouch) ? state.reservePouch.length : 0);
-      const gambitSig = Array.isArray(state.gambits)
-        ? state.gambits.length
-        : (Array.isArray(state.activeGambits) ? state.activeGambits.length : 0);
+      const turnSig = state.turn || 0;
+      const handSig = Array.isArray(state.hand) ? state.hand.length : 0;
+      const resSig = Array.isArray(state.reservePouch) ? state.reservePouch.length : 0;
+      const gambitSig = Array.isArray(state.gambits) ? state.gambits.length : 0;
 
       const fp = `${floorSig}|${turnSig}|${handSig}|${resSig}|${gambitSig}|${boardSig}`;
       if (fp !== lastFingerprint) {
         lastFingerprint = fp;
         saveCurrentRun();
       }
-    } catch (e) {}
+    } catch (_) {}
   }, 750);
 
   document.addEventListener('visibilitychange', () => {

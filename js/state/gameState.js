@@ -1,166 +1,196 @@
 // ============================================================================
 // CENTRAL RUN STATE & CONSUMABLE DECK STOCKPILE ENGINE (js/state/gameState.js)
 // ============================================================================
+const STARTER_DECK_IDS = ['pebble', 'petrified', 'oracle_peek', 'pickaxe'];
 
-// ============================================================================
-// 5. RUN STATE & GAMBONANZA PROGRESSION DATA
-// ============================================================================
 const state = {
-    floorIdx: 0,
-    gold: 3,
-    stability: 15,
-    board: [],
-    boardMask: [],
-    currentTopology: null,
-    shuffledTopologyPool: [],
-    enchantGrid: [], // Stores ENCHANT_TYPES per (r, c)
-    persistentEnchantCount: 1, // Starts humble (1 slot on Floor 1) and scales up!
-    meshes: [],
-    turn: PLAYER,
-    turnNumber: 1,
-    busy: false,
-    gameOver: false,
+  floorIdx: 0,
+  difficulty: 'MEDIUM',
+  gold: 3,
+  stability: 15,
+  board: [],
+  boardMask: [],
+  currentTopology: null,
+  shuffledTopologyPool: [],
+  enchantGrid: [], // Stores ENCHANT_TYPES per (r, c)
+  persistentEnchantCount: 1, // Starts at 1 slot on Floor 1 and scales up
+  meshes: [],
+  turn: PLAYER,
+  turnNumber: 1,
+  busy: false,
+  gameOver: false,
+  lastActionWasDrop: false,
+  lastPlayedCell: null,
 
-    previewCol: -1,
-    lastDroppedCols: [], // Tracks ascending Coaster Apex Momentum combo
-    shatterCounter: 0,   // Tracks Jalapeño Pepperoni Overdrive
-    shroomDropCounter: 0, // Tracks Oddly Shrinking Cave Shroom every-3rd-drop squeak
+  previewCol: -1,
+  lastDroppedCols: [],       // Tracks ascending Coaster Apex Momentum combo
+  shatterCounter: 0,         // Tracks Jalapeño Pepperoni Overdrive
+  shroomDropCounter: 0,      // Tracks Oddly Shrinking Cave Shroom every-3rd-drop squeak
+  dynamoDropCounter: 0,      // Tracks Tectonic Mana Dynamo every-3rd-drop overcharge
+  cardsCastThisTurn: 0,      // Tracks Alchemical Forge Bellows 2-card spellweaver refund
+  bellowsTriggeredThisTurn: false,
 
-    // Shuffled Tiered Boss Pool (Act I Easy -> Act II Medium -> Act III Hard) & Multi-Phase Boss Health
-    shuffledBossPool: [],
-    bossHp: 1,
-    bossMaxHp: 1,
-    bossMarkedCol: 3,
+  // Shuffled Tiered Boss Pool (Act I Easy -> Act II Medium -> Act III Hard) & Multi-Phase Boss Health
+  shuffledBossPool: [],
+  bossHp: 1,
+  bossMaxHp: 1,
+  bossMarkedCol: 3,
 
-    // Slowed Progression Unlocks (Earned via Boss Milestones or Bazaar Upgrades)
-    maxMana: 1,           // Starts at 1 Mana on Floor 1!
-    mana: 1,
-    handSize: 2,          // Starts drawing 2 cards on Floor 1!
-    maxGambitSlots: 1,    // Starts with 1 Gambit slot capacity (0 equipped)
-    reservePouchUnlocked: false, // Unlocks after defeating First Boss (Floor 3) or buying in Bazaar
-    highTierCardsUnlocked: false, // Unlocks after Boss 1 / Boss 2
+  // Progression & Boss-Gated Shop Tier Unlocks
+  //   • unlockedShopTier = 1 on Floors 1–3 (Act I before defeating Boss 1)
+  //   • unlockedShopTier = 2 unlocked immediately upon defeating Boss 1 (Floor 3)
+  //   • unlockedShopTier = 3 unlocked immediately upon defeating Boss 2 (Floor 6)
+  unlockedShopTier: 1,
+  maxMana: 1,
+  mana: 1,
+  handSize: 2,
+  maxGambitSlots: 1,
+  reservePouchUnlocked: false,
+  highTierCardsUnlocked: false,
 
-    // Humble Starter Deck (3 simple cards)
-    masterDeck: ['pebble', 'petrified', 'oracle_peek', 'sinkhole_chute'],
-    drawPile: [],
-    hand: [],
-    discardPile: [],
-    selectedCardIdx: null,
+  // Consumable Card Stockpile
+  masterDeck: [...STARTER_DECK_IDS],
+  drawPile: [],
+  hand: [],
+  discardPile: [],
+  selectedCardIdx: null,
 
-    // Tactical Reserve Pouch (Starts empty; earned mid-run)
-    reservePouch: [],
-    selectedReserveIdx: null,
+  // Tactical Reserve Pouch
+  reservePouch: [],
+  selectedReserveIdx: null,
 
-    // Active Synergistic Gambits (Starts empty on Floor 1 so relics feel earned!)
-    gambits: [],
-    catNineLivesUsed: false,
+  // Active Synergistic Gambits
+  gambits: [],
+  catNineLivesUsed: false,
 
-    showTelemetry: true,
-    rouletteSpinsThisFloor: 0,
-    nextFloorModifiers: {
-        bonusMana: 0,
-        bonusStability: 0,
-        bonusEnchantSlots: 0,
-        caveInStones: 0,
-        aiHeadstartTokens: 0
-    },
-    shopItems: [],
-    pendingVictoryPayout: { totalEarned: 0, speedBonus: 0 }
+  showTelemetry: true,
+  rouletteSpinsThisFloor: 0,
+  nextFloorModifiers: {
+    bonusMana: 0,
+    bonusStability: 0,
+    bonusEnchantSlots: 0,
+    caveInStones: 0,
+    aiHeadstartTokens: 0
+  },
+  shopItems: [],
+  pendingVictoryPayout: { totalEarned: 0, speedBonus: 0 }
 };
-
-function initNewRun() {
-    activeDebugTopologyOverride = null;
-    activeDebugBossOverride = null;
-    const diff = getActiveDifficulty();
-    state.floorIdx = 0;
-    state.gold = diff.startingGold;
-    state.persistentEnchantCount = 1 + (diff.extraEnchantedSlots || 0);
-    state.maxMana = diff.startingMaxMana;
-    state.mana = diff.startingMaxMana;
-    state.handSize = diff.startingHandSize || 2;
-    state.maxGambitSlots = 1;
-    state.reservePouchUnlocked = false;
-    state.highTierCardsUnlocked = false;
-
-    // Humble 3-card starter deck; Glowworm Grotto (Easy) starts with Obsidian Cat Figurine
-    state.masterDeck = ['pebble', 'petrified', 'oracle_peek', 'sinkhole_chute'];
-    state.reservePouch = [];
-    state.gambits = diff.starterGambitId ? [diff.starterGambitId] : [];
-
-    // Draw 1 Boss from each difficulty pool: Easy for Fight 1 (F3), Medium for Fight 2 (F6), Hard for Fight 3 (F9)!
-    const easyPick = shuffle(BOSS_POOLS_BY_ACT.EASY)[0];
-    const mediumPick = shuffle(BOSS_POOLS_BY_ACT.MEDIUM)[0];
-    const hardPick = shuffle(BOSS_POOLS_BY_ACT.HARD)[0];
-    state.shuffledBossPool = [easyPick, mediumPick, hardPick];
-    state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
-
-    state.nextFloorModifiers = {
-        bonusMana: 0,
-        bonusStability: 0,
-        bonusEnchantSlots: 0,
-        caveInStones: 0,
-        aiHeadstartTokens: 0
-    };
-    updateDifficultyUI();
-}
-
-function hasGambit(id) {
-    return state.gambits.includes(id);
-}
-
-function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-}
-
-
-// ============================================================================
-// ONE-TIME CONSUMABLE CARD INVENTORY & STOCKPILE DECK ENGINE
-//   • Duplicate copies of any card are allowed and can be stockpiled into the deck.
-//   • Max hand size (state.handSize, up to 5) governs how many cards you can hold at once.
-//   • Once a card is cast/consumed, that copy is permanently expended and never replenished.
-// ============================================================================
-function isStackableCurseCard(cardId) {
-    return cardId === 'dead_weight';
-}
-
-function countCardCopiesInInventory(cardId) {
-    if (!cardId || !Array.isArray(state.masterDeck)) return 0;
-    return state.masterDeck.filter(id => id === cardId).length;
-}
-
-function addCardToStockpile(cardId) {
-    if (!cardId || !CARD_CATALOG[cardId]) return false;
-    state.masterDeck.push(cardId);
-    return true;
-}
-
-function consumeHandCardCopy(handIdx) {
-    if (handIdx === null || handIdx === undefined || handIdx < 0 || handIdx >= state.hand.length) return null;
-    const [usedCardId] = state.hand.splice(handIdx, 1);
-    if (usedCardId && Array.isArray(state.masterDeck)) {
-        const masterIdx = state.masterDeck.indexOf(usedCardId);
-        if (masterIdx !== -1) {
-            state.masterDeck.splice(masterIdx, 1);
-        }
-    }
-    return usedCardId;
-}
-
-function drawCards(count) {
-    const maxHandCap = Math.min(5, Math.max(1, state.handSize || 2));
-    for (let i = 0; i < count; i++) {
-        if (state.hand.length >= maxHandCap) break;
-        if (state.drawPile.length === 0) break; // Consumable stockpile: no discard reshuffle!
-        const cardId = state.drawPile.pop();
-        if (cardId) state.hand.push(cardId);
-    }
-    updateHUD();
-}
 
 let activeDebugTopologyOverride = null;
 let activeDebugBossOverride = null;
+
+function createDefaultFloorModifiers() {
+  return {
+    bonusMana: 0,
+    bonusStability: 0,
+    bonusEnchantSlots: 0,
+    caveInStones: 0,
+    aiHeadstartTokens: 0
+  };
+}
+
+function initNewRun() {
+  activeDebugTopologyOverride = null;
+  activeDebugBossOverride = null;
+  const diff = getActiveDifficulty();
+  state.floorIdx = 0;
+  state.gold = diff.startingGold;
+  state.persistentEnchantCount = 1 + (diff.extraEnchantedSlots || 0);
+  state.unlockedShopTier = 1;
+  state.maxMana = diff.startingMaxMana;
+  state.mana = diff.startingMaxMana;
+  state.handSize = diff.startingHandSize || 2;
+  state.maxGambitSlots = 1;
+  state.reservePouchUnlocked = false;
+  state.highTierCardsUnlocked = false;
+
+  state.masterDeck = [...STARTER_DECK_IDS];
+  state.reservePouch = [];
+  state.gambits = diff.starterGambitId ? [diff.starterGambitId] : [];
+
+  const easyPick = shuffle(BOSS_POOLS_BY_ACT.EASY)[0];
+  const mediumPick = shuffle(BOSS_POOLS_BY_ACT.MEDIUM)[0];
+  const hardPick = shuffle(BOSS_POOLS_BY_ACT.HARD)[0];
+  state.shuffledBossPool = [easyPick, mediumPick, hardPick];
+  state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
+
+  state.nextFloorModifiers = createDefaultFloorModifiers();
+  if (typeof updateDifficultyUI === 'function') {
+    updateDifficultyUI();
+  }
+}
+
+function hasGambit(id) {
+  return state.gambits.includes(id);
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============================================================================
+// BOSS-GATED SHOP TIER SYSTEM & CONSUMABLE DECK STOCKPILE ENGINE
+//   • Act I (Before Boss 1 is defeated): Max Tier = 1
+//   • Act II (After Boss 1 on Floor 3 is defeated): Max Tier = 2
+//   • Act III (After Boss 2 on Floor 6 is defeated): Max Tier = 3
+// ============================================================================
+function isStackableCurseCard(cardId) {
+  return cardId === 'dead_weight';
+}
+
+function playerOwnsCard(cardId) {
+  return Array.isArray(state.masterDeck) && state.masterDeck.includes(cardId);
+}
+
+function countCardCopiesInInventory(cardId) {
+  if (!cardId || !Array.isArray(state.masterDeck)) return 0;
+  return state.masterDeck.filter((id) => id === cardId).length;
+}
+
+function getExplicitItemTier(entry, fallback = 1) {
+  return (entry && typeof entry.tier === 'number') ? entry.tier : fallback;
+}
+
+function getMaxAllowedShopTier() {
+  // Floor-based floor minimum for mid-run checkpoints or debug jumps:
+  // Floors 1-3 (idx 0..2) start at Tier 1; Floors 4-6 (idx 3..5) are post-Boss 1 (Tier 2); Floors 7-9 (idx 6..8) are post-Boss 2 (Tier 3)
+  const floorMinTier = state.floorIdx >= 6 ? 3 : (state.floorIdx >= 3 ? 2 : 1);
+  const explicitTier = typeof state.unlockedShopTier === 'number' ? state.unlockedShopTier : 1;
+  const highTierFlag = state.highTierCardsUnlocked ? 3 : 1;
+  return Math.min(3, Math.max(1, floorMinTier, explicitTier, highTierFlag));
+}
+
+function addCardToStockpile(cardId) {
+  if (!cardId || !CARD_CATALOG[cardId]) return false;
+  state.masterDeck.push(cardId);
+  return true;
+}
+
+function consumeHandCardCopy(handIdx) {
+  if (handIdx === null || handIdx === undefined || handIdx < 0 || handIdx >= state.hand.length) return null;
+  const [usedCardId] = state.hand.splice(handIdx, 1);
+  if (usedCardId && Array.isArray(state.masterDeck)) {
+    const masterIdx = state.masterDeck.indexOf(usedCardId);
+    if (masterIdx !== -1) {
+      state.masterDeck.splice(masterIdx, 1);
+    }
+  }
+  return usedCardId;
+}
+
+function drawCards(count) {
+  const maxHandCap = Math.min(5, Math.max(1, state.handSize || 2));
+  for (let i = 0; i < count; i++) {
+    if (state.hand.length >= maxHandCap || state.drawPile.length === 0) break;
+    const cardId = state.drawPile.pop();
+    if (cardId) state.hand.push(cardId);
+  }
+  if (typeof updateHUD === 'function') {
+    updateHUD();
+  }
+}

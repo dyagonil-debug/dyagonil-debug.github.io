@@ -2,47 +2,6 @@
 // MODALS, BAZAAR ECONOMY, BOSS CHEST, DIFFICULTY & SETTINGS UI (js/ui/modals.js)
 // ============================================================================
 
-(function ensureFloorIntroOverlayStyles() {
-  if (document.getElementById('floor-intro-fallback-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'floor-intro-fallback-styles';
-  style.textContent = `
-    #floor-intro-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 160;
-      background: radial-gradient(circle at 50% 45%, rgba(22, 17, 32, 0.96) 0%, rgba(7, 6, 9, 0.99) 80%);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    #floor-intro-overlay.hidden {
-      display: none !important;
-    }
-    #floor-intro-overlay.floor-intro-active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #floor-intro-card {
-      transform: translateY(18px) scale(0.94);
-      opacity: 0;
-      transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
-    }
-    #floor-intro-overlay.floor-intro-active #floor-intro-card {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-  `;
-  document.head.appendChild(style);
-})();
-
-document.getElementById('prune-card-btn')?.remove();
-
 function modalHudIcon(filename, extraClass = '') {
   const cls = ['c4-item-icon', extraClass].filter(Boolean).join(' ');
   return `<img class="${cls}" src="./assets/icons/hud/${filename}" alt="" aria-hidden="true" loading="eager" decoding="async">`;
@@ -79,7 +38,7 @@ function clearFloorIntroAndModalLocks() {
   }
 
   if (typeof bgm !== 'undefined' && bgm) {
-    bgm.isPausedForIntro = false;
+    bgm.isPausedForLevelIntro = false;
     bgm.isPausedForModal = false;
   }
 
@@ -104,6 +63,7 @@ function saveFloorStartCheckpoint() {
     maxGambitSlots: state.maxGambitSlots,
     persistentEnchantCount: state.persistentEnchantCount,
     reservePouchUnlocked: state.reservePouchUnlocked,
+    unlockedShopTier: state.unlockedShopTier,
     highTierCardsUnlocked: state.highTierCardsUnlocked,
     masterDeck: Array.isArray(state.masterDeck) ? [...state.masterDeck] : [],
     reservePouch: Array.isArray(state.reservePouch) ? [...state.reservePouch] : [],
@@ -124,6 +84,7 @@ function restoreFloorStartCheckpoint() {
   state.maxGambitSlots = snap.maxGambitSlots;
   state.persistentEnchantCount = snap.persistentEnchantCount;
   state.reservePouchUnlocked = snap.reservePouchUnlocked;
+  state.unlockedShopTier = Number.isFinite(snap.unlockedShopTier) ? snap.unlockedShopTier : 1;
   state.highTierCardsUnlocked = snap.highTierCardsUnlocked;
   state.masterDeck = [...snap.masterDeck];
   state.reservePouch = [...snap.reservePouch];
@@ -136,8 +97,6 @@ function restoreFloorStartCheckpoint() {
   if (typeof window.startFloorMatch !== 'function' || window.startFloorMatch._checkpointHooked) return;
   const origStartFloorMatch = window.startFloorMatch;
   window.startFloorMatch = function (showIntro = true) {
-    // Strip any inline display/opacity/pointer-events styles from #floor-intro-overlay
-    // so playFloorIntroTransition() can never get stuck with state.busy = true
     const introEl = document.getElementById('floor-intro-overlay');
     if (introEl) {
       introEl.style.display = '';
@@ -181,7 +140,6 @@ function updateDifficultyUI() {
   if (rerollBtn) {
     rerollBtn.innerHTML = `${modalHudIcon('reroll.svg', 'c4-item-icon-sm')} Reroll ($${diff.rerollCost || 4})`;
   }
-  document.getElementById('prune-card-btn')?.remove();
 }
 
 function renderDifficultyCards() {
@@ -235,7 +193,7 @@ function selectDifficultyAndStart(tierId) {
     if (typeof DIFFICULTY_STORAGE_KEY !== 'undefined') {
       localStorage.setItem(DIFFICULTY_STORAGE_KEY, state.difficulty);
     }
-  } catch (e) {}
+  } catch (_) {}
   if (typeof runPersistence !== 'undefined' && runPersistence) {
     runPersistence.clearSavedRun();
   }
@@ -265,27 +223,120 @@ document.getElementById('cancel-difficulty-modal-btn')?.addEventListener('click'
 });
 
 // ============================================================================
-// 2. INSPECTOR SHEET MODAL
+// 2. INSPECTOR SHEET MODAL (GAMBITS, BOSS INFO, STABILITY, MILESTONES & SLOTS)
 // ============================================================================
-function openGambitSheet(gambitId) {
-  const g = GAMBIT_CATALOG[gambitId];
-  if (!g) return;
+let activeInspectedGambitId = null;
+
+function showInfoSheetModal({ icon, category, title, descHtml, statusText, sellableGambitId = null }) {
+  activeInspectedGambitId = sellableGambitId;
   const iconEl = document.getElementById('sheet-icon');
   const catEl = document.getElementById('sheet-category');
   const titleEl = document.getElementById('sheet-title');
   const descEl = document.getElementById('sheet-desc');
   const statusEl = document.getElementById('sheet-status');
-  if (iconEl) iconEl.innerHTML = g.icon;
-  if (catEl) catEl.textContent = 'Synergistic Gambit (Relic)';
-  if (titleEl) titleEl.innerHTML = g.name;
-  if (descEl) descEl.innerHTML = g.desc;
-  if (statusEl) {
-    statusEl.textContent = (gambitId === 'blood_pact' && state.bloodPactUsedThisFloor)
-      ? 'Triggered this floor (Resets next floor)'
-      : 'Active Passive Relic';
+  const sellBtn = document.getElementById('sell-gambit-btn');
+
+  if (iconEl) iconEl.innerHTML = icon;
+  if (catEl) catEl.textContent = category;
+  if (titleEl) titleEl.innerHTML = title;
+  if (descEl) descEl.innerHTML = descHtml;
+  if (statusEl) statusEl.textContent = statusText;
+  if (sellBtn) {
+    const canSell = !!(sellableGambitId && !state.busy && !(typeof window !== 'undefined' && window.tutorialActive));
+    sellBtn.classList.toggle('hidden', !canSell);
   }
   document.getElementById('info-sheet-modal')?.classList.remove('hidden');
 }
+
+function openGambitSheet(gambitId) {
+  const g = GAMBIT_CATALOG[gambitId];
+  if (!g) return;
+  const isSpentCat = gambitId === 'obsidian_cat' && state.catNineLivesUsed;
+  showInfoSheetModal({
+    icon: g.icon,
+    category: `Tier ${g.tier || 1} Synergistic Gambit`,
+    title: g.name,
+    descHtml: `<p>${g.desc}</p>`,
+    statusText: isSpentCat ? 'Nine Lives Used This Floor (Resets Next Floor)' : 'Status: Active Relic',
+    sellableGambitId: state.gambits.includes(gambitId) ? gambitId : null
+  });
+}
+
+document.getElementById('sell-gambit-btn')?.addEventListener('click', () => {
+  if (!activeInspectedGambitId || !state.gambits.includes(activeInspectedGambitId)) return;
+  const g = GAMBIT_CATALOG[activeInspectedGambitId];
+  state.gambits = state.gambits.filter((id) => id !== activeInspectedGambitId);
+  state.gold += 3;
+  activeInspectedGambitId = null;
+  sfx.playCoinDing();
+  document.getElementById('info-sheet-modal')?.classList.add('hidden');
+  showToast(`Sold ${g ? g.name : 'Gambit'} for +$3 Gold!`, modalHudIcon('coin.svg'));
+  updateHUD();
+});
+
+document.getElementById('boss-info-btn')?.addEventListener('click', () => {
+  sfx.playHoverTick();
+  const floorData = getFloorConfig(state.floorIdx);
+  const topo = state.currentTopology || getFloorTopology(state.floorIdx);
+  showInfoSheetModal({
+    icon: floorData.isBoss && floorData.bossArchetype ? floorData.bossArchetype.icon : topo.icon,
+    category: `Floor ${floorData.floor} of ${TOTAL_FLOORS} • ${topo.name}`,
+    title: floorData.boss,
+    descHtml: `
+      <p>${floorData.fullRule}</p>
+      <p class="text-amber-300/90 mt-1.5"><strong>Board Geometry (${topo.name}):</strong> ${topo.desc}</p>
+    `,
+    statusText: floorData.isBoss
+      ? `Boss HP: ${state.bossHp}/${state.bossMaxHp} • AI Depth D${floorData.depth}`
+      : `AI Solver Depth D${floorData.depth} (${floorData.aiPrecisionPct}% Precision)`
+  });
+});
+
+document.getElementById('stability-info-btn')?.addEventListener('click', () => {
+  sfx.playHoverTick();
+  showInfoSheetModal({
+    icon: modalHudIcon('stability.svg'),
+    category: 'Cavern Anti-Stall Mechanic & Speed Bounty',
+    title: 'Seismic Stability Timer',
+    descHtml: `
+      <p>Every AI turn reduces <strong>Seismic Stability</strong> by <strong>1</strong>. If Stability reaches <strong>0</strong>, the cavern ceiling shakes and drops a neutral <strong>Petrified Stone Blocker</strong> into a random column every turn!</p>
+      <p class="text-emerald-300 mt-1.5"><strong>Speed Victory Bonus:</strong> Winning a floor awards <strong>+$1 Bonus Gold</strong> for every point of Seismic Stability remaining!</p>
+    `,
+    statusText: `Current Stability: ${state.stability} Turns (+$${Math.max(0, state.stability)} Speed Bonus)`
+  });
+});
+
+document.getElementById('milestone-info-btn')?.addEventListener('click', () => {
+  sfx.playHoverTick();
+  showInfoSheetModal({
+    icon: modalHudIcon('trophy.svg'),
+    category: '9-Floor Ascension Progression',
+    title: 'Boss Milestone Power Spikes',
+    descHtml: `
+      <p><strong>Floor 3 Boss Clear (Boss Fight 1):</strong> Unlocks <strong>Tier 2 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, Tactical Reserve Pouch (+1 Heavy Anvil), &amp; 1 free Boss Gambit Relic.</p>
+      <p><strong>Floor 6 Boss Clear (Boss Fight 2):</strong> Unlocks <strong>Tier 3 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, expands to 4 Gambit Slots (+1 Wild Token), &amp; 1 free Boss Gambit Relic.</p>
+      <p><strong>Floor 9 Final Boss Clear:</strong> Complete Subterranean Ascension Mastery!</p>
+    `,
+    statusText: `Current Progress: Floor ${state.floorIdx + 1} of ${TOTAL_FLOORS}`
+  });
+});
+
+document.getElementById('legend-btn')?.addEventListener('click', () => {
+  sfx.playHoverTick();
+  showInfoSheetModal({
+    icon: modalHudIcon('sparkle.svg'),
+    category: 'Board Ring Legend',
+    title: 'Enchanted Cavern Slots',
+    descHtml: `
+      <p><strong class="text-yellow-300">🟡 Gilded Slot:</strong> Grants <strong>+$3 Bonus Gold</strong> when your token lands inside.</p>
+      <p><strong class="text-rose-300">🔴 Volatile Spice Slot:</strong> Grants <strong>+1 Mana</strong> and shatters 1 orthogonally adjacent AI token.</p>
+      <p><strong class="text-sky-300">🔵 Wild Amplifier Slot:</strong> Upgrades the token into a <strong>Wild Prismatic Token</strong> (+$2 Gold for you).</p>
+      <p><strong class="text-purple-300">🟣 Spider Web Slot:</strong> Petrifies an AI token into neutral Stone, or grants you <strong>+1 Stability</strong>.</p>
+      <p><strong class="text-lime-300">🟢 Cursed Spore (Boss):</strong> Drains 1 Mana or calcifies your token into Stone if at 0 Mana.</p>
+    `,
+    statusText: `${state.persistentEnchantCount} Base Enchanted Slot(s) Per Floor`
+  });
+});
 
 document.getElementById('close-info-sheet')?.addEventListener('click', () => {
   document.getElementById('info-sheet-modal')?.classList.add('hidden');
@@ -300,30 +351,10 @@ document.getElementById('info-sheet-modal')?.addEventListener('click', (e) => {
 // ============================================================================
 // 3. BOSS VICTORY CHEST, UNDERGROUND BAZAAR ECONOMY & ROULETTE CONTROLS
 // ============================================================================
-function getRouletteSpinCost() {
-  return state.rouletteSpinsThisFloor === 0 ? 0 : state.rouletteSpinsThisFloor * 5;
-}
-
-function updateRouletteButtonsUI() {
-  ensureValidGold();
-  const cost = getRouletteSpinCost();
-  const openBtn = document.getElementById('open-roulette-btn');
-  const chargeBtn = document.getElementById('charge-spin-btn');
-  const goldDisp = document.getElementById('roulette-gold-display');
-  if (goldDisp) goldDisp.textContent = `$${state.gold}`;
-  if (openBtn) {
-    openBtn.textContent = cost === 0 ? 'Spin Free!' : `Spin ($${cost})`;
-  }
-  if (chargeBtn) {
-    chargeBtn.textContent = cost === 0
-      ? 'Hold to Charge & Spin (FREE)'
-      : `Hold to Charge & Spin ($${cost})`;
-  }
-}
-
 function openBossVictoryChest(floorData) {
   const milestoneBox = document.getElementById('boss-milestone-box');
   if (state.floorIdx === 2) {
+    state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 2);
     state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
     state.handSize = Math.min(5, state.handSize + 1);
     state.maxGambitSlots = Math.max(state.maxGambitSlots, 2);
@@ -331,6 +362,7 @@ function openBossVictoryChest(floorData) {
     state.reservePouch.push('anvil');
     if (milestoneBox) {
       milestoneBox.innerHTML = `
+        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 2 Shop Wares Unlocked:</strong> Tier 2 Cards, Reserves &amp; Gambits now in stock</div>
         <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
         <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
         <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Tactical Reserve Pouch Unlocked:</strong> +1 Free <strong>Heavy Anvil Token</strong></div>
@@ -338,17 +370,19 @@ function openBossVictoryChest(floorData) {
       `;
     }
   } else {
+    state.unlockedShopTier = 3;
+    state.highTierCardsUnlocked = true;
     state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
     state.handSize = Math.min(5, state.handSize + 1);
     state.maxGambitSlots = Math.min(5, Math.max(state.maxGambitSlots, 4));
-    state.highTierCardsUnlocked = true;
     state.reservePouch.push('wild');
     if (milestoneBox) {
       milestoneBox.innerHTML = `
+        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 3 Shop Wares Unlocked:</strong> Tier 3 Mastery Cards, Reserves &amp; Gambits now in stock</div>
         <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
         <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
         <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Prismatic Reserve Granted:</strong> +1 Free <strong>Wild Prismatic Token</strong></div>
-        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>High-Tier Relics & Cards Unlocked:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
+        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
       `;
     }
   }
@@ -356,15 +390,20 @@ function openBossVictoryChest(floorData) {
   const choicesEl = document.getElementById('boss-relic-choices');
   if (choicesEl) {
     choicesEl.innerHTML = '';
-    const maxTier = typeof getMaxAllowedShopTier === 'function' ? getMaxAllowedShopTier() : 3;
-    const unowned = Object.keys(GAMBIT_CATALOG)
-      .filter((id) => !state.gambits.includes(id) && (typeof getExplicitItemTier === 'function' ? getExplicitItemTier(GAMBIT_CATALOG[id], 2) <= maxTier : true))
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
+    const maxTier = getMaxAllowedShopTier();
+    const eligibleIds = Object.keys(GAMBIT_CATALOG)
+      .filter((id) => !state.gambits.includes(id) && getExplicitItemTier(GAMBIT_CATALOG[id], 1) <= maxTier);
+    const topTierPool = eligibleIds
+      .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) === maxTier)
+      .sort(() => Math.random() - 0.5);
+    const lowerTierPool = eligibleIds
+      .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) < maxTier)
+      .sort(() => Math.random() - 0.5);
+    const unowned = [...topTierPool, ...lowerTierPool].slice(0, 3);
 
     unowned.forEach((gId) => {
       const g = GAMBIT_CATALOG[gId];
-      const t = typeof getExplicitItemTier === 'function' ? getExplicitItemTier(g, 2) : (g.tier || 2);
+      const t = getExplicitItemTier(g, 2);
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'arcane-card p-3 rounded-2xl flex items-center justify-between gap-3 text-left active:scale-98 transition';
@@ -409,7 +448,8 @@ function renderBazaarEquippedGambits() {
   const strip = document.getElementById('bazaar-equipped-gambits');
   if (!strip || !slotsLabel) return;
   ensureValidGold();
-  slotsLabel.textContent = `Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
+  const activeShopTier = typeof getMaxAllowedShopTier === 'function' ? getMaxAllowedShopTier() : 1;
+  slotsLabel.textContent = `Shop Tier ${activeShopTier}/3 • Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
 
   if (expandBtn) {
     if (state.maxGambitSlots >= 5) {
@@ -622,42 +662,45 @@ function generateBazaarStock() {
   const items = [];
   updateDifficultyUI();
 
-  const maxTier = typeof getMaxAllowedShopTier === 'function' ? getMaxAllowedShopTier() : 3;
+  // Boss-gated Shop Tier enforcement:
+  // Tier 1 before Boss 1 | Tier 2 after Boss 1 | Tier 3 after Boss 2
+  const maxTier = getMaxAllowedShopTier();
   const isTierAllowed = (tier) => tier >= 1 && tier <= maxTier;
-  const resolveTier = (entry, fallback) => (typeof getExplicitItemTier === 'function' ? getExplicitItemTier(entry, fallback) : (entry?.tier || fallback));
-  const checkCurse = (id) => (typeof isStackableCurseCard === 'function' ? isStackableCurseCard(id) : false);
 
-  const pickTieredId = (catalog, filterFn, defaultTier = 1) => {
+  const pickTieredId = (catalog, filterFn, defaultTier = 1, preferMaxTierWeight = 0.68) => {
     const allAllowed = Object.keys(catalog).filter((id) => {
       const entry = catalog[id];
-      const t = resolveTier(entry, defaultTier);
+      const t = getExplicitItemTier(entry, defaultTier);
       return isTierAllowed(t) && filterFn(id, entry, t);
     });
     if (allAllowed.length === 0) return null;
 
-    const topTierMatches = allAllowed.filter((id) => resolveTier(catalog[id], defaultTier) === maxTier);
-    const pool = (topTierMatches.length > 0 && Math.random() < 0.72) ? topTierMatches : allAllowed;
+    const topTierMatches = allAllowed.filter((id) => getExplicitItemTier(catalog[id], defaultTier) === maxTier);
+    const pool = (topTierMatches.length > 0 && Math.random() < preferMaxTierWeight) ? topTierMatches : allAllowed;
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  let chosenCardId = pickTieredId(
+  // Slot 1: Primary Arcane Card (prefers unowned & highest unlocked tier)
+  let primaryCardId = pickTieredId(
     CARD_CATALOG,
-    (id, c, t) => t > 0 && !checkCurse(id) && (typeof playerOwnsCard === 'function' ? !playerOwnsCard(id) : true),
-    1
+    (id, c, t) => t > 0 && !isStackableCurseCard(id) && !playerOwnsCard(id),
+    1,
+    0.72
   );
-  if (!chosenCardId) {
-    chosenCardId = pickTieredId(
+  if (!primaryCardId) {
+    primaryCardId = pickTieredId(
       CARD_CATALOG,
-      (id, c, t) => t > 0 && !checkCurse(id),
-      1
+      (id, c, t) => t > 0 && !isStackableCurseCard(id),
+      1,
+      0.72
     );
   }
-  if (chosenCardId) {
-    const card = CARD_CATALOG[chosenCardId];
+  if (primaryCardId) {
+    const card = CARD_CATALOG[primaryCardId];
     items.push({
       type: 'card',
       id: card.id,
-      tier: resolveTier(card, 1),
+      tier: getExplicitItemTier(card, 1),
       name: `Card: ${card.name}`,
       icon: card.icon,
       desc: card.desc,
@@ -666,21 +709,51 @@ function generateBazaarStock() {
     });
   }
 
-  if (state.reservePouchUnlocked || state.floorIdx >= 1) {
-    const allowedReserves = Object.keys(RESERVE_CATALOG).filter((id) => isTierAllowed(RESERVE_CATALOG[id].tier || 1));
-    const rPool = allowedReserves.length > 0 ? allowedReserves : Object.keys(RESERVE_CATALOG);
-    const rId = rPool[Math.floor(Math.random() * rPool.length)];
-    const rTok = RESERVE_CATALOG[rId];
+  // Slot 2: Secondary Arcane Card (distinct tier-allowed card for expanded catalog variety)
+  let secondaryCardId = pickTieredId(
+    CARD_CATALOG,
+    (id, c, t) => t > 0 && !isStackableCurseCard(id) && id !== primaryCardId && !playerOwnsCard(id),
+    1,
+    0.45
+  );
+  if (!secondaryCardId) {
+    secondaryCardId = pickTieredId(
+      CARD_CATALOG,
+      (id, c, t) => t > 0 && !isStackableCurseCard(id) && id !== primaryCardId,
+      1,
+      0.45
+    );
+  }
+  if (secondaryCardId) {
+    const card2 = CARD_CATALOG[secondaryCardId];
     items.push({
-      type: 'reserve',
-      id: rTok.id,
-      tier: resolveTier(rTok, 1),
-      name: rTok.name,
-      icon: rTok.icon,
-      desc: rTok.desc,
-      price: getScaledPrice(rTok.price),
+      type: 'card',
+      id: card2.id,
+      tier: getExplicitItemTier(card2, 1),
+      name: `Card: ${card2.name}`,
+      icon: card2.icon,
+      desc: card2.desc,
+      price: getScaledPrice(card2.price),
       bought: false
     });
+  }
+
+  // Slot 3: Tactical Reserve Token (strictly gated by maxTier) or Early Pouch Unlock on Floor 1
+  if (state.reservePouchUnlocked || state.floorIdx >= 1) {
+    const rId = pickTieredId(RESERVE_CATALOG, () => true, 1, 0.65);
+    if (rId) {
+      const rTok = RESERVE_CATALOG[rId];
+      items.push({
+        type: 'reserve',
+        id: rTok.id,
+        tier: getExplicitItemTier(rTok, 1),
+        name: rTok.name,
+        icon: rTok.icon,
+        desc: rTok.desc,
+        price: getScaledPrice(rTok.price),
+        bought: false
+      });
+    }
   } else {
     items.push({
       type: 'unlock_pouch',
@@ -694,17 +767,19 @@ function generateBazaarStock() {
     });
   }
 
+  // Slot 4: Synergistic Gambit Relic (strictly gated by maxTier)
   const chosenGambitId = pickTieredId(
     GAMBIT_CATALOG,
     (id) => !state.gambits.includes(id),
-    2
+    1,
+    0.70
   );
   if (chosenGambitId) {
     const g = GAMBIT_CATALOG[chosenGambitId];
     items.push({
       type: 'gambit',
       id: g.id,
-      tier: resolveTier(g, 2),
+      tier: getExplicitItemTier(g, 1),
       name: g.name,
       icon: g.icon,
       desc: g.desc,
@@ -712,13 +787,13 @@ function generateBazaarStock() {
       bought: false
     });
   } else {
-    const extraReserveId = pickTieredId(RESERVE_CATALOG, (id) => !items.some((it) => it.id === id), 1);
+    const extraReserveId = pickTieredId(RESERVE_CATALOG, (id) => !items.some((it) => it.id === id), 1, 0.65);
     if (extraReserveId) {
       const rTok = RESERVE_CATALOG[extraReserveId];
       items.push({
         type: 'reserve',
         id: rTok.id,
-        tier: resolveTier(rTok, 1),
+        tier: getExplicitItemTier(rTok, 1),
         name: rTok.name,
         icon: rTok.icon,
         desc: rTok.desc,
@@ -728,6 +803,7 @@ function generateBazaarStock() {
     }
   }
 
+  // Slot 5: Permanent Vessel / Cavern Upgrade
   if (state.maxGambitSlots < 5 && state.floorIdx >= 1) {
     items.push({
       type: 'gambit_slot_upgrade',
@@ -781,11 +857,7 @@ function buyBazaarItem(idx) {
   } else if (item.type === 'enchant_upgrade') {
     state.persistentEnchantCount = Math.min(14, state.persistentEnchantCount + 2);
   } else if (item.type === 'card') {
-    if (typeof addCardToStockpile === 'function') {
-      addCardToStockpile(item.id);
-    } else {
-      state.masterDeck.push(item.id);
-    }
+    addCardToStockpile(item.id);
   }
   state.gold -= item.price;
   item.bought = true;
@@ -833,33 +905,6 @@ document.getElementById('open-roulette-btn')?.addEventListener('click', () => {
 
 document.getElementById('close-roulette-btn')?.addEventListener('click', closeRouletteModal);
 document.getElementById('done-roulette-btn')?.addEventListener('click', closeRouletteModal);
-
-const chargeSpinBtn = document.getElementById('charge-spin-btn');
-if (chargeSpinBtn) {
-  const beginCharge = (e) => {
-    e.preventDefault();
-    if (typeof rouletteSim === 'undefined' || !rouletteSim) return;
-    if (typeof rouletteSim.startCharging === 'function') {
-      rouletteSim.startCharging();
-    }
-  };
-  const releaseCharge = (e) => {
-    e.preventDefault();
-    if (typeof rouletteSim === 'undefined' || !rouletteSim) return;
-    if (typeof rouletteSim.releaseAndSpin === 'function') {
-      rouletteSim.releaseAndSpin();
-    } else if (typeof rouletteSim.spin === 'function' && !rouletteSim.isSpinning) {
-      rouletteSim.spin();
-    }
-  };
-  chargeSpinBtn.addEventListener('pointerdown', beginCharge);
-  chargeSpinBtn.addEventListener('pointerup', releaseCharge);
-  chargeSpinBtn.addEventListener('pointerleave', (e) => {
-    if (typeof rouletteSim !== 'undefined' && rouletteSim && rouletteSim.isCharging) {
-      releaseCharge(e);
-    }
-  });
-}
 
 document.getElementById('reroll-shop-btn')?.addEventListener('click', () => {
   ensureValidGold();

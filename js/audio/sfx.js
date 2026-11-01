@@ -925,6 +925,174 @@ class TactileSFX {
             { freq: 587.33, dur: 0.240, gain: 0.15 }  // D5
         ], 'triangle', 0.14, 2400);
     }
+
+    // 52. 8-Bit Loaded Knucklebones / Weighted Bone Die Tumble & Clatter
+    playDiceClatter(isHighRoll = false) {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 880.00,  dur: 0.018, gain: 0.12 },
+            { freq: 659.25,  dur: 0.018, gain: 0.11 },
+            { freq: 1046.50, dur: 0.020, gain: 0.13 },
+            { freq: 783.99,  dur: 0.022, gain: 0.12 },
+            { freq: isHighRoll ? 1567.98 : 1174.66, dur: 0.140, gain: 0.15 }
+        ], 'square', 0.14, 3800);
+        this.playNoiseBurst(0.06, 2100, 0.11, 'bandpass');
+    }
+
+    // 53. 8-Bit Bloodletter's Lancet Surgical Plunge & Siphon
+    playLancetSiphon() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 1760.00, dur: 0.020, gain: 0.13 },
+            { freq: 587.33,  dur: 0.030, gain: 0.15 },
+            { freq: 739.99,  dur: 0.032, gain: 0.14 },
+            { freq: 987.77,  dur: 0.035, gain: 0.14 },
+            { freq: 1479.98, dur: 0.140, gain: 0.15 }
+        ], 'sawtooth', 0.14, 3600);
+        this.playNoiseBurst(0.05, 2800, 0.10, 'highpass');
+    }
+
+    // 54. 8-Bit Rusted Bear Trap Metallic Jaw Clamp
+    playBearTrapSnap(hitEnemy = true) {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 1975.53, dur: 0.016, gain: 0.16 },
+            { freq: 293.66,  dur: 0.035, gain: 0.18 },
+            { freq: hitEnemy ? 110.00 : 587.33, dur: 0.110, gain: 0.17 }
+        ], 'square', 0.17, 3600);
+        this.playNoiseBurst(0.11, 1600, 0.16, 'bandpass');
+    }
+
+    // 55. 8-Bit Split Wishbone Tension & Crack
+    playWishboneSnap(matched = false) {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 440.00,  dur: 0.030, gain: 0.12 },
+            { freq: 554.37,  dur: 0.030, gain: 0.13 },
+            { freq: 659.25,  dur: 0.030, gain: 0.14 },
+            { freq: matched ? 1760.00 : 1318.51, dur: 0.140, gain: 0.15 }
+        ], 'triangle', 0.14, 3800);
+        this.playNoiseBurst(0.045, 2400, 0.13, 'bandpass');
+    }
+
+    // 56. 8-Bit Boiling Tar Pitch Viscous Suction & Bubble Pop
+    playTarBubbleGurgle() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 196.00, dur: 0.038, gain: 0.16 },
+            { freq: 146.83, dur: 0.042, gain: 0.16 },
+            { freq: 110.00, dur: 0.050, gain: 0.17 },
+            { freq: 293.66, dur: 0.030, gain: 0.14 },
+            { freq: 98.00,  dur: 0.110, gain: 0.16 }
+        ], 'triangle', 0.16, 1800);
+        this.playNoiseBurst(0.12, 750, 0.12, 'lowpass');
+    }
+
+    // 57. 8-Bit Weighted Guillotine Falling Blade Whistle & Chop
+    playGuillotineSlice() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 2349.32, dur: 0.022, gain: 0.13 },
+            { freq: 1760.00, dur: 0.022, gain: 0.14 },
+            { freq: 1174.66, dur: 0.024, gain: 0.15 },
+            { freq: 587.33,  dur: 0.026, gain: 0.16 },
+            { freq: 110.00,  dur: 0.110, gain: 0.18 }
+        ], 'sawtooth', 0.16, 4000);
+        this.playNoiseBurst(0.14, 1500, 0.17, 'bandpass');
+    }
+
+    // 58. 8-Bit Quicksilver Siphon Liquid Mercury Glide
+    playQuicksilverFlow() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 587.33,  dur: 0.028, gain: 0.12 },
+            { freq: 783.99,  dur: 0.028, gain: 0.13 },
+            { freq: 1046.50, dur: 0.030, gain: 0.14 },
+            { freq: 1318.51, dur: 0.032, gain: 0.14 },
+            { freq: 1046.50, dur: 0.030, gain: 0.13 },
+            { freq: 1567.98, dur: 0.130, gain: 0.14 }
+        ], 'triangle', 0.14, 3800);
+    }
+
+    // 59. 8-Bit Ravenous Mimic Tooth Triple-Chomp & Coin Spit
+    playMimicChomp() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 329.63,  dur: 0.030, gain: 0.16 },
+            { freq: 164.81,  dur: 0.035, gain: 0.17 },
+            { freq: 392.00,  dur: 0.030, gain: 0.16 },
+            { freq: 196.00,  dur: 0.035, gain: 0.17 },
+            { freq: 987.77,  dur: 0.045, gain: 0.14 },
+            { freq: 1318.51, dur: 0.150, gain: 0.15 }
+        ], 'square', 0.16, 3600);
+        this.playNoiseBurst(0.09, 1300, 0.14, 'bandpass');
+    }
+
+    // 60. 8-Bit Swinging Pendulum Scythe Horizontal Sweep
+    playPendulumWhoosh() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 293.66,  dur: 0.028, gain: 0.13 },
+            { freq: 587.33,  dur: 0.028, gain: 0.15 },
+            { freq: 1174.66, dur: 0.035, gain: 0.16 },
+            { freq: 587.33,  dur: 0.030, gain: 0.14 },
+            { freq: 146.83,  dur: 0.095, gain: 0.17 }
+        ], 'sawtooth', 0.16, 3600);
+        this.playNoiseBurst(0.16, 1800, 0.15, 'bandpass');
+    }
+
+    // 61. 8-Bit Pins & Wax Effigy Twin Needle Pierce
+    playWaxEffigyPierce() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 1396.91, dur: 0.024, gain: 0.14 },
+            { freq: 698.46,  dur: 0.030, gain: 0.14 },
+            { freq: 1661.22, dur: 0.024, gain: 0.15 },
+            { freq: 830.61,  dur: 0.035, gain: 0.15 },
+            { freq: 1174.66, dur: 0.140, gain: 0.15 }
+        ], 'square', 0.15, 3800);
+    }
+
+    // 62. 8-Bit Steam Hydraulic Piston Pressure Release & Clamp
+    playSteamPistonHiss() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 196.00, dur: 0.035, gain: 0.17 },
+            { freq: 146.83, dur: 0.045, gain: 0.18 },
+            { freq: 293.66, dur: 0.040, gain: 0.16 },
+            { freq: 440.00, dur: 0.120, gain: 0.15 }
+        ], 'triangle', 0.17, 2400);
+        this.playNoiseBurst(0.20, 2600, 0.16, 'highpass');
+    }
+
+    // 63. 8-Bit Ouroboros World-Eater Coiling Serpent Crunch & Loop
+    playOuroborosDevour() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 146.83,  dur: 0.035, gain: 0.16 },
+            { freq: 220.00,  dur: 0.035, gain: 0.16 },
+            { freq: 293.66,  dur: 0.035, gain: 0.15 },
+            { freq: 440.00,  dur: 0.035, gain: 0.15 },
+            { freq: 587.33,  dur: 0.040, gain: 0.15 },
+            { freq: 880.00,  dur: 0.045, gain: 0.16 },
+            { freq: 1174.66, dur: 0.160, gain: 0.16 }
+        ], 'sawtooth', 0.16, 3400);
+        this.playNoiseBurst(0.12, 1100, 0.14, 'bandpass');
+    }
+
+    // 64. 8-Bit Petrifying Basilisk Gaze Reptilian Glare & Calcify
+    playBasiliskHiss() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 622.25, dur: 0.032, gain: 0.14 },
+            { freq: 587.33, dur: 0.032, gain: 0.14 },
+            { freq: 415.30, dur: 0.040, gain: 0.15 },
+            { freq: 293.66, dur: 0.055, gain: 0.16 },
+            { freq: 146.83, dur: 0.120, gain: 0.18 }
+        ], 'sawtooth', 0.16, 3000);
+        this.playNoiseBurst(0.18, 2200, 0.15, 'bandpass');
+    }
+
 }
 
 const sfx = new TactileSFX();

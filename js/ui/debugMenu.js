@@ -376,7 +376,8 @@ function launchDebugRunWithLoadout() {
     Object.entries(debugLoadout.cardCounts).forEach(([id, count]) => {
         for (let i = 0; i < count; i++) state.masterDeck.push(id);
     });
-    state.highTierCardsUnlocked = true;
+    state.unlockedShopTier = state.floorIdx >= 5 ? 3 : (state.floorIdx >= 2 ? 2 : 1);
+    state.highTierCardsUnlocked = state.unlockedShopTier >= 3;
 
     // 7. Dismiss Debug, Intro & Difficulty Overlays and Start the Floor!
     closeDebugMenuModal();
