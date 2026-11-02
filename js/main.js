@@ -28,6 +28,7 @@ window.C4 = {
     COLS,
     TOTAL_FLOORS,
     DIFFICULTY_TIERS,
+    LOADOUT_CATALOG: typeof LOADOUT_CATALOG !== 'undefined' ? LOADOUT_CATALOG : {},
     BOARD_TOPOLOGIES,
     CARD_CATALOG,
     RESERVE_CATALOG,
@@ -62,8 +63,13 @@ function bootGame() {
   try {
     const savedDiff = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
     state.difficulty = (savedDiff && DIFFICULTY_TIERS[savedDiff]) ? savedDiff : 'MEDIUM';
+    if (typeof LOADOUT_STORAGE_KEY !== 'undefined' && typeof LOADOUT_CATALOG !== 'undefined') {
+      const savedLoadout = localStorage.getItem(LOADOUT_STORAGE_KEY);
+      state.loadoutId = (savedLoadout && LOADOUT_CATALOG[savedLoadout]) ? savedLoadout : 'spelunker';
+    }
   } catch (_) {
     state.difficulty = 'MEDIUM';
+    state.loadoutId = 'spelunker';
   }
 
   // 1. Capture & lock any existing checkpoint BEFORE initNewRun() resets state to Floor 1

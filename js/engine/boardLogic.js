@@ -104,6 +104,21 @@ function onTokenShattered(count = 1) {
   sfx.playShatterCrunch();
   state.shatterCounter += count;
 
+  if (state.loadoutId === 'bloodletter' && (state.bloodletterHealCountThisTurn || 0) < 2) {
+    const healCap = Math.min(count, 2 - (state.bloodletterHealCountThisTurn || 0));
+    if (healCap > 0) {
+      state.bloodletterHealCountThisTurn = (state.bloodletterHealCountThisTurn || 0) + healCap;
+      state.stability += healCap;
+      spawnFloatingPop(`🩸 Sanguine Harvest: +${healCap} Stability!`, 'text-rose-300', 4800);
+    }
+  }
+
+  if (state.loadoutId === 'bastion') {
+    state.gold += count;
+    sfx.playCoinDing();
+    spawnFloatingPop(`🛡️ Bedrock Fortitude: +$${count} Gold!`, 'text-sky-300', 4800);
+  }
+
   if (hasGambit('obsidian_cat')) {
     const bonus = count * 2;
     state.gold += bonus;
@@ -177,6 +192,12 @@ function startFloorMatch(showIntroScreen = true) {
   state.lastDroppedCols = [];
   state.cardsCastThisTurn = 0;
   state.bellowsTriggeredThisTurn = false;
+  state.firstCol4DropDoneThisFloor = false;
+  state.firstCardCastDoneThisFloor = false;
+  state.bloodletterHealCountThisTurn = 0;
+  if (state.loadoutId === 'spelunker' && (state.floorIdx === 0 || state.floorIdx === 3 || state.floorIdx === 6)) {
+    state.freeRerollsRemaining = 1;
+  }
   state.bossMarkedCol = Math.floor(Math.random() * COLS);
 
   const targetBgmMode = floorData.isBoss
@@ -207,7 +228,8 @@ function startFloorMatch(showIntroScreen = true) {
   generateSlotEnchantments();
 
   const diff = getActiveDifficulty();
-  const totalStartStones = (mods.caveInStones || 0) + (diff.preSpawnStones || 0);
+  const bastionBonusStone = state.loadoutId === 'bastion' ? 1 : 0;
+  const totalStartStones = (mods.caveInStones || 0) + (diff.preSpawnStones || 0) + bastionBonusStone;
   if (totalStartStones > 0) {
     for (let i = 0; i < totalStartStones; i++) {
       const validCols = getPlayableColumns();
@@ -534,6 +556,13 @@ function checkPlayerDropGambits(col) {
     );
   }
 
+  if (state.loadoutId === 'spelunker' && col === 3 && !state.firstCol4DropDoneThisFloor) {
+    state.firstCol4DropDoneThisFloor = true;
+    state.gold += 1;
+    sfx.playCoinDing();
+    spawnFloatingPop("⛏️ Explorer's Equilibrium: +$1 Gold!", 'text-amber-300', 4600);
+  }
+
   if (hasGambit('plumb_bob') && col === 3) {
     state.gold += 1;
     state.stability += 1;
@@ -641,7 +670,8 @@ function commitColumnAction(col) {
 // ============================================================================
 const RESERVE_EFFECT_HANDLERS = {
   fools_penny(r, col, repeat) {
-    const luckyRoll = Math.random() < 0.65;
+    const winThreshold = state.loadoutId === 'croupier' ? 0.80 : 0.65;
+    const luckyRoll = Math.random() < winThreshold;
     playFoolsPennyFlipVFX(r, col, luckyRoll);
     if (luckyRoll) {
       spawnTokenMesh(r, col, PLAYER);
@@ -2412,6 +2442,12 @@ const CARD_EFFECT_HANDLERS = {
 function triggerPostCardCastGambits(card, effCost) {
   if (!card || card.id === 'dead_weight') return;
 
+  if (state.loadoutId === 'chronomancer' && !state.firstCardCastDoneThisFloor) {
+    state.firstCardCastDoneThisFloor = true;
+    state.stability += 1;
+    spawnFloatingPop('⏳ Temporal Weaver: +1 Stability!', 'text-purple-300', 4600);
+  }
+
   // Gilded Canary Cage Gambit: +$1 Gold whenever you cast a 0M or 1M card
   if (hasGambit('lucky_rabbit_paw') && effCost <= 1) {
     state.gold += 1;
@@ -2559,6 +2595,7 @@ function triggerAITurn() {
     state.turnNumber++;
     state.cardsCastThisTurn = 0;
     state.bellowsTriggeredThisTurn = false;
+    state.bloodletterHealCountThisTurn = 0;
     state.busy = false;
 
     const diff = getActiveDifficulty();

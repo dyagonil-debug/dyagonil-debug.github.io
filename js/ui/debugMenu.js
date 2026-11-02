@@ -100,19 +100,29 @@ function resetDebugLoadoutToDefault() {
     debugLoadout.topologyOverride = 'AUTO';
     debugLoadout.bossOverride = 'AUTO';
     const diff = DIFFICULTY_TIERS[debugLoadout.difficulty] || DIFFICULTY_TIERS.MEDIUM;
-    debugLoadout.gold = diff.startingGold;
-    debugLoadout.maxMana = diff.startingMaxMana;
-    debugLoadout.handSize = diff.startingHandSize || 2;
-    debugLoadout.persistentEnchantCount = 1 + (diff.extraEnchantedSlots || 0);
+    const kit = (typeof getResolvedLoadoutKit === 'function')
+        ? getResolvedLoadoutKit(state.loadoutId || 'spelunker', debugLoadout.difficulty)
+        : null;
 
-    debugLoadout.gambits = new Set(diff.starterGambitId ? [diff.starterGambitId] : []);
+    debugLoadout.gold = kit ? kit.startingGold : diff.startingGold;
+    debugLoadout.maxMana = kit ? kit.startingMaxMana : diff.startingMaxMana;
+    debugLoadout.handSize = kit ? kit.startingHandSize : (diff.startingHandSize || 2);
+    debugLoadout.persistentEnchantCount = kit ? kit.startingEnchantSlots : (1 + (diff.extraEnchantedSlots || 0));
+
+    debugLoadout.gambits = new Set(kit ? kit.gambits : (diff.starterGambitId ? [diff.starterGambitId] : []));
     debugLoadout.reserveCounts = {};
     Object.keys(RESERVE_CATALOG).forEach(k => { debugLoadout.reserveCounts[k] = 0; });
+    if (kit && Array.isArray(kit.reserves)) {
+        kit.reserves.forEach(rId => {
+            if (RESERVE_CATALOG[rId]) debugLoadout.reserveCounts[rId] = (debugLoadout.reserveCounts[rId] || 0) + 1;
+        });
+    }
 
     debugLoadout.cardCounts = {};
     Object.keys(CARD_CATALOG).forEach(k => { debugLoadout.cardCounts[k] = 0; });
-    ['pebble', 'petrified', 'oracle_peek', 'sinkhole_chute'].forEach(k => {
-        if (CARD_CATALOG[k]) debugLoadout.cardCounts[k] = 1;
+    const deckList = (kit && Array.isArray(kit.deck)) ? kit.deck : ['pebble', 'petrified', 'oracle_peek', 'pickaxe'];
+    deckList.forEach(k => {
+        if (CARD_CATALOG[k]) debugLoadout.cardCounts[k] = (debugLoadout.cardCounts[k] || 0) + 1;
     });
 }
 

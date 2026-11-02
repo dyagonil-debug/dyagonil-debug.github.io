@@ -111,6 +111,7 @@ function getFloorTopology(floorIdx) {
       name: 'Classic 7x6 Cavern Grid',
       icon: '📐',
       desc: 'Standard 42-slot subterranean Connect 4 frame with 0 void cells.',
+      loreDesc: 'An uncarved ancestral Connect 4 frame where every column stands open.',
       isProcedural: false,
       mask: createGrid(ROWS, COLS, true)
     };
@@ -124,7 +125,22 @@ function getFloorTopology(floorIdx) {
     name: pick.name,
     icon: pick.icon,
     desc: pick.desc,
+    loreDesc: pick.loreDesc || pick.desc,
     isProcedural: true,
     mask: pick.buildMask()
   };
 }
+
+
+const TOPOLOGY_LORE_HINTS = {
+  classic_grid: 'An uncarved ancestral Connect 4 frame where every column stands open.',
+  step_ziggurat: 'A stepped ancient pyramid whose outer upper corners are carved away.',
+  twin_spires: 'A split central chasm that divides the upper canopy into twin flanking towers.',
+  stalactite_arch: 'Hanging ceiling stalactites and raised inner pillars warp the outer lanes.',
+  surrealist_chalice: 'Elevated outer obsidian shelves lift the side columns above the basin.',
+  sunken_caldera: 'A deep volcanic crater with raised outer rims and a hollowed upper crown.',
+  obsidian_citadel: 'Fortress battlements along the canopy force diagonal skirmishes.'
+};
+BOARD_TOPOLOGIES.forEach((t) => {
+  if (TOPOLOGY_LORE_HINTS[t.id]) t.loreDesc = TOPOLOGY_LORE_HINTS[t.id];
+});

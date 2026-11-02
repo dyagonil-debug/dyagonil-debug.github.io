@@ -145,3 +145,78 @@ body.modal-occluded footer .cavern-panel {
   transform: translate(-50%, -60%) scale(0.88) !important;
   pointer-events: none !important;
 }
+
+
+/* ============================================================================
+   DESKTOP UI SCALING & ERGONOMICS SYSTEM (md / lg / xl + manual UI Scale)
+   Eliminates tiny mobile pixel fonts on desktop monitors and scales HUD/modals
+   ============================================================================ */
+@media (min-width: 768px) {
+  html[data-ui-scale="auto"],
+  html:not([data-ui-scale]) {
+    font-size: 17px;
+  }
+  .text-\[7px\]  { font-size: 0.64rem !important; line-height: 1.25 !important; }
+  .text-\[8px\]  { font-size: 0.68rem !important; line-height: 1.3 !important; }
+  .text-\[9px\]  { font-size: 0.74rem !important; line-height: 1.35 !important; }
+  .text-\[10px\] { font-size: 0.80rem !important; line-height: 1.4 !important; }
+  .text-\[11px\] { font-size: 0.86rem !important; line-height: 1.42 !important; }
+}
+
+@media (min-width: 1024px) {
+  html[data-ui-scale="auto"],
+  html:not([data-ui-scale]) {
+    font-size: 18px;
+  }
+  .text-\[7px\]  { font-size: 0.68rem !important; line-height: 1.3 !important; }
+  .text-\[8px\]  { font-size: 0.72rem !important; line-height: 1.35 !important; }
+  .text-\[9px\]  { font-size: 0.78rem !important; line-height: 1.38 !important; }
+  .text-\[10px\] { font-size: 0.84rem !important; line-height: 1.42 !important; }
+  .text-\[11px\] { font-size: 0.90rem !important; line-height: 1.45 !important; }
+
+  .safe-top {
+    padding-top: 0.75rem;
+  }
+  .safe-bottom {
+    padding-bottom: 0.85rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  html[data-ui-scale="auto"],
+  html:not([data-ui-scale]) {
+    font-size: 19px;
+  }
+}
+
+/* Explicit User UI Scale Overrides in Settings */
+html[data-ui-scale="100"] {
+  font-size: 16px !important;
+}
+html[data-ui-scale="115"] {
+  font-size: 18.4px !important;
+}
+html[data-ui-scale="130"] {
+  font-size: 20.8px !important;
+}
+html[data-ui-scale="115"] .text-\[8px\],
+html[data-ui-scale="130"] .text-\[8px\]  { font-size: 0.72rem !important; }
+html[data-ui-scale="115"] .text-\[9px\],
+html[data-ui-scale="130"] .text-\[9px\]  { font-size: 0.78rem !important; }
+html[data-ui-scale="115"] .text-\[10px\],
+html[data-ui-scale="130"] .text-\[10px\] { font-size: 0.84rem !important; }
+html[data-ui-scale="115"] .text-\[11px\],
+html[data-ui-scale="130"] .text-\[11px\] { font-size: 0.90rem !important; }
+
+/* Desktop Pointer Hover Ergonomics */
+@media (hover: hover) and (pointer: fine) {
+  .arcane-card:hover:not(.card-disabled):not(.card-selected) {
+    transform: translateY(-4px);
+    border-color: rgba(251, 191, 36, 0.75);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75), 0 0 14px rgba(245, 158, 11, 0.22);
+  }
+  .reserve-token-pill:hover:not(.token-selected) {
+    transform: translateY(-3px);
+    border-color: rgba(251, 191, 36, 0.75);
+  }
+}

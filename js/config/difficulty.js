@@ -10,6 +10,7 @@ const DIFFICULTY_TIERS = {
     shortBadge: '🟢 Glowworm',
     fullBadge: '🟢 Glowworm Grotto (Easy)',
     subtitle: 'Explorer Mode • Forgiving',
+    loreDescription: 'Warm bioluminescent shallows where the caverns are forgiving and the guardians slumber.',
     badgeClass: 'border-emerald-500/45 bg-emerald-950/70 text-emerald-300',
     cardClass: 'border-emerald-500/45 hover:border-emerald-400 bg-emerald-950/30',
     description:
@@ -50,6 +51,7 @@ const DIFFICULTY_TIERS = {
     shortBadge: '🟡 Obsidian',
     fullBadge: '🟡 Obsidian Delve (Medium)',
     subtitle: 'Spelunker Mode • Balanced',
+    loreDescription: 'Shadowed basalt depths where cunning sentinels test your wits on equal ground.',
     badgeClass: 'border-amber-500/45 bg-amber-950/70 text-amber-300',
     cardClass: 'border-amber-500/45 hover:border-amber-400 bg-amber-950/30',
     description:
@@ -90,6 +92,7 @@ const DIFFICULTY_TIERS = {
     shortBadge: '🔴 Abyssal',
     fullBadge: '🔴 Abyssal Cataclysm (Hard)',
     subtitle: 'Grandmaster Mode • Ruthless',
+    loreDescription: 'Crushing, lightless chasms ruled by a merciless grandmaster intelligence.',
     badgeClass: 'border-rose-500/50 bg-rose-950/75 text-rose-300',
     cardClass: 'border-rose-500/50 hover:border-rose-400 bg-rose-950/35',
     description:
@@ -159,7 +162,11 @@ function getFloorConfig(floorIdx) {
   const aiPrecisionPct = Math.round((1 - floorBlunderRate) * 100);
 
   const rawStability = isBoss ? 13 : (isPreBoss ? 14 : 15);
-  const baseStability = Math.max(6, rawStability + (diff.stabilityOffset || 0));
+  const loadoutKit = (typeof getResolvedLoadoutKit === 'function' && typeof state !== 'undefined' && state)
+    ? getResolvedLoadoutKit(state.loadoutId, state.difficulty)
+    : null;
+  const loadoutStabOffset = loadoutKit ? (loadoutKit.stabilityOffset || 0) : 0;
+  const baseStability = Math.max(5, rawStability + (diff.stabilityOffset || 0) + loadoutStabOffset);
 
   if (!isBoss) {
     const sentinelIdx = floorIdx - Math.floor(floorIdx / 3);

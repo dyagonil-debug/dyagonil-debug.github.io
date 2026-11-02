@@ -384,6 +384,33 @@ const C4_MEDALLION_SPECS = {
     ]
   },
 
+  loadouts: {
+    spelunker: [
+      '#fbbf24', '#fde047', '#b45309',
+      '<path d="M16 32 C16 20, 48 20, 48 32 Z" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><rect x="13" y="31" width="38" height="5" rx="2.5" fill="#d97706" stroke="#fef3c7" stroke-width="1.6"/><circle cx="32" cy="24" r="5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.8"/><path d="M22 48 L42 36 M42 48 L22 36" stroke="#fde047" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="42" r="3" fill="#fbbf24" stroke="#78350f" stroke-width="1.2"/>'
+    ],
+    bloodletter: [
+      '#f43f5e', '#fb7185', '#881337',
+      '<path d="M18 22 L13 11 L25 18 H39 L51 11 L46 22 C48 34, 42 48, 32 51 C22 48, 16 34, 18 22 Z" fill="url(#grad)" stroke="#ffe4e6" stroke-width="2" stroke-linejoin="round"/><polygon points="32,21 36,28 32,35 28,28" fill="#fde047" stroke="#ffffff" stroke-width="1.2"/><circle cx="24" cy="34" r="2.5" fill="#09070d"/><circle cx="40" cy="34" r="2.5" fill="#09070d"/><path d="M26 43 H38" stroke="#fde047" stroke-width="2.2" stroke-linecap="round"/>'
+    ],
+    croupier: [
+      '#10b981', '#34d399', '#065f46',
+      '<circle cx="32" cy="33" r="16" fill="url(#grad)" stroke="#fde047" stroke-width="2.2"/><circle cx="32" cy="33" r="10" stroke="#fef08a" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/><polygon points="18,19 25,12 32,18 39,12 46,19" fill="#fde047" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/><polygon points="32,25 37,33 32,41 27,33" fill="#fde047" stroke="#064e3b" stroke-width="1.2"/>'
+    ],
+    bastion: [
+      '#38bdf8', '#94a3b8', '#1e293b',
+      '<path d="M16 15 H48 V33 C48 44, 32 52, 32 52 C32 52, 16 44, 16 33 Z" fill="url(#grad)" stroke="#e0f2fe" stroke-width="2.2" stroke-linejoin="round"/><rect x="21" y="23" width="22" height="5" rx="2" fill="#09070d" stroke="#fbbf24" stroke-width="1.5"/><line x1="32" y1="28" x2="32" y2="48" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/><polygon points="32,15 37,21 27,21" fill="#fbbf24"/>'
+    ],
+    chronomancer: [
+      '#c084fc', '#38bdf8', '#6b21a8',
+      '<circle cx="32" cy="32" r="18" stroke="#e9d5ff" stroke-width="1.8" stroke-dasharray="5 3" fill="none"/><polygon points="21,16 43,16 35,32 43,48 21,48 29,32" fill="url(#grad)" stroke="#fef08a" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="32" r="4" fill="#fde047" stroke="#ffffff" stroke-width="1.4"/>'
+    ],
+    paradox: [
+      '#e879f9', '#2dd4bf', '#701a75',
+      '<polygon points="32,10 51,22 51,42 32,54 13,42 13,22" fill="url(#grad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/><path d="M27 25 C27 20, 38 20, 38 26 C38 30, 32 31, 32 36" stroke="#fde047" stroke-width="3.2" stroke-linecap="round" fill="none"/><circle cx="32" cy="43" r="2.4" fill="#fde047"/>'
+    ]
+  },
+
   hud: {
     coin: [
       '#fbbf24', '#fde047', '#ca8a04',
@@ -597,6 +624,7 @@ function patchGameCatalogsWithSVGIcons() {
   if (typeof CARD_CATALOG !== 'undefined') patchCatalogCollection(CARD_CATALOG, 'cards');
   if (typeof RESERVE_CATALOG !== 'undefined') patchCatalogCollection(RESERVE_CATALOG, 'reserves');
   if (typeof GAMBIT_CATALOG !== 'undefined') patchCatalogCollection(GAMBIT_CATALOG, 'gambits');
+  if (typeof LOADOUT_CATALOG !== 'undefined') patchCatalogCollection(LOADOUT_CATALOG, 'loadouts');
   if (typeof BOARD_TOPOLOGIES !== 'undefined') patchCatalogCollection(BOARD_TOPOLOGIES, 'topologies', 'c4-item-icon-sm');
   if (typeof BOSS_ARCHETYPES !== 'undefined') patchCatalogCollection(BOSS_ARCHETYPES, 'bosses');
   if (typeof ROULETTE_WEDGES !== 'undefined') patchCatalogCollection(ROULETTE_WEDGES, 'wheel');

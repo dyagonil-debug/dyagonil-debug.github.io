@@ -498,6 +498,7 @@ function saveCurrentRun(force = false) {
         floorIndex: getZeroBasedFloorIndex(state),
         tokensOnBoard: countPlayerOrAiTokensOnBoard(state),
         difficulty: state.difficulty || 'MEDIUM',
+        loadoutId: state.loadoutId || 'spelunker',
         gambitCount: Array.isArray(state.gambits) ? state.gambits.length : 0,
         cardCount: Array.isArray(state.hand) ? state.hand.length : 0,
         reserveCount: Array.isArray(state.reservePouch) ? state.reservePouch.length : 0
@@ -737,6 +738,10 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
   const displayFloor = Math.min(TOTAL_FLOORS, Math.max(1, rawFloorIdx + 1));
   const actNum = Math.ceil(displayFloor / 3);
   const diffLabel = summary.difficulty || snap.difficulty || 'MEDIUM';
+  const savedLoadoutId = summary.loadoutId || snap.loadoutId || 'spelunker';
+  const savedLoadoutName = (typeof LOADOUT_CATALOG !== 'undefined' && LOADOUT_CATALOG[savedLoadoutId])
+    ? LOADOUT_CATALOG[savedLoadoutId].shortName.toUpperCase()
+    : 'SPELUNKER';
   const tokensCount = summary.tokensOnBoard ?? countPlayerOrAiTokensOnBoard(snap);
   const timeAgo = formatRelativeSaveTime(payload.savedAt);
 
@@ -809,8 +814,8 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
           <strong style="color: #2dd4bf;">FLOOR ${displayFloor}/${TOTAL_FLOORS} (ACT ${actNum})</strong>
         </div>
         <div>
-          <span style="color: #64748b; display: block; font-size: 0.65rem;">DIFFICULTY</span>
-          <strong style="color: #fbbf24;">${diffLabel}</strong>
+          <span style="color: #64748b; display: block; font-size: 0.65rem;">VESSEL &amp; TIER</span>
+          <strong style="color: #fbbf24;">${savedLoadoutName} • ${diffLabel}</strong>
         </div>
         <div>
           <span style="color: #64748b; display: block; font-size: 0.65rem;">ARCANE HAND</span>

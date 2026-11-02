@@ -37,9 +37,12 @@ function updateCameraAspect() {
   } else if (aspect < 1.0) {
     camera.fov = 45;
     camState.baseRadius = 16.5;
+  } else if (aspect < 1.45) {
+    camera.fov = 43;
+    camState.baseRadius = 15.6;
   } else {
     camera.fov = 42;
-    camState.baseRadius = 14.2;
+    camState.baseRadius = 16.2;
   }
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
@@ -332,6 +335,16 @@ function generateSlotEnchantments() {
       const [ar, ac] = remaining[Math.floor(Math.random() * remaining.length)];
       state.enchantGrid[ar][ac] = ENCHANT_TYPES.AMPLIFIER;
       addEnchantRingMesh(ar, ac, ENCHANT_TYPES.AMPLIFIER);
+    }
+  }
+
+  // The Paradox Innate Passive (Prismatic Anomaly): Upgrades 1 slot per floor into a Wild Amplifier Slot
+  if (typeof state !== 'undefined' && state && state.loadoutId === 'paradox') {
+    const nonAmp = coords.filter(([r, c]) => state.enchantGrid[r][c] !== ENCHANT_TYPES.AMPLIFIER);
+    if (nonAmp.length > 0) {
+      const [pr, pc] = nonAmp[Math.floor(Math.random() * nonAmp.length)];
+      state.enchantGrid[pr][pc] = ENCHANT_TYPES.AMPLIFIER;
+      rebuildEnchantmentRings();
     }
   }
 }

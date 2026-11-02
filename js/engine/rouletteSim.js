@@ -3,7 +3,10 @@
 // ============================================================================
 
 function getRouletteSpinCost() {
-  return state.rouletteSpinsThisFloor === 0 ? 0 : state.rouletteSpinsThisFloor * 5;
+  const freeSpins = (typeof state !== 'undefined' && state && state.loadoutId === 'croupier') ? 2 : 1;
+  return state.rouletteSpinsThisFloor < freeSpins
+    ? 0
+    : (state.rouletteSpinsThisFloor - freeSpins + 1) * 5;
 }
 
 function updateRouletteButtonsUI() {
@@ -310,7 +313,7 @@ class SubterraneanRouletteSimulator {
     const descEl = document.getElementById('roulette-result-desc');
 
     titleEl.textContent = `${wedge.icon} ${wedge.name}`;
-    descEl.textContent = wedge.desc;
+    descEl.textContent = typeof getItemDesc === 'function' ? getItemDesc(wedge) : wedge.desc;
 
     if (wedge.isCurse) {
       box.className = 'w-full px-3 py-2.5 rounded-2xl bg-rose-950/70 border border-rose-500/60 text-center space-y-0.5';

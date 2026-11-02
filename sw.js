@@ -1,7 +1,7 @@
 // ============================================================================
 // SERVICE WORKER: NETWORK-FIRST UPDATES & OFFLINE FALLBACK (sw.js)
 // ============================================================================
-const CACHE_NAME = 'subterranean-ascension-v2.5.0';
+const CACHE_NAME = 'subterranean-ascension-v2.6.0';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const PRECACHE_ASSETS = [
   './js/config/constants.js',
   './js/config/topologies.js',
   './js/config/catalogs.js',
+  './js/config/loadouts.js',
   './js/config/difficulty.js',
   './js/state/settings.js',
   './js/state/gameState.js',

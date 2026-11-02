@@ -115,5 +115,13 @@
     "reroll": "./assets/icons/hud/reroll.svg",
     "lock": "./assets/icons/hud/lock.svg",
     "warning": "./assets/icons/hud/warning.svg"
+  },
+  "loadouts": {
+    "spelunker": "./assets/icons/loadouts/spelunker.svg",
+    "bloodletter": "./assets/icons/loadouts/bloodletter.svg",
+    "croupier": "./assets/icons/loadouts/croupier.svg",
+    "bastion": "./assets/icons/loadouts/bastion.svg",
+    "chronomancer": "./assets/icons/loadouts/chronomancer.svg",
+    "paradox": "./assets/icons/loadouts/paradox.svg"
   }
 }

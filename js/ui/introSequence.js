@@ -34,7 +34,7 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   actBadge.textContent = actNames[Math.min(2, actNum - 1)];
 
   if (floorData.isBoss) {
-    card.className = 'cavern-panel w-full max-w-sm rounded-3xl p-6 border-2 border-rose-500/70 text-center space-y-3.5 shadow-[0_0_70px_rgba(244,63,94,0.38)] relative overflow-hidden';
+    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-rose-500/70 text-center space-y-3.5 shadow-[0_0_70px_rgba(244,63,94,0.38)] relative overflow-hidden';
     actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-[10px] font-mono-code uppercase tracking-[0.2em] text-rose-300 font-bold animate-pulse';
     iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/30 to-purple-800/35 border border-rose-400/60 flex items-center justify-center text-4xl shadow-inner mb-2';
     iconWrap.textContent = floorData.bossArchetype ? floorData.bossArchetype.icon : '💀';
@@ -45,9 +45,10 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
     hpRow.classList.remove('hidden');
     hpRow.classList.add('inline-flex');
     hpRow.innerHTML = `<span>${'❤️'.repeat(state.bossMaxHp)}</span><span>${state.bossMaxHp} HP PHASES • ${floorData.bossArchetype.poolLabel}</span>`;
-    ruleDesc.textContent = `⚡ ${floorData.bossArchetype.fullRule}`;
+    const bossText = (typeof isSimplifiedView === 'function' && isSimplifiedView() && floorData.bossArchetype.loreRule) ? floorData.bossArchetype.loreRule : floorData.bossArchetype.fullRule;
+    ruleDesc.textContent = `⚡ ${bossText}`;
   } else if (floorData.isPreBoss) {
-    card.className = 'cavern-panel w-full max-w-sm rounded-3xl p-6 border-2 border-orange-400/60 text-center space-y-3.5 shadow-[0_0_60px_rgba(249,115,22,0.3)] relative overflow-hidden';
+    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-orange-400/60 text-center space-y-3.5 shadow-[0_0_60px_rgba(249,115,22,0.3)] relative overflow-hidden';
     actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/50 text-[10px] font-mono-code uppercase tracking-[0.2em] text-orange-200 font-bold';
     iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500/25 to-amber-700/25 border border-orange-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
     iconWrap.textContent = topo.icon || '⚔️';
@@ -56,13 +57,16 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
     bossName.textContent = floorData.boss;
     hpRow.classList.add('hidden');
     hpRow.classList.remove('inline-flex');
-    ruleDesc.textContent = `Warped Pre-Boss Chamber: ${topo.desc}`;
+    const topoText = (typeof isSimplifiedView === 'function' && isSimplifiedView() && topo.loreDesc) ? topo.loreDesc : topo.desc;
+    ruleDesc.textContent = `Warped Pre-Boss Chamber: ${topoText}`;
   } else {
-    card.className = 'cavern-panel w-full max-w-sm rounded-3xl p-6 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden';
+    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden';
     actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.2em] text-amber-300 font-bold';
     iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/25 to-orange-700/25 border border-amber-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
     iconWrap.textContent = '🛡️';
-    floorTitle.textContent = `DESCENDING TO FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}`;
+    const activeVessel = (typeof getActiveLoadout === 'function') ? getActiveLoadout() : null;
+    const vesselTag = (activeVessel && floorData.floor === 1) ? ` • ${activeVessel.name.toUpperCase()}` : '';
+    floorTitle.textContent = `DESCENDING TO FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}${vesselTag}`;
     floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-teal-300';
     bossName.textContent = floorData.boss;
     hpRow.classList.add('hidden');

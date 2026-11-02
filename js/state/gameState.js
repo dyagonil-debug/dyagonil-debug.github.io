@@ -6,6 +6,12 @@ const STARTER_DECK_IDS = ['pebble', 'petrified', 'oracle_peek', 'pickaxe'];
 const state = {
   floorIdx: 0,
   difficulty: 'MEDIUM',
+  loadoutId: 'spelunker',
+  paradoxRoll: null,
+  freeRerollsRemaining: 1,
+  firstCol4DropDoneThisFloor: false,
+  firstCardCastDoneThisFloor: false,
+  bloodletterHealCountThisTurn: 0,
   gold: 3,
   stability: 15,
   board: [],
@@ -93,20 +99,31 @@ function initNewRun() {
   activeDebugTopologyOverride = null;
   activeDebugBossOverride = null;
   const diff = getActiveDifficulty();
+  if (!state.loadoutId || (typeof LOADOUT_CATALOG !== 'undefined' && !LOADOUT_CATALOG[state.loadoutId])) {
+    state.loadoutId = 'spelunker';
+  }
+  const kit = (typeof getResolvedLoadoutKit === 'function')
+    ? getResolvedLoadoutKit(state.loadoutId, state.difficulty)
+    : null;
+
   state.floorIdx = 0;
-  state.gold = diff.startingGold;
-  state.persistentEnchantCount = 1 + (diff.extraEnchantedSlots || 0);
+  state.gold = kit ? kit.startingGold : diff.startingGold;
+  state.persistentEnchantCount = kit ? kit.startingEnchantSlots : (1 + (diff.extraEnchantedSlots || 0));
   state.unlockedShopTier = 1;
-  state.maxMana = diff.startingMaxMana;
-  state.mana = diff.startingMaxMana;
-  state.handSize = diff.startingHandSize || 2;
-  state.maxGambitSlots = 1;
-  state.reservePouchUnlocked = false;
+  state.maxMana = kit ? kit.startingMaxMana : diff.startingMaxMana;
+  state.mana = state.maxMana;
+  state.handSize = kit ? kit.startingHandSize : (diff.startingHandSize || 2);
+  state.gambits = kit ? [...kit.gambits] : (diff.starterGambitId ? [diff.starterGambitId] : []);
+  state.maxGambitSlots = kit ? Math.max(kit.startingGambitSlots || 1, state.gambits.length) : 1;
+  state.reservePouch = kit ? [...kit.reserves] : [];
+  state.reservePouchUnlocked = state.reservePouch.length > 0;
   state.highTierCardsUnlocked = false;
 
-  state.masterDeck = [...STARTER_DECK_IDS];
-  state.reservePouch = [];
-  state.gambits = diff.starterGambitId ? [diff.starterGambitId] : [];
+  state.masterDeck = kit ? [...kit.deck] : [...STARTER_DECK_IDS];
+  state.freeRerollsRemaining = state.loadoutId === 'spelunker' ? 1 : 0;
+  state.firstCol4DropDoneThisFloor = false;
+  state.firstCardCastDoneThisFloor = false;
+  state.bloodletterHealCountThisTurn = 0;
 
   const easyPick = shuffle(BOSS_POOLS_BY_ACT.EASY)[0];
   const mediumPick = shuffle(BOSS_POOLS_BY_ACT.MEDIUM)[0];

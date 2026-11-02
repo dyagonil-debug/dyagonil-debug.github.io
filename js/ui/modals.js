@@ -57,6 +57,9 @@ function saveFloorStartCheckpoint() {
   ensureValidGold();
   state.floorStartSnapshot = {
     floorIdx: state.floorIdx,
+    loadoutId: state.loadoutId || 'spelunker',
+    paradoxRoll: state.paradoxRoll ? JSON.parse(JSON.stringify(state.paradoxRoll)) : null,
+    freeRerollsRemaining: state.freeRerollsRemaining || 0,
     gold: state.gold,
     maxMana: state.maxMana,
     handSize: state.handSize,
@@ -78,6 +81,9 @@ function restoreFloorStartCheckpoint() {
   if (typeof state === 'undefined' || !state.floorStartSnapshot) return false;
   const snap = state.floorStartSnapshot;
   state.floorIdx = snap.floorIdx;
+  if (snap.loadoutId) state.loadoutId = snap.loadoutId;
+  if (snap.paradoxRoll) state.paradoxRoll = JSON.parse(JSON.stringify(snap.paradoxRoll));
+  state.freeRerollsRemaining = snap.freeRerollsRemaining || 0;
   state.gold = Number.isFinite(snap.gold) ? snap.gold : 6;
   state.maxMana = snap.maxMana;
   state.handSize = snap.handSize;
@@ -122,43 +128,539 @@ function restoreFloorStartCheckpoint() {
 })();
 
 // ============================================================================
-// 1. DIFFICULTY TIER UI & SELECTION MODAL
+// 1. BINDING OF ISAAC-STYLE DELVER VESSEL & CAVERN DESCENT SELECTOR MODAL
 // ============================================================================
 function updateDifficultyUI() {
   if (typeof getActiveDifficulty !== 'function') return;
   const diff = getActiveDifficulty();
+  const loadout = (typeof getActiveLoadout === 'function') ? getActiveLoadout() : null;
+
   const badge = document.getElementById('difficulty-badge');
   if (badge) {
     badge.innerHTML = diff.shortBadge;
     badge.className = `px-1.5 py-0.5 rounded text-[9px] font-mono-code font-bold tracking-tight border active:scale-95 transition flex items-center gap-1 ${diff.badgeClass}`;
   }
+
+  const loadoutBadge = document.getElementById('loadout-badge');
+  if (loadoutBadge && loadout) {
+    loadoutBadge.innerHTML = `${loadout.icon}<span>${loadout.shortName}</span>`;
+    loadoutBadge.className = `px-1.5 py-0.5 rounded text-[9px] font-mono-code font-bold tracking-tight border active:scale-95 transition flex items-center gap-1 ${loadout.badgeClass}`;
+  }
+
   const settingsLbl = document.getElementById('settings-difficulty-label');
   if (settingsLbl) {
-    settingsLbl.innerHTML = `Active: ${diff.fullBadge}`;
+    const vesselPrefix = loadout ? `${loadout.numeral}. ${loadout.name} • ` : '';
+    settingsLbl.innerHTML = `Active: ${vesselPrefix}${diff.fullBadge}`;
   }
+
   const rerollBtn = document.getElementById('reroll-shop-btn');
   if (rerollBtn) {
-    rerollBtn.innerHTML = `${modalHudIcon('reroll.svg', 'c4-item-icon-sm')} Reroll ($${diff.rerollCost || 4})`;
+    const isFreeSpelunker = typeof state !== 'undefined' && state && state.loadoutId === 'spelunker' && (state.freeRerollsRemaining || 0) > 0;
+    if (isFreeSpelunker) {
+      rerollBtn.innerHTML = `${modalHudIcon('reroll.svg', 'c4-item-icon-sm')} Reroll (FREE!)`;
+    } else {
+      rerollBtn.innerHTML = `${modalHudIcon('reroll.svg', 'c4-item-icon-sm')} Reroll ($${diff.rerollCost || 4})`;
+    }
   }
+}
+
+function renderIsaacStatPipBar(pips = 3, delta = 0) {
+  const clamped = Math.max(1, Math.min(5, Math.round(pips)));
+  const fillClass = delta > 0
+    ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]'
+    : (delta < 0 ? 'bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.7)]' : 'bg-amber-400');
+  let html = '<div class="flex items-center gap-0.5">';
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="w-2.5 h-1.5 md:w-3.5 md:h-2 rounded-sm ${i <= clamped ? fillClass : 'bg-stone-800 border border-white/10'}"></span>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function formatStatDeltaBadge(delta, prefix = '', suffix = '') {
+  if (!delta || delta === 0) {
+    return `<span class="text-[8px] font-mono-code text-slate-400">BASE</span>`;
+  }
+  if (delta > 0) {
+    return `<span class="px-1 py-0.2 rounded bg-emerald-500/20 border border-emerald-400/40 text-[8px] font-mono-code font-bold text-emerald-300">▲ +${prefix}${delta}${suffix}</span>`;
+  }
+  return `<span class="px-1 py-0.2 rounded bg-rose-500/20 border border-rose-400/40 text-[8px] font-mono-code font-bold text-rose-300">▼ -${prefix}${Math.abs(delta)}${suffix}</span>`;
+}
+
+function groupIdsByCount(idList) {
+  const map = new Map();
+  if (!Array.isArray(idList)) return [];
+  idList.forEach((id) => {
+    map.set(id, (map.get(id) || 0) + 1);
+  });
+  return Array.from(map.entries()).map(([id, count]) => ({ id, count }));
+}
+
+function syncLoadoutViewModePill() {
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+  const modeBtn = document.getElementById('loadout-view-mode-btn');
+  if (modeBtn) {
+    modeBtn.innerHTML = simp ? '🕯️ Simplified View: ON' : '📐 Detailed Math: ON';
+    modeBtn.className = simp
+      ? 'px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition'
+      : 'px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition';
+  }
+  const bazModeBtn = document.getElementById('bazaar-view-mode-btn');
+  if (bazModeBtn) {
+    bazModeBtn.innerHTML = simp ? '🕯️ Lore' : '📐 Math';
+    bazModeBtn.className = simp
+      ? 'px-2 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition'
+      : 'px-2 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition';
+  }
+  const roulLegend = document.getElementById('roulette-legend-section');
+  if (roulLegend) {
+    roulLegend.classList.toggle('hidden', simp);
+  }
+}
+
+function renderLoadoutSelector() {
+  if (typeof LOADOUT_CATALOG === 'undefined' || typeof getResolvedLoadoutKit !== 'function') return;
+  const activeLoadoutId = (typeof getActiveLoadoutId === 'function') ? getActiveLoadoutId() : 'spelunker';
+  const kit = getResolvedLoadoutKit(activeLoadoutId, state.difficulty);
+  const loadout = kit.loadout;
+  const diff = getActiveDifficulty();
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+  syncLoadoutViewModePill();
+
+  // 1. Render 6-Vessel Roster Strip
+  const rosterEl = document.getElementById('loadout-roster-strip');
+  if (rosterEl) {
+    rosterEl.innerHTML = LOADOUT_ORDER.map((id) => {
+      const entry = LOADOUT_CATALOG[id];
+      if (!entry) return '';
+      const isSelected = id === activeLoadoutId;
+      return `
+        <button type="button" data-loadout="${id}"
+          class="loadout-roster-btn p-1.5 md:p-2 rounded-2xl border flex flex-col items-center justify-center gap-0.5 md:gap-1 transition-all active:scale-95 ${
+            isSelected
+              ? entry.pillActiveClass
+              : 'border-white/10 bg-stone-900/80 text-slate-400 hover:border-white/25 hover:text-slate-200 opacity-80'
+          }">
+          <span class="text-lg md:text-2xl leading-none">${entry.icon}</span>
+          <span class="text-[8px] font-display font-bold truncate max-w-full leading-tight">${entry.shortName}</span>
+        </button>
+      `;
+    }).join('');
+
+    rosterEl.querySelectorAll('.loadout-roster-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const chosenId = btn.getAttribute('data-loadout');
+        if (chosenId) selectLoadoutArchetype(chosenId);
+      });
+    });
+  }
+
+  // 2. Render Selected Character Spotlight Sheet
+  const spotlightEl = document.getElementById('loadout-spotlight-container');
+  if (spotlightEl) {
+    const displayGoldDelta = loadout.id === 'bastion' ? -(diff.startingGold || 3) : kit.goldOffset;
+
+    if (simp) {
+      // ======================================================================
+      // SIMPLIFIED VIEW (ON BY DEFAULT):
+      //   • Minimal header + 1-line flavor blurb (no extra info pills)
+      //   • Just the 5-pip stat rating bars (no exact numbers or delta pills)
+      //   • Starting loadout listed as JUST icons
+      // ======================================================================
+      const iconItems = [];
+
+      kit.gambits.forEach((gId) => {
+        const g = typeof GAMBIT_CATALOG !== 'undefined' ? GAMBIT_CATALOG[gId] : null;
+        if (!g) return;
+        const tip = `${g.name} — ${typeof getItemDesc === 'function' ? getItemDesc(g) : g.desc}`.replace(/"/g, '&quot;');
+        iconItems.push({
+          icon: g.icon,
+          count: 1,
+          borderClass: 'border-amber-400/50 bg-amber-950/40',
+          tip
+        });
+      });
+
+      groupIdsByCount(kit.reserves).forEach(({ id: rId, count }) => {
+        const rTok = typeof RESERVE_CATALOG !== 'undefined' ? RESERVE_CATALOG[rId] : null;
+        if (!rTok) return;
+        const tip = `${rTok.name} — ${typeof getItemDesc === 'function' ? getItemDesc(rTok) : rTok.desc}`.replace(/"/g, '&quot;');
+        iconItems.push({
+          icon: rTok.icon,
+          count,
+          borderClass: 'border-rose-400/45 bg-rose-950/40',
+          tip
+        });
+      });
+
+      groupIdsByCount(kit.deck).forEach(({ id: cId, count }) => {
+        const c = typeof CARD_CATALOG !== 'undefined' ? CARD_CATALOG[cId] : null;
+        if (!c) return;
+        const tip = `${c.name} — ${typeof getItemDesc === 'function' ? getItemDesc(c) : c.desc}`.replace(/"/g, '&quot;');
+        iconItems.push({
+          icon: c.icon,
+          count,
+          borderClass: 'border-teal-400/40 bg-teal-950/35',
+          tip
+        });
+      });
+
+      const iconsStripHtml = iconItems.map((it) => `
+        <div class="relative w-9 h-9 md:w-11 md:h-11 rounded-xl border ${it.borderClass} flex items-center justify-center text-lg md:text-xl shadow-inner shrink-0" title="${it.tip}">
+          <span>${it.icon}</span>
+          ${it.count > 1 ? `<span class="absolute -bottom-1 -right-1 px-1 rounded-full bg-stone-950 border border-white/25 font-mono-code font-bold text-[8px] text-amber-200 leading-tight">×${it.count}</span>` : ''}
+        </div>
+      `).join('');
+
+      spotlightEl.innerHTML = `
+        <div class="p-3 sm:p-3.5 rounded-2xl bg-stone-950/90 border-2 ${loadout.cardBorderClass} space-y-2.5 transition-all">
+          <!-- Minimal Character Header -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-11 h-11 md:w-13 md:h-13 rounded-2xl bg-stone-900 border border-white/15 flex items-center justify-center text-2xl md:text-3xl shrink-0 shadow-inner">
+                ${loadout.icon}
+              </div>
+              <div class="min-w-0">
+                <h3 class="font-display font-bold text-base sm:text-lg text-white leading-tight truncate">${loadout.name}</h3>
+                <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${loadout.loreSummary || loadout.lore}</p>
+              </div>
+            </div>
+            ${kit.isParadox ? `
+              <button type="button" id="reroll-paradox-seed-btn" class="p-2 rounded-xl bg-fuchsia-500/25 hover:bg-fuchsia-500/35 border border-fuchsia-300/60 text-fuchsia-100 text-xs active:scale-95 transition shrink-0" title="Reroll Anomaly Seed">
+                🎲
+              </button>
+            ` : ''}
+          </div>
+
+          <!-- Pure Stat Rating Bars (No exact numbers or delta pills) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 px-2.5 py-2 rounded-xl bg-stone-900/75 border border-white/10">
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">🌋 Stability</span>
+              ${renderIsaacStatPipBar(kit.statPips.stability, kit.stabilityOffset)}
+            </div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">⚡ Mana</span>
+              ${renderIsaacStatPipBar(kit.statPips.mana, kit.maxManaOffset)}
+            </div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">🃏 Draw</span>
+              ${renderIsaacStatPipBar(kit.statPips.hand, kit.handSizeOffset)}
+            </div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">🪙 Wealth</span>
+              ${renderIsaacStatPipBar(kit.statPips.gold, displayGoldDelta)}
+            </div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">✨ Luck</span>
+              ${renderIsaacStatPipBar(kit.statPips.luck, kit.extraEnchantSlots)}
+            </div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[9px] font-mono-code text-slate-300 flex items-center gap-1">🏺 Relics</span>
+              ${renderIsaacStatPipBar(kit.statPips.relics, kit.startingGambitSlots - 1)}
+            </div>
+          </div>
+
+          <!-- Starting Loadout: Listed as Just Icons -->
+          <div class="flex items-center justify-between gap-2 pt-0.5">
+            <span class="text-[9px] font-mono-code uppercase tracking-wider text-slate-400 shrink-0">Starting Loadout</span>
+            <div class="flex items-center flex-wrap justify-end gap-1.5">
+              ${iconsStripHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // ======================================================================
+      // DETAILED MATH VIEW (WHEN SIMPLIFIED VIEW IS OFF)
+      // ======================================================================
+      const gambitsHtml = kit.gambits.length === 0
+        ? `<span class="text-[9px] font-mono-code text-slate-400">None</span>`
+        : kit.gambits.map((gId) => {
+            const g = typeof GAMBIT_CATALOG !== 'undefined' ? GAMBIT_CATALOG[gId] : null;
+            if (!g) return '';
+            const isDiffBonus = gId === diff.starterGambitId && !(loadout.starterGambits || []).includes(gId);
+            return `
+              <div class="p-1.5 rounded-xl bg-stone-950/90 border border-amber-400/35 flex items-start gap-2">
+                <span class="text-base shrink-0 mt-0.5">${g.icon}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <span class="font-display font-bold text-[10px] text-amber-200">${g.name}</span>
+                    <span class="px-1 py-0.1 rounded bg-amber-500/20 border border-amber-400/40 text-[8px] font-mono-code text-amber-300">T${g.tier || 1} Relic</span>
+                    ${isDiffBonus ? `<span class="px-1 py-0.1 rounded bg-emerald-500/20 border border-emerald-400/40 text-[8px] font-mono-code text-emerald-300">Glowworm Bonus</span>` : ''}
+                  </div>
+                  <p class="text-[9px] text-slate-300 leading-tight mt-0.5">${g.desc}</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      const groupedReserves = groupIdsByCount(kit.reserves);
+      const reservesHtml = groupedReserves.length === 0
+        ? `<span class="text-[9px] font-mono-code text-slate-400">Locked until Floor 3 Boss</span>`
+        : groupedReserves.map(({ id: rId, count }) => {
+            const rTok = typeof RESERVE_CATALOG !== 'undefined' ? RESERVE_CATALOG[rId] : null;
+            if (!rTok) return '';
+            return `
+              <div class="px-2 py-1 rounded-xl bg-rose-950/45 border border-rose-400/35 flex items-center gap-1.5" title="${rTok.desc.replace(/"/g, '&quot;')}">
+                <span class="text-sm shrink-0">${rTok.icon}</span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1">
+                    <span class="font-display font-bold text-[10px] text-rose-100">${rTok.name}</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-rose-500/30 border border-rose-300/50 font-mono-code font-bold text-[8px] text-rose-200">×${count}</span>
+                  </div>
+                  <div class="text-[8px] text-slate-300 leading-tight">${rTok.desc}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      const groupedDeck = groupIdsByCount(kit.deck);
+      const deckHtml = groupedDeck.map(({ id: cId, count }) => {
+        const c = typeof CARD_CATALOG !== 'undefined' ? CARD_CATALOG[cId] : null;
+        if (!c) return '';
+        const t = c.tier || 1;
+        const tierClr = t >= 3
+          ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
+          : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
+        return `
+          <div class="p-1.5 rounded-xl bg-stone-950/85 border border-teal-500/30 flex items-center justify-between gap-1.5" title="${c.desc.replace(/"/g, '&quot;')}">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-sm shrink-0">${c.icon}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1">
+                  <span class="font-display font-bold text-[10px] text-white truncate">${c.name}</span>
+                  <span class="px-1 py-0.1 rounded text-[8px] font-mono-code font-bold bg-amber-400 text-stone-950 shrink-0">${c.cost}M</span>
+                  <span class="px-1 py-0.1 rounded border text-[7px] font-mono-code font-bold ${tierClr} shrink-0">T${t}</span>
+                </div>
+                <div class="text-[8px] text-slate-300 truncate">${c.shortDesc}</div>
+              </div>
+            </div>
+            <span class="px-1.5 py-0.5 rounded-lg bg-teal-500/20 border border-teal-400/40 font-mono-code font-bold text-[9px] text-teal-200 shrink-0">×${count}</span>
+          </div>
+        `;
+      }).join('');
+
+      const paradoxRerollHtml = kit.isParadox
+        ? `
+          <button type="button" id="reroll-paradox-seed-btn" class="px-2.5 py-1 rounded-xl bg-fuchsia-500/25 hover:bg-fuchsia-500/35 border border-fuchsia-300/60 text-fuchsia-100 font-mono-code font-bold text-[9px] active:scale-95 transition flex items-center gap-1 shrink-0 shadow-md">
+            <span>🎲 Reroll Seed (${kit.seedCode})</span>
+          </button>
+        `
+        : `
+          <span class="px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[9px] font-mono-code text-slate-300 shrink-0">
+            ${loadout.isaacArchetype}
+          </span>
+        `;
+
+      spotlightEl.innerHTML = `
+        <div class="p-3 sm:p-3.5 rounded-2xl bg-stone-950/90 border-2 ${loadout.cardBorderClass} space-y-2.5 transition-all">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-11 h-11 md:w-13 md:h-13 rounded-2xl bg-stone-900 border border-white/15 flex items-center justify-center text-2xl md:text-3xl shrink-0 shadow-inner">
+                ${loadout.icon}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[9px] font-mono-code uppercase tracking-widest text-amber-400 font-bold">VESSEL ${loadout.numeral}</span>
+                  <span class="text-[9px] font-mono-code text-slate-400">• ${loadout.epithet}</span>
+                </div>
+                <h3 class="font-display font-bold text-base sm:text-lg text-white leading-tight truncate">${loadout.name}</h3>
+              </div>
+            </div>
+            ${paradoxRerollHtml}
+          </div>
+
+          <p class="text-[10px] sm:text-[11px] text-slate-300 leading-relaxed">${loadout.lore}</p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-0.5">
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">🌋 STABILITY</span>
+                ${formatStatDeltaBadge(kit.stabilityOffset, '', 'T')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-orange-300">${kit.floor1Stability} Turns</span>
+                ${renderIsaacStatPipBar(kit.statPips.stability, kit.stabilityOffset)}
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">⚡ MAX MANA</span>
+                ${formatStatDeltaBadge(kit.maxManaOffset, '', 'M')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-teal-300">${kit.startingMaxMana} Mana</span>
+                ${renderIsaacStatPipBar(kit.statPips.mana, kit.maxManaOffset)}
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">🃏 HAND SIZE</span>
+                ${formatStatDeltaBadge(kit.handSizeOffset, '', '')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-purple-300">${kit.startingHandSize} Cards</span>
+                ${renderIsaacStatPipBar(kit.statPips.hand, kit.handSizeOffset)}
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">🪙 START GOLD</span>
+                ${formatStatDeltaBadge(displayGoldDelta, '$', '')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-amber-300">$${kit.startingGold}</span>
+                ${renderIsaacStatPipBar(kit.statPips.gold, displayGoldDelta)}
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">✨ BOARD RINGS</span>
+                ${formatStatDeltaBadge(kit.extraEnchantSlots, '', '/F')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-yellow-300">${kit.startingEnchantSlots} Slot${kit.startingEnchantSlots > 1 ? 's' : ''}</span>
+                ${renderIsaacStatPipBar(kit.statPips.luck, kit.extraEnchantSlots)}
+              </div>
+            </div>
+
+            <div class="p-2 rounded-xl bg-stone-900/90 border border-white/10 flex flex-col gap-1">
+              <div class="flex items-center justify-between text-[9px] font-mono-code">
+                <span class="text-slate-400 flex items-center gap-1">🏺 RELIC SLOTS</span>
+                ${formatStatDeltaBadge(kit.startingGambitSlots - 1, '', '')}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-mono-code font-bold text-xs text-emerald-300">${kit.startingGambitSlots} Slot${kit.startingGambitSlots > 1 ? 's' : ''}</span>
+                ${renderIsaacStatPipBar(kit.statPips.relics, kit.startingGambitSlots - 1)}
+              </div>
+            </div>
+          </div>
+
+          <div class="p-2.5 rounded-xl bg-gradient-to-r from-amber-950/65 via-stone-900/90 to-teal-950/65 border border-amber-400/40">
+            <div class="flex items-center gap-1.5 text-[10px] font-mono-code font-bold text-amber-300">
+              <span>${loadout.passiveIcon}</span>
+              <span>INNATE VESSEL PASSIVE: ${loadout.passiveName.toUpperCase()}</span>
+            </div>
+            <p class="text-[10px] text-slate-200 leading-snug mt-0.5">${loadout.passiveDesc}</p>
+          </div>
+
+          <div class="space-y-2 pt-0.5">
+            <div class="space-y-1">
+              <span class="text-[9px] font-mono-code uppercase tracking-wider text-amber-300 font-bold block">Starting Gambit Relic(s) (${kit.gambits.length}/${kit.startingGambitSlots} Slots)</span>
+              <div class="grid grid-cols-1 gap-1.5">${gambitsHtml}</div>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[9px] font-mono-code uppercase tracking-wider text-rose-300 font-bold block">Starting Tactical Reserve Pouch (${kit.reserves.length} Token${kit.reserves.length === 1 ? '' : 's'} • Unlocked F1)</span>
+              <div class="flex flex-wrap gap-1.5">${reservesHtml}</div>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[9px] font-mono-code uppercase tracking-wider text-teal-300 font-bold block">Starting Arcane Card Stockpile (${kit.deck.length} Cards)</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">${deckHtml}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('reroll-paradox-seed-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof rollParadoxLoadoutSeed === 'function') {
+        rollParadoxLoadoutSeed();
+      }
+      sfx.playDiceClatter(true);
+      triggerHaptic([20, 25]);
+      renderLoadoutSelector();
+      renderDifficultyCards();
+    });
+  }
+
+  // 3. Update Launch CTA Button
+  const launchBtn = document.getElementById('confirm-loadout-start-btn');
+  if (launchBtn) {
+    launchBtn.innerHTML = simp
+      ? `<span>⚔️ Begin Descent as ${loadout.name} →</span>`
+      : `<span>⚔️ Descend as ${loadout.numeral}. ${loadout.name} (${diff.name}) →</span>`;
+  }
+}
+
+function selectLoadoutArchetype(loadoutId, playSound = true) {
+  if (typeof LOADOUT_CATALOG === 'undefined' || !LOADOUT_CATALOG[loadoutId]) return;
+  state.loadoutId = loadoutId;
+  try {
+    if (typeof LOADOUT_STORAGE_KEY !== 'undefined') {
+      localStorage.setItem(LOADOUT_STORAGE_KEY, state.loadoutId);
+    }
+  } catch (_) {}
+  if (loadoutId === 'paradox' && typeof getActiveParadoxRoll === 'function') {
+    getActiveParadoxRoll();
+  }
+  if (playSound && typeof sfx !== 'undefined' && sfx) {
+    sfx.playHoverTick();
+    if (typeof triggerHaptic === 'function') triggerHaptic(15);
+  }
+  renderLoadoutSelector();
+  renderDifficultyCards();
+}
+
+function cycleLoadoutSelection(delta) {
+  if (typeof LOADOUT_ORDER === 'undefined' || !Array.isArray(LOADOUT_ORDER)) return;
+  const curId = (typeof getActiveLoadoutId === 'function') ? getActiveLoadoutId() : 'spelunker';
+  const curIdx = Math.max(0, LOADOUT_ORDER.indexOf(curId));
+  const nextIdx = (curIdx + delta + LOADOUT_ORDER.length) % LOADOUT_ORDER.length;
+  selectLoadoutArchetype(LOADOUT_ORDER[nextIdx], true);
 }
 
 function renderDifficultyCards() {
   const container = document.getElementById('difficulty-cards-container');
   if (!container || typeof DIFFICULTY_TIERS === 'undefined') return;
+  const activeLoadoutId = (typeof getActiveLoadoutId === 'function') ? getActiveLoadoutId() : 'spelunker';
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+
   container.innerHTML = Object.values(DIFFICULTY_TIERS).map((tier) => {
     const isSelected = state.difficulty === tier.id;
+
+    if (simp) {
+      // SIMPLIFIED VIEW: Just title + one-line flavor blurb (zero stat/info pills!)
+      return `
+        <button type="button" data-tier="${tier.id}"
+          class="diff-select-card w-full text-left px-3 py-2 rounded-2xl border transition-all active:scale-[0.98] ${tier.cardClass} ${isSelected ? 'ring-2 ring-amber-300/90 shadow-md' : 'opacity-75 hover:opacity-100'}">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-display font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">${tier.fullBadge}</span>
+            ${isSelected ? `<span class="w-2 h-2 rounded-full bg-amber-300 shadow-[0_0_6px_#fde047] shrink-0"></span>` : ''}
+          </div>
+          <p class="text-[10px] text-slate-300 mt-0.5 leading-snug truncate">${tier.loreDescription || tier.description}</p>
+        </button>
+      `;
+    }
+
+    const tierKit = (typeof getResolvedLoadoutKit === 'function')
+      ? getResolvedLoadoutKit(activeLoadoutId, tier.id)
+      : {
+          startingGold: tier.startingGold,
+          startingMaxMana: tier.startingMaxMana,
+          startingHandSize: tier.startingHandSize,
+          floor1Stability: 15 + (tier.stabilityOffset || 0)
+        };
+
     return `
       <button type="button" data-tier="${tier.id}"
-        class="diff-select-card w-full text-left p-3.5 rounded-2xl border transition-all active:scale-[0.98] ${tier.cardClass} ${isSelected ? 'ring-2 ring-amber-300/80' : ''}">
+        class="diff-select-card w-full text-left p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-[0.98] ${tier.cardClass} ${isSelected ? 'ring-2 ring-amber-300/90 shadow-lg' : 'opacity-80 hover:opacity-100'}">
         <div class="flex items-center justify-between gap-2">
-          <span class="font-display font-bold text-sm text-white flex items-center gap-1.5">${tier.fullBadge}</span>
-          <span class="text-[10px] font-mono-code text-slate-300">${tier.subtitle}</span>
+          <span class="font-display font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">${tier.fullBadge}</span>
+          <span class="px-2 py-0.5 rounded-lg text-[9px] font-mono-code font-bold ${
+            isSelected ? 'bg-amber-400 text-stone-950' : 'bg-black/40 text-slate-300 border border-white/10'
+          }">${isSelected ? '✓ Selected Tier' : tier.subtitle}</span>
         </div>
-        <p class="text-[11px] text-slate-200/90 mt-1.5 leading-relaxed">${tier.description}</p>
-        <div class="flex flex-wrap gap-1.5 mt-2.5 text-[9px] font-mono-code text-amber-200">
-          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('coin.svg', 'c4-item-icon-sm')} $${tier.startingGold} Start</span>
-          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('mana.svg', 'c4-item-icon-sm')} ${tier.startingMaxMana} Max Mana</span>
-          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('cards.svg', 'c4-item-icon-sm')} ${tier.startingHandSize} Hand Size</span>
+        <p class="text-[10px] text-slate-200/90 mt-1 leading-snug">${tier.description}</p>
+        <div class="flex flex-wrap gap-1.5 mt-2 text-[9px] font-mono-code text-amber-200">
+          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('coin.svg', 'c4-item-icon-sm')} $${tierKit.startingGold} Start</span>
+          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('mana.svg', 'c4-item-icon-sm')} ${tierKit.startingMaxMana}M (${tier.manaRateLabel})</span>
+          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('cards.svg', 'c4-item-icon-sm')} ${tierKit.startingHandSize} Hand (${tier.drawRateLabel})</span>
+          <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10 flex items-center gap-1">${modalHudIcon('stability.svg', 'c4-item-icon-sm')} ${tierKit.floor1Stability} F1 Stab</span>
         </div>
       </button>
     `;
@@ -167,12 +669,26 @@ function renderDifficultyCards() {
   container.querySelectorAll('.diff-select-card').forEach((btn) => {
     btn.addEventListener('click', () => {
       const tierId = btn.getAttribute('data-tier');
-      selectDifficultyAndStart(tierId);
+      if (!tierId || !DIFFICULTY_TIERS[tierId]) return;
+      if (state.difficulty !== tierId) {
+        state.difficulty = tierId;
+        try {
+          if (typeof DIFFICULTY_STORAGE_KEY !== 'undefined') {
+            localStorage.setItem(DIFFICULTY_STORAGE_KEY, state.difficulty);
+          }
+        } catch (_) {}
+        sfx.playHoverTick();
+        renderLoadoutSelector();
+        renderDifficultyCards();
+      } else {
+        selectDifficultyAndStart(tierId, state.loadoutId);
+      }
     });
   });
 }
 
 function openDifficultyModal(allowCancel = false) {
+  renderLoadoutSelector();
   renderDifficultyCards();
   const cancelBtn = document.getElementById('cancel-difficulty-modal-btn');
   if (cancelBtn) {
@@ -187,11 +703,17 @@ function openDifficultyModal(allowCancel = false) {
   }
 }
 
-function selectDifficultyAndStart(tierId) {
+function selectDifficultyAndStart(tierId = state.difficulty, loadoutId = state.loadoutId) {
   state.difficulty = (typeof DIFFICULTY_TIERS !== 'undefined' && DIFFICULTY_TIERS[tierId]) ? tierId : 'MEDIUM';
+  if (typeof LOADOUT_CATALOG !== 'undefined' && loadoutId && LOADOUT_CATALOG[loadoutId]) {
+    state.loadoutId = loadoutId;
+  }
   try {
     if (typeof DIFFICULTY_STORAGE_KEY !== 'undefined') {
       localStorage.setItem(DIFFICULTY_STORAGE_KEY, state.difficulty);
+    }
+    if (typeof LOADOUT_STORAGE_KEY !== 'undefined') {
+      localStorage.setItem(LOADOUT_STORAGE_KEY, state.loadoutId);
     }
   } catch (_) {}
   if (typeof runPersistence !== 'undefined' && runPersistence) {
@@ -207,8 +729,45 @@ function selectDifficultyAndStart(tierId) {
   initNewRun();
   startFloorMatch(true);
   const diff = getActiveDifficulty();
-  showToast(`Descent Begun: ${diff.fullBadge}`, modalHudIcon('mountain.svg'), 4200);
+  const vessel = (typeof getActiveLoadout === 'function') ? getActiveLoadout() : null;
+  const vesselLabel = vessel ? `${vessel.name} • ` : '';
+  showToast(`Descent Begun: ${vesselLabel}${diff.fullBadge}`, vessel ? vessel.icon : modalHudIcon('mountain.svg'), 4500);
 }
+
+document.getElementById('loadout-prev-btn')?.addEventListener('click', () => cycleLoadoutSelection(-1));
+document.getElementById('loadout-next-btn')?.addEventListener('click', () => cycleLoadoutSelection(1));
+document.getElementById('loadout-random-btn')?.addEventListener('click', () => {
+  if (typeof LOADOUT_ORDER === 'undefined') return;
+  const pick = LOADOUT_ORDER[Math.floor(Math.random() * LOADOUT_ORDER.length)];
+  if (pick === 'paradox' && typeof rollParadoxLoadoutSeed === 'function') {
+    rollParadoxLoadoutSeed();
+  }
+  sfx.playDiceClatter(true);
+  selectLoadoutArchetype(pick, false);
+});
+document.getElementById('confirm-loadout-start-btn')?.addEventListener('click', () => {
+  sfx.playCardChime();
+  triggerHaptic([20, 30]);
+  selectDifficultyAndStart(state.difficulty, state.loadoutId);
+});
+
+window.addEventListener('keydown', (e) => {
+  const diffModal = document.getElementById('difficulty-modal');
+  if (!diffModal || diffModal.classList.contains('hidden')) return;
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    cycleLoadoutSelection(-1);
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    cycleLoadoutSelection(1);
+  }
+});
+
+document.getElementById('loadout-badge')?.addEventListener('click', () => {
+  sfx.playHoverTick();
+  bgm.pauseForSettings();
+  openDifficultyModal(true);
+});
 
 document.getElementById('difficulty-badge')?.addEventListener('click', () => {
   sfx.playHoverTick();
@@ -256,7 +815,7 @@ function openGambitSheet(gambitId) {
     icon: g.icon,
     category: `Tier ${g.tier || 1} Synergistic Gambit`,
     title: g.name,
-    descHtml: `<p>${g.desc}</p>`,
+    descHtml: `<p>${typeof getItemDesc === 'function' ? getItemDesc(g) : g.desc}</p>`,
     statusText: isSpentCat ? 'Nine Lives Used This Floor (Resets Next Floor)' : 'Status: Active Relic',
     sellableGambitId: state.gambits.includes(gambitId) ? gambitId : null
   });
@@ -278,17 +837,26 @@ document.getElementById('boss-info-btn')?.addEventListener('click', () => {
   sfx.playHoverTick();
   const floorData = getFloorConfig(state.floorIdx);
   const topo = state.currentTopology || getFloorTopology(state.floorIdx);
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+  const bossRuleText = simp && floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.loreRule
+    ? `${floorData.bossArchetype.loreRule} Score a Connect-4 to shatter each Boss HP heart!`
+    : (simp && !floorData.isBoss
+      ? (floorData.isPreBoss
+        ? 'An elite vanguard guarding the Boss chamber on a warped cavern board.'
+        : 'A subterranean sentinel guarding an open 7x6 grid. Connect 4 before the ceiling collapses!')
+      : floorData.fullRule);
+  const topoText = simp && topo.loreDesc ? topo.loreDesc : topo.desc;
   showInfoSheetModal({
     icon: floorData.isBoss && floorData.bossArchetype ? floorData.bossArchetype.icon : topo.icon,
     category: `Floor ${floorData.floor} of ${TOTAL_FLOORS} • ${topo.name}`,
     title: floorData.boss,
     descHtml: `
-      <p>${floorData.fullRule}</p>
-      <p class="text-amber-300/90 mt-1.5"><strong>Board Geometry (${topo.name}):</strong> ${topo.desc}</p>
+      <p>${bossRuleText}</p>
+      <p class="text-amber-300/90 mt-1.5"><strong>Cavern Shape (${topo.name}):</strong> ${topoText}</p>
     `,
     statusText: floorData.isBoss
-      ? `Boss HP: ${state.bossHp}/${state.bossMaxHp} • AI Depth D${floorData.depth}`
-      : `AI Solver Depth D${floorData.depth} (${floorData.aiPrecisionPct}% Precision)`
+      ? `Boss Hearts: ${state.bossHp}/${state.bossMaxHp}`
+      : (simp ? `Floor ${floorData.floor} Guardian` : `AI Solver Depth D${floorData.depth} (${floorData.aiPrecisionPct}% Precision)`)
   });
 });
 
@@ -323,18 +891,27 @@ document.getElementById('milestone-info-btn')?.addEventListener('click', () => {
 
 document.getElementById('legend-btn')?.addEventListener('click', () => {
   sfx.playHoverTick();
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
   showInfoSheetModal({
     icon: modalHudIcon('sparkle.svg'),
     category: 'Board Ring Legend',
     title: 'Enchanted Cavern Slots',
-    descHtml: `
-      <p><strong class="text-yellow-300">🟡 Gilded Slot:</strong> Grants <strong>+$3 Bonus Gold</strong> when your token lands inside.</p>
-      <p><strong class="text-rose-300">🔴 Volatile Spice Slot:</strong> Grants <strong>+1 Mana</strong> and shatters 1 orthogonally adjacent AI token.</p>
-      <p><strong class="text-sky-300">🔵 Wild Amplifier Slot:</strong> Upgrades the token into a <strong>Wild Prismatic Token</strong> (+$2 Gold for you).</p>
-      <p><strong class="text-purple-300">🟣 Spider Web Slot:</strong> Petrifies an AI token into neutral Stone, or grants you <strong>+1 Stability</strong>.</p>
-      <p><strong class="text-lime-300">🟢 Cursed Spore (Boss):</strong> Drains 1 Mana or calcifies your token into Stone if at 0 Mana.</p>
-    `,
-    statusText: `${state.persistentEnchantCount} Base Enchanted Slot(s) Per Floor`
+    descHtml: simp
+      ? `
+        <p><strong class="text-yellow-300">🟡 Gilded Ring:</strong> Mints a handful of bonus gold coins when claimed.</p>
+        <p><strong class="text-rose-300">🔴 Volatile Spice Ring:</strong> Sparks mana and scorches a neighboring rival piece.</p>
+        <p><strong class="text-sky-300">🔵 Wild Amplifier Ring:</strong> Transmutes the landed piece into a shared Wild gem.</p>
+        <p><strong class="text-purple-300">🟣 Spider Web Ring:</strong> Traps a rival piece in stone, or steadies the roof for you.</p>
+        <p><strong class="text-lime-300">🟢 Cursed Spore:</strong> Siphons your mana—or turns your piece to stone if you are dry.</p>
+      `
+      : `
+        <p><strong class="text-yellow-300">🟡 Gilded Slot:</strong> Grants <strong>+$3 Bonus Gold</strong> when your token lands inside.</p>
+        <p><strong class="text-rose-300">🔴 Volatile Spice Slot:</strong> Grants <strong>+1 Mana</strong> and shatters 1 orthogonally adjacent AI token.</p>
+        <p><strong class="text-sky-300">🔵 Wild Amplifier Slot:</strong> Upgrades the token into a <strong>Wild Prismatic Token</strong> (+$2 Gold for you).</p>
+        <p><strong class="text-purple-300">🟣 Spider Web Slot:</strong> Petrifies an AI token into neutral Stone, or grants you <strong>+1 Stability</strong>.</p>
+        <p><strong class="text-lime-300">🟢 Cursed Spore (Boss):</strong> Drains 1 Mana or calcifies your token into Stone if at 0 Mana.</p>
+      `,
+    statusText: `${state.persistentEnchantCount} Base Enchanted Ring(s) Per Floor`
   });
 });
 
@@ -353,6 +930,8 @@ document.getElementById('info-sheet-modal')?.addEventListener('click', (e) => {
 // ============================================================================
 function openBossVictoryChest(floorData) {
   const milestoneBox = document.getElementById('boss-milestone-box');
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+
   if (state.floorIdx === 2) {
     state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 2);
     state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
@@ -361,13 +940,25 @@ function openBossVictoryChest(floorData) {
     state.reservePouchUnlocked = true;
     state.reservePouch.push('anvil');
     if (milestoneBox) {
-      milestoneBox.innerHTML = `
-        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 2 Shop Wares Unlocked:</strong> Tier 2 Cards, Reserves &amp; Gambits now in stock</div>
-        <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
-        <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
-        <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Tactical Reserve Pouch Unlocked:</strong> +1 Free <strong>Heavy Anvil Token</strong></div>
-        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
-      `;
+      milestoneBox.innerHTML = simp
+        ? `
+          <div class="text-center space-y-1.5">
+            <div class="text-[10px] text-emerald-200">“Deeper chambers unsealed.” Your vessel expands with newfound power:</div>
+            <div class="flex items-center justify-center flex-wrap gap-2 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚡ +Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🃏 +Draw</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚓ +Anvil</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🏺 +Relic Slot</span>
+            </div>
+          </div>
+        `
+        : `
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 2 Shop Wares Unlocked:</strong> Tier 2 Cards, Reserves &amp; Gambits now in stock</div>
+          <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
+          <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
+          <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Tactical Reserve Pouch Unlocked:</strong> +1 Free <strong>Heavy Anvil Token</strong></div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
+        `;
     }
   } else {
     state.unlockedShopTier = 3;
@@ -377,13 +968,25 @@ function openBossVictoryChest(floorData) {
     state.maxGambitSlots = Math.min(5, Math.max(state.maxGambitSlots, 4));
     state.reservePouch.push('wild');
     if (milestoneBox) {
-      milestoneBox.innerHTML = `
-        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 3 Shop Wares Unlocked:</strong> Tier 3 Mastery Cards, Reserves &amp; Gambits now in stock</div>
-        <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
-        <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
-        <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Prismatic Reserve Granted:</strong> +1 Free <strong>Wild Prismatic Token</strong></div>
-        <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
-      `;
+      milestoneBox.innerHTML = simp
+        ? `
+          <div class="text-center space-y-1.5">
+            <div class="text-[10px] text-emerald-200">“Abyssal mastery.” Your vessel awakens to its final form:</div>
+            <div class="flex items-center justify-center flex-wrap gap-2 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚡ +Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🃏 +Draw</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">💎 +Wild Gem</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🏺 4 Relic Slots</span>
+            </div>
+          </div>
+        `
+        : `
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 3 Shop Wares Unlocked:</strong> Tier 3 Mastery Cards, Reserves &amp; Gambits now in stock</div>
+          <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
+          <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
+          <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Prismatic Reserve Granted:</strong> +1 Free <strong>Wild Prismatic Token</strong></div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
+        `;
     }
   }
 
@@ -406,20 +1009,26 @@ function openBossVictoryChest(floorData) {
       const t = getExplicitItemTier(g, 2);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'arcane-card p-3 rounded-2xl flex items-center justify-between gap-3 text-left active:scale-98 transition';
+      btn.className = 'arcane-card p-2.5 rounded-2xl flex items-center justify-between gap-3 text-left active:scale-98 transition';
+      const whisperText = simp
+        ? (g.shopWhisper || g.loreDesc || g.desc)
+        : g.desc;
+      const tierBadge = simp
+        ? ''
+        : `<span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
+            t >= 3
+              ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
+              : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
+          }">T${t}</span>`;
       btn.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-2xl shrink-0">${g.icon}</span>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span class="font-display font-bold text-xs text-white truncate">${g.name}</span>
-              <span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
-                t >= 3
-                  ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
-                  : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
-              }">T${t}</span>
+              ${tierBadge}
             </div>
-            <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${g.desc}</p>
+            <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${whisperText}</p>
           </div>
         </div>
         <span class="px-2.5 py-1 rounded-xl bg-amber-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">Claim</span>
@@ -448,17 +1057,21 @@ function renderBazaarEquippedGambits() {
   const strip = document.getElementById('bazaar-equipped-gambits');
   if (!strip || !slotsLabel) return;
   ensureValidGold();
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
   const activeShopTier = typeof getMaxAllowedShopTier === 'function' ? getMaxAllowedShopTier() : 1;
-  slotsLabel.textContent = `Shop Tier ${activeShopTier}/3 • Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
+
+  slotsLabel.textContent = simp
+    ? 'Relic Sockets'
+    : `Shop Tier ${activeShopTier}/3 • Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
 
   if (expandBtn) {
     if (state.maxGambitSlots >= 5) {
-      expandBtn.textContent = 'Max 5 Slots';
+      expandBtn.textContent = 'Max Sockets';
       expandBtn.className = 'px-2 py-0.5 rounded-lg bg-stone-800 text-slate-500 font-mono-code text-[9px] pointer-events-none';
     } else {
       const sCost = getActiveDifficulty().slotExpandCost || 8;
       const canExpand = state.gold >= sCost;
-      expandBtn.textContent = `+1 Slot ($${sCost})`;
+      expandBtn.textContent = `+Socket ($${sCost})`;
       expandBtn.className = `px-2 py-0.5 rounded-lg border font-mono-code text-[9px] font-bold active:scale-95 ${
         canExpand
           ? 'bg-amber-500/25 border-amber-400/50 text-amber-200'
@@ -468,6 +1081,43 @@ function renderBazaarEquippedGambits() {
   }
 
   strip.innerHTML = '';
+
+  if (simp) {
+    // SIMPLIFIED VIEW: Render equipped Relics as just icons + empty socket outlines (tap icon to sell for +$3)
+    for (let i = 0; i < state.maxGambitSlots; i++) {
+      const gId = state.gambits[i];
+      const g = gId ? GAMBIT_CATALOG[gId] : null;
+      if (g) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = `${g.name} — Tap to sell for +$3 Gold`;
+        btn.className = 'relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-amber-500/15 border border-amber-400/45 flex items-center justify-center text-lg md:text-xl shrink-0 active:scale-95 transition';
+        btn.innerHTML = `
+          <span>${g.icon}</span>
+          <span class="absolute -bottom-1 -right-1 px-1 rounded-full bg-rose-950 border border-rose-400/60 font-mono-code font-bold text-[7px] text-rose-200 leading-tight">+$3</span>
+        `;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          ensureValidGold();
+          state.gambits = state.gambits.filter((id) => id !== gId);
+          state.gold += 3;
+          sfx.playCoinDing();
+          showToast(`Sold ${g.name} (+$3)`, modalHudIcon('coin.svg'));
+          document.getElementById('bazaar-swap-prompt')?.classList.add('hidden');
+          renderBazaarStock();
+          updateHUD();
+        });
+        strip.appendChild(btn);
+      } else {
+        const emptySlot = document.createElement('div');
+        emptySlot.className = 'w-9 h-9 md:w-10 md:h-10 rounded-xl border border-dashed border-white/15 bg-stone-950/50 flex items-center justify-center text-[10px] text-slate-600 shrink-0';
+        emptySlot.textContent = '○';
+        strip.appendChild(emptySlot);
+      }
+    }
+    return;
+  }
+
   if (state.gambits.length === 0) {
     strip.innerHTML = '<span class="text-[10px] font-mono-code text-slate-400">No Gambits equipped</span>';
     return;
@@ -507,12 +1157,15 @@ function openBazaarGambitSwapPrompt(shopIdx) {
   const descEl = document.getElementById('bazaar-swap-desc');
   if (!promptEl || !optionsEl) return;
   ensureValidGold();
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
 
   if (titleEl) {
-    titleEl.innerHTML = `Equip ${item.icon} ${item.name} ($${item.price})`;
+    titleEl.innerHTML = `Equip ${item.icon} ${item.cleanName || item.name} ($${item.price})`;
   }
   if (descEl) {
-    descEl.textContent = `Your Gambit slots are full (${state.gambits.length}/${state.maxGambitSlots}). Swap out an equipped Gambit (adds +$3 resale value toward this purchase!) or expand your slots:`;
+    descEl.textContent = simp
+      ? 'Sockets full—trade in an equipped relic (+$3) or carve a new socket:'
+      : `Your Gambit slots are full (${state.gambits.length}/${state.maxGambitSlots}). Swap out an equipped Gambit (adds +$3 resale value toward this purchase!) or expand your slots:`;
   }
 
   optionsEl.innerHTML = '';
@@ -531,7 +1184,7 @@ function openBazaarGambitSwapPrompt(shopIdx) {
     bundleBtn.innerHTML = `
       <div class="flex items-center gap-2 min-w-0">
         <span>${modalHudIcon('chest.svg', 'c4-item-icon-sm')}</span>
-        <span class="truncate">Unlock +1 Gambit Slot &amp; Equip Both</span>
+        <span class="truncate">+1 Socket &amp; Equip Both</span>
       </div>
       <span class="px-2 py-0.5 rounded bg-emerald-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">
         $${bundleCost}
@@ -539,7 +1192,7 @@ function openBazaarGambitSwapPrompt(shopIdx) {
     `;
     bundleBtn.addEventListener('click', () => {
       if (!canAffordBundle) {
-        showToast(`Need $${bundleCost} Gold ($${slotPrice} Slot + $${item.price} Gambit)!`, modalHudIcon('coin.svg'));
+        showToast(`Need $${bundleCost} Gold!`, modalHudIcon('coin.svg'));
         return;
       }
       state.gold -= bundleCost;
@@ -548,7 +1201,7 @@ function openBazaarGambitSwapPrompt(shopIdx) {
       item.bought = true;
       promptEl.classList.add('hidden');
       sfx.playCoinDing();
-      showToast(`Expanded Gambit Slots & equipped ${item.name}!`, item.icon);
+      showToast(`Expanded Sockets & equipped ${item.cleanName || item.name}!`, item.icon);
       renderBazaarStock();
       updateHUD();
     });
@@ -570,13 +1223,13 @@ function openBazaarGambitSwapPrompt(shopIdx) {
     swapBtn.innerHTML = `
       <div class="flex items-center gap-2 min-w-0">
         <span>🔄</span>
-        <span class="truncate">Replace <strong>${g.icon} ${g.name}</strong> (+$3 Trade-In)</span>
+        <span class="truncate">Trade <strong>${g.icon} ${g.name}</strong></span>
       </div>
-      <span class="px-2 py-0.5 rounded bg-amber-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">Net $${netCost}</span>
+      <span class="px-2 py-0.5 rounded bg-amber-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">$${netCost}</span>
     `;
     swapBtn.addEventListener('click', () => {
       if (!canAffordSwap) {
-        showToast(`Need $${netCost} Gold after +$3 trade-in!`, modalHudIcon('coin.svg'));
+        showToast(`Need $${netCost} Gold after trade-in!`, modalHudIcon('coin.svg'));
         return;
       }
       state.gold = state.gold + 3 - item.price;
@@ -586,7 +1239,7 @@ function openBazaarGambitSwapPrompt(shopIdx) {
       item.bought = true;
       promptEl.classList.add('hidden');
       sfx.playCoinDing();
-      showToast(`Swapped ${g.name} for ${item.name}!`, item.icon);
+      showToast(`Swapped ${g.name} for ${item.cleanName || item.name}!`, item.icon);
       renderBazaarStock();
       updateHUD();
     });
@@ -601,7 +1254,37 @@ function renderBazaarStock() {
   const listEl = document.getElementById('bazaar-items-list');
   const goldDisp = document.getElementById('bazaar-gold-display');
   if (goldDisp) goldDisp.textContent = `$${state.gold}`;
+  if (typeof syncLoadoutViewModePill === 'function') syncLoadoutViewModePill();
   renderBazaarEquippedGambits();
+
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+
+  // Update Bazaar Payout & Roulette banners based on Simplified View
+  const payoutLbl = document.getElementById('bazaar-payout-label');
+  const payoutEl = document.getElementById('bazaar-payout-amount');
+  if (payoutEl && state.pendingVictoryPayout) {
+    const floorData = getFloorConfig(state.floorIdx);
+    const baseReward = floorData.isBoss ? 7 : 3;
+    const totalEarned = state.pendingVictoryPayout.totalEarned || baseReward;
+    const speedBonus = state.pendingVictoryPayout.speedBonus || 0;
+    if (payoutLbl) {
+      payoutLbl.textContent = simp ? 'Floor Bounty:' : 'Floor Clear + Stability Speed Bonus:';
+    }
+    payoutEl.textContent = simp
+      ? `+$${totalEarned}`
+      : `+$${totalEarned} ($${baseReward} Base + $${speedBonus} Speed)`;
+  }
+
+  const riskBadge = document.getElementById('roulette-risk-badge');
+  if (riskBadge) riskBadge.classList.toggle('hidden', simp);
+
+  const summaryEl = document.getElementById('roulette-bazaar-summary');
+  if (summaryEl) {
+    summaryEl.textContent = simp
+      ? '“Tempt the wheel for blessings or curses.”'
+      : 'Spin the physics roulette wheel for Jackpots, Relics & Mana—or risk Curses, Gremlins & Cave-Ins!';
+  }
+
   if (!listEl) return;
 
   listEl.innerHTML = '';
@@ -615,44 +1298,88 @@ function renderBazaarStock() {
     let badgeLabel = `$${item.price}`;
     if (item.bought) {
       badgeLabel = 'SOLD';
-    } else if (isGambitFull) {
+    } else if (isGambitFull && !simp) {
       badgeLabel = canAffordDirect ? `$${item.price} (Swap/Slot)` : `Swap ($${Math.max(0, item.price - 3)})`;
+    } else if (isGambitFull && simp) {
+      badgeLabel = canAffordDirect ? `$${item.price}` : `$${Math.max(0, item.price - 3)}↻`;
     }
-
-    const t = item.tier || 1;
-    const tierBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
-      t >= 3
-        ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
-        : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
-    }">T${t}</span>`;
 
     const row = document.createElement('button');
     row.type = 'button';
     row.style.position = 'relative';
     row.style.zIndex = '2';
     row.style.pointerEvents = isUnavailable ? 'none' : 'auto';
-    row.className = `arcane-card p-2.5 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
-      isUnavailable ? 'opacity-40' : (isInteractive ? 'active:scale-98' : 'opacity-65')
-    }`;
-    row.innerHTML = `
-      <div class="flex items-center gap-2.5 min-w-0">
-        <span class="text-xl shrink-0">${item.icon}</span>
-        <div class="min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="font-display font-bold text-xs text-white truncate">${item.name}</span>
-            ${tierBadgeHtml}
+
+    if (simp) {
+      // SIMPLIFIED VIEW: Clean icon + item name + one-line whisper + price tag (zero tier badges or prefix clutter)
+      const displayName = item.cleanName || item.name.replace(/^Card:\s*/i, '');
+      const catEntry = (typeof CARD_CATALOG !== 'undefined' && CARD_CATALOG[item.id])
+        || (typeof RESERVE_CATALOG !== 'undefined' && RESERVE_CATALOG[item.id])
+        || (typeof GAMBIT_CATALOG !== 'undefined' && GAMBIT_CATALOG[item.id])
+        || null;
+      const fallbackQuotes = {
+        early_pouch: '“Packrat’s side-satchel.”',
+        slot_plus: '“Hollowed obsidian socket.”',
+        enchant_plus: '“Glowing mineral seam.”'
+      };
+      const whisper = item.shopWhisper
+        || (catEntry && catEntry.shopWhisper)
+        || fallbackQuotes[item.id]
+        || item.loreDesc
+        || item.desc;
+      const spanCls = (idx === state.shopItems.length - 1 && state.shopItems.length % 2 === 1) ? "md:col-span-2" : "";
+      row.className = `arcane-card ${spanCls} px-3 py-2.5 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
+        isUnavailable ? 'opacity-35' : (isInteractive ? 'active:scale-98' : 'opacity-60')
+      }`;
+      row.innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-xl shrink-0">${item.icon}</span>
+          <div class="min-w-0">
+            <div class="font-display font-bold text-xs text-white truncate">${displayName}</div>
+            <p class="text-[10px] text-slate-300 leading-tight truncate mt-0.5">${whisper}</p>
           </div>
-          <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${item.desc}</p>
         </div>
-      </div>
-      <span class="px-2.5 py-1 rounded-xl font-mono-code font-bold text-[10px] shrink-0 ${
-        item.bought
-          ? 'bg-stone-800 text-slate-400'
-          : (isInteractive ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-rose-300 border border-rose-400/30')
-      }">
-        ${badgeLabel}
-      </span>
-    `;
+        <span class="px-2.5 py-1 rounded-xl font-mono-code font-bold text-[10px] shrink-0 ${
+          item.bought
+            ? 'bg-stone-800 text-slate-400'
+            : (isInteractive ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-rose-300 border border-rose-400/30')
+        }">
+          ${badgeLabel}
+        </span>
+      `;
+    } else {
+      const t = item.tier || 1;
+      const tierBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
+        t >= 3
+          ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
+          : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
+      }">T${t}</span>`;
+
+      const spanCls = (idx === state.shopItems.length - 1 && state.shopItems.length % 2 === 1) ? "md:col-span-2" : "";
+      row.className = `arcane-card ${spanCls} p-2.5 md:p-3 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
+        isUnavailable ? 'opacity-40' : (isInteractive ? 'active:scale-98' : 'opacity-65')
+      }`;
+      row.innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-xl shrink-0">${item.icon}</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-display font-bold text-xs text-white truncate">${item.name}</span>
+              ${tierBadgeHtml}
+            </div>
+            <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${item.desc}</p>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-xl font-mono-code font-bold text-[10px] shrink-0 ${
+          item.bought
+            ? 'bg-stone-800 text-slate-400'
+            : (isInteractive ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-rose-300 border border-rose-400/30')
+        }">
+          ${badgeLabel}
+        </span>
+      `;
+    }
+
     row.addEventListener('click', () => buyBazaarItem(idx));
     listEl.appendChild(row);
   });
@@ -662,8 +1389,6 @@ function generateBazaarStock() {
   const items = [];
   updateDifficultyUI();
 
-  // Boss-gated Shop Tier enforcement:
-  // Tier 1 before Boss 1 | Tier 2 after Boss 1 | Tier 3 after Boss 2
   const maxTier = getMaxAllowedShopTier();
   const isTierAllowed = (tier) => tier >= 1 && tier <= maxTier;
 
@@ -680,7 +1405,7 @@ function generateBazaarStock() {
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  // Slot 1: Primary Arcane Card (prefers unowned & highest unlocked tier)
+  // Slot 1: Primary Arcane Card
   let primaryCardId = pickTieredId(
     CARD_CATALOG,
     (id, c, t) => t > 0 && !isStackableCurseCard(id) && !playerOwnsCard(id),
@@ -702,14 +1427,17 @@ function generateBazaarStock() {
       id: card.id,
       tier: getExplicitItemTier(card, 1),
       name: `Card: ${card.name}`,
+      cleanName: card.name,
       icon: card.icon,
       desc: card.desc,
+      loreDesc: card.loreDesc || card.desc,
+      shopWhisper: card.shopWhisper || card.loreDesc || card.desc,
       price: getScaledPrice(card.price),
       bought: false
     });
   }
 
-  // Slot 2: Secondary Arcane Card (distinct tier-allowed card for expanded catalog variety)
+  // Slot 2: Secondary Arcane Card
   let secondaryCardId = pickTieredId(
     CARD_CATALOG,
     (id, c, t) => t > 0 && !isStackableCurseCard(id) && id !== primaryCardId && !playerOwnsCard(id),
@@ -731,14 +1459,17 @@ function generateBazaarStock() {
       id: card2.id,
       tier: getExplicitItemTier(card2, 1),
       name: `Card: ${card2.name}`,
+      cleanName: card2.name,
       icon: card2.icon,
       desc: card2.desc,
+      loreDesc: card2.loreDesc || card2.desc,
+      shopWhisper: card2.shopWhisper || card2.loreDesc || card2.desc,
       price: getScaledPrice(card2.price),
       bought: false
     });
   }
 
-  // Slot 3: Tactical Reserve Token (strictly gated by maxTier) or Early Pouch Unlock on Floor 1
+  // Slot 3: Tactical Reserve Token or Early Pouch Unlock
   if (state.reservePouchUnlocked || state.floorIdx >= 1) {
     const rId = pickTieredId(RESERVE_CATALOG, () => true, 1, 0.65);
     if (rId) {
@@ -748,8 +1479,11 @@ function generateBazaarStock() {
         id: rTok.id,
         tier: getExplicitItemTier(rTok, 1),
         name: rTok.name,
+        cleanName: rTok.name,
         icon: rTok.icon,
         desc: rTok.desc,
+        loreDesc: rTok.loreDesc || rTok.desc,
+        shopWhisper: rTok.shopWhisper || rTok.loreDesc || rTok.desc,
         price: getScaledPrice(rTok.price),
         bought: false
       });
@@ -760,14 +1494,17 @@ function generateBazaarStock() {
       id: 'early_pouch',
       tier: 1,
       name: "Early Reserve Pouch + Fool's Penny",
+      cleanName: "Packrat's Reserve Satchel",
       icon: '🎒',
       desc: "Unlock the Tactical Reserve Token Pouch early and receive +1 Heavy Anvil & +1 Fool's Counterfeit Penny!",
+      loreDesc: '“Packrat’s satchel.” Unlocks your side-pouch early, stuffed with an Anvil and a Counterfeit Penny.',
+      shopWhisper: '“Packrat’s side-satchel.”',
       price: getScaledPrice(7),
       bought: false
     });
   }
 
-  // Slot 4: Synergistic Gambit Relic (strictly gated by maxTier)
+  // Slot 4: Synergistic Gambit Relic
   const chosenGambitId = pickTieredId(
     GAMBIT_CATALOG,
     (id) => !state.gambits.includes(id),
@@ -781,8 +1518,11 @@ function generateBazaarStock() {
       id: g.id,
       tier: getExplicitItemTier(g, 1),
       name: g.name,
+      cleanName: g.name,
       icon: g.icon,
       desc: g.desc,
+      loreDesc: g.loreDesc || g.desc,
+      shopWhisper: g.shopWhisper || g.loreDesc || g.desc,
       price: getScaledPrice(g.price),
       bought: false
     });
@@ -795,8 +1535,11 @@ function generateBazaarStock() {
         id: rTok.id,
         tier: getExplicitItemTier(rTok, 1),
         name: rTok.name,
+        cleanName: rTok.name,
         icon: rTok.icon,
         desc: rTok.desc,
+        loreDesc: rTok.loreDesc || rTok.desc,
+        shopWhisper: rTok.shopWhisper || rTok.loreDesc || rTok.desc,
         price: getScaledPrice(rTok.price),
         bought: false
       });
@@ -810,8 +1553,11 @@ function generateBazaarStock() {
       id: 'slot_plus',
       tier: Math.min(2, maxTier),
       name: 'Carved Relic Socket (+1 Gambit Slot)',
+      cleanName: 'Carved Relic Socket',
       icon: '🏺',
       desc: `Permanently expands your active Gambit Relic capacity from ${state.maxGambitSlots} to ${state.maxGambitSlots + 1} slots!`,
+      loreDesc: '“Hollowed obsidian socket.” Carves room to carry one additional Gambit Relic at a time.',
+      shopWhisper: '“Hollowed obsidian socket.”',
       price: getScaledPrice(6),
       bought: false
     });
@@ -821,8 +1567,11 @@ function generateBazaarStock() {
       id: 'enchant_plus',
       tier: 1,
       name: 'Enchanted Cavern Vein (+2 Board Rings)',
+      cleanName: 'Enchanted Cavern Vein',
       icon: '✨',
       desc: 'Permanently spawns +2 extra Enchanted Slots on every future floor board!',
+      loreDesc: '“Glowing mineral seam.” Enriches every future cavern board with extra enchanted rings.',
+      shopWhisper: '“Glowing mineral seam.”',
       price: getScaledPrice(5),
       bought: false
     });
@@ -841,7 +1590,7 @@ function buyBazaarItem(idx) {
     return;
   }
   if (state.gold < item.price) {
-    showToast(`Need $${item.price} Gold to buy ${item.name}!`, modalHudIcon('coin.svg'));
+    showToast(`Need $${item.price} Gold to buy ${item.cleanName || item.name}!`, modalHudIcon('coin.svg'));
     return;
   }
   if (item.type === 'gambit') {
@@ -863,7 +1612,7 @@ function buyBazaarItem(idx) {
   item.bought = true;
   document.getElementById('bazaar-swap-prompt')?.classList.add('hidden');
   sfx.playCoinDing();
-  showToast(`Purchased ${item.name}!`, item.icon);
+  showToast(`Purchased ${item.cleanName || item.name}!`, item.icon);
   renderBazaarStock();
   updateHUD();
 }
@@ -871,16 +1620,7 @@ function buyBazaarItem(idx) {
 function openUndergroundBazaar(totalEarned, speedBonus) {
   ensureValidGold();
   state.rouletteSpinsThisFloor = 0;
-  const floorData = getFloorConfig(state.floorIdx);
-  const baseReward = floorData.isBoss ? 7 : 3;
-  const payoutEl = document.getElementById('bazaar-payout-amount');
-  if (payoutEl) {
-    payoutEl.textContent = `+$${totalEarned} ($${baseReward} Base + $${speedBonus} Speed)`;
-  }
-  const summaryEl = document.getElementById('roulette-bazaar-summary');
-  if (summaryEl) {
-    summaryEl.textContent = 'Spin the physics roulette wheel for Jackpots, Relics & Mana—or risk Curses, Gremlins & Cave-Ins!';
-  }
+  state.pendingVictoryPayout = { totalEarned, speedBonus };
   document.getElementById('bazaar-swap-prompt')?.classList.add('hidden');
   updateRouletteButtonsUI();
   generateBazaarStock();
@@ -908,17 +1648,26 @@ document.getElementById('done-roulette-btn')?.addEventListener('click', closeRou
 
 document.getElementById('reroll-shop-btn')?.addEventListener('click', () => {
   ensureValidGold();
-  const cost = getActiveDifficulty().rerollCost || 4;
+  const isFreeSpelunker = state.loadoutId === 'spelunker' && (state.freeRerollsRemaining || 0) > 0;
+  const cost = isFreeSpelunker ? 0 : (getActiveDifficulty().rerollCost || 4);
   if (state.gold < cost) {
     showToast(`Need $${cost} Gold to reroll!`, modalHudIcon('coin.svg'));
     return;
   }
   state.gold -= cost;
+  if (isFreeSpelunker) {
+    state.freeRerollsRemaining = Math.max(0, (state.freeRerollsRemaining || 0) - 1);
+  }
   document.getElementById('bazaar-swap-prompt')?.classList.add('hidden');
   sfx.playHoverTick();
   generateBazaarStock();
   updateHUD();
-  showToast('Rerolled Underground Bazaar stock!', modalHudIcon('reroll.svg'));
+  showToast(
+    isFreeSpelunker
+      ? "🧭 Explorer's Equilibrium: Used Free Act Bazaar Reroll!"
+      : 'Rerolled Underground Bazaar stock!',
+    modalHudIcon('reroll.svg')
+  );
 });
 
 document.getElementById('bazaar-expand-slot-btn')?.addEventListener('click', () => {
@@ -996,8 +1745,7 @@ document.getElementById('new-ascension-btn')?.addEventListener('click', () => {
   clearFloorIntroAndModalLocks();
   if (typeof dismissAllActiveNotifications === 'function') dismissAllActiveNotifications();
   state._isRetryingFloor = false;
-  initNewRun();
-  startFloorMatch(true);
+  openDifficultyModal(false);
 });
 
 document.getElementById('restart-btn')?.addEventListener('click', () => {
@@ -1048,6 +1796,8 @@ document.addEventListener('webkitfullscreenchange', syncFullscreenUI);
 function syncSettingsUI() {
   syncFullscreenUI();
   updateDifficultyUI();
+  if (typeof syncLoadoutViewModePill === 'function') syncLoadoutViewModePill();
+  styleTogglePill(document.getElementById('toggle-simplified-view-btn'), userSettings.simplifiedViewEnabled !== false);
   styleTogglePill(document.getElementById('toggle-slot-callouts-btn'), userSettings.slotCalloutsEnabled);
   styleTogglePill(document.getElementById('toggle-floating-pops-btn'), userSettings.floatingPopsEnabled);
   styleTogglePill(document.getElementById('toggle-music-btn'), userSettings.musicEnabled);
@@ -1068,6 +1818,16 @@ function syncSettingsUI() {
     btn.className = `drop-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95 ${
       active
         ? 'bg-teal-400 text-stone-950 border-teal-300 shadow-md'
+        : 'bg-stone-950/70 text-slate-300 border-white/10'
+    }`;
+  });
+
+  document.querySelectorAll('.uiscale-mode-btn').forEach((btn) => {
+    const curScale = userSettings.uiScale || 'auto';
+    const active = btn.getAttribute('data-uiscale') === curScale;
+    btn.className = `uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95 ${
+      active
+        ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-md'
         : 'bg-stone-950/70 text-slate-300 border-white/10'
     }`;
   });
@@ -1208,3 +1968,29 @@ document.getElementById('settings-reset-run-btn')?.addEventListener('click', () 
   startFloorMatch(true);
   showToast('Ascension Run Reset to Floor 1!', modalHudIcon('reroll.svg'));
 });
+
+
+function toggleSimplifiedViewSetting(e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  userSettings.simplifiedViewEnabled = !(userSettings.simplifiedViewEnabled !== false);
+  sfx.playHoverTick();
+  saveUserSettings();
+  syncSettingsUI();
+  if (typeof renderLoadoutSelector === 'function') renderLoadoutSelector();
+  if (typeof renderDifficultyCards === 'function') renderDifficultyCards();
+  if (typeof renderBazaarStock === 'function') {
+    renderBazaarStock();
+  }
+  if (typeof updateHUD === 'function') updateHUD();
+  showToast(
+    userSettings.simplifiedViewEnabled
+      ? '🕯️ Simplified View ON: Showing Isaac-style lore tooltips'
+      : '📐 Simplified View OFF: Showing full mechanical breakdowns',
+    modalHudIcon('sparkle.svg'),
+    3200
+  );
+}
+
+document.getElementById('toggle-simplified-view-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
+document.getElementById('loadout-view-mode-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
+document.getElementById('bazaar-view-mode-btn')?.addEventListener('click', toggleSimplifiedViewSetting);

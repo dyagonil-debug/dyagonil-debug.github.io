@@ -800,3 +800,381 @@ const BOSS_ARCHETYPES = [
   ...BOSS_POOLS_BY_ACT.MEDIUM,
   ...BOSS_POOLS_BY_ACT.HARD
 ];
+
+
+// ============================================================================
+// BINDING OF ISAAC-STYLE SIMPLIFIED LORE TOOLTIPS (ENRICHMENT TABLE)
+// Suggests item effects through atmospheric subterranean lore without dense math
+// ============================================================================
+const C4_LORE_TOOLTIPS = {
+  cards: {
+    pebble: {
+      loreShortDesc: 'Steady ceiling • Loose coin',
+      loreDesc: '“A humble wedge stone.” Bolsters the trembling cavern roof and shakes loose a glint of gold.'
+    },
+    oracle_peek: {
+      loreShortDesc: 'Free light • Draw & steady',
+      loreDesc: '“Guiding subterranean flame.” Costs no mana; illuminates your next arcane card and calms the ceiling.'
+    },
+    loaded_knucklebones: {
+      loreShortDesc: 'Free bone roll • Fate decides',
+      loreDesc: '“Shaved ivory dice.” Cast for free above a column—low rolls steady the earth, high rolls drop a piece and mint gold.'
+    },
+    leech_lancet: {
+      loreShortDesc: 'Blood price • Mana & card',
+      loreDesc: '“Forbidden surgical pact.” Trades cavern stability for an immediate surge of mana, card draw, and coin.'
+    },
+    petrified: {
+      loreShortDesc: 'Drop dead-stone blocker',
+      loreDesc: '“Calcified ancient timber.” Seals a slot with neutral stone that blocks lines for both sides.'
+    },
+    jar_of_flies: {
+      loreShortDesc: 'Fickle swarm • Feast or stone',
+      loreDesc: '“Buzzing blind accompaniment.” Either devours an exposed rival piece for gold or calcifies into a stone blocker.'
+    },
+    pickaxe: {
+      loreShortDesc: 'Shatter all column stone',
+      loreDesc: '“Heavy iron miner’s swing.” Cleaves every petrified stone blocker out of the chosen column.'
+    },
+    guano_fertilizer: {
+      loreShortDesc: 'Purge spores • Plant Spice',
+      loreDesc: '“Pungent alchemical poultice.” Cleanses toxic spores from a column and seeds the next slot with fiery Spice.'
+    },
+    rusty_bear_trap: {
+      loreShortDesc: 'Snap top foe or rig Web',
+      loreDesc: '“Serrated iron jaws.” Bites off an exposed rival piece for bounty gold, or rigs an empty slot with a spider web.'
+    },
+    divining_wishbone: {
+      loreShortDesc: 'Measure vs. center spire',
+      loreDesc: '“Snap for fortune.” Compares column height against the center spire to grant either a free piece drop or bonus coin.'
+    },
+    tar_bubble: {
+      loreShortDesc: 'Sink highest foe to bedrock',
+      loreDesc: '“Viscous black pitch.” Drags the column’s highest rival piece down to the very bottom, floating yours upward.'
+    },
+    tectonic_anchor: {
+      loreShortDesc: 'Bolster roof • Gild slot',
+      loreDesc: '“Dwarven keystone press.” Heavily reinforces the cavern ceiling and gilds the next open slot below.'
+    },
+    sinkhole_chute: {
+      loreShortDesc: 'Flush bottom-row pieces',
+      loreDesc: '“Unbolt the cellar.” Shakes the floor and drops random bottom-row tokens out of the board.'
+    },
+    lodestone: {
+      loreShortDesc: 'Float your pieces to top',
+      loreDesc: '“Magnetic polarity.” Pulls all of your amber tokens in a column to the top of the stack while sinking the rest.'
+    },
+    hibachi: {
+      loreShortDesc: 'Sear exposed foe • Steady',
+      loreDesc: '“Sizzling wok flare.” Incinerates an exposed rival token at the top of the column and steadies the cavern.'
+    },
+    alchemy_crucible: {
+      loreShortDesc: 'Melt blocker -> Wild ring',
+      loreDesc: '“Transmuting acid.” Dissolves a column’s top rival or stone blocker into gold and leaves a Wild Amplifier ring behind.'
+    },
+    guillotine_blade: {
+      loreShortDesc: 'Behead tallest of 3 columns',
+      loreDesc: '“Weighted executioner.” Sweeps a 3-column span and severs the topmost piece of whichever stack stands tallest.'
+    },
+    mercury_siphon: {
+      loreShortDesc: 'Slide top piece to neighbor',
+      loreDesc: '“Alembic tube.” Siphons a column’s top token into an adjacent column, purifying stone into your color.'
+    },
+    mimic_tooth: {
+      loreShortDesc: 'Chew column stone into gold',
+      loreDesc: '“Ravenous treasure fang.” Devours every stone blocker in a column for rich coin—or chomps the top foe if none exist.'
+    },
+    inversion: {
+      loreShortDesc: 'Flip column upside down',
+      loreDesc: '“As above, so below.” Reverses gravity in a single column, flipping its entire token stack upside down.'
+    },
+    pendulum_scythe: {
+      loreShortDesc: 'Reap across horizontal row',
+      loreDesc: '“Clockwork crescent.” Swings horizontally across the board to cleave rival and stone tokens at the target height.'
+    },
+    wax_effigy: {
+      loreShortDesc: 'Convert top foe • Hex neighbor',
+      loreDesc: '“Sympathetic voodoo.” Turns a column’s highest rival token to your side and spins a web trap next door.'
+    },
+    transmute: {
+      loreShortDesc: 'Turn top blocker into yours',
+      loreDesc: '“Philosopher’s touch.” Warps the topmost rival or stone piece in a column into your own amber token.'
+    },
+    echo_drop: {
+      loreShortDesc: 'Drop 2 tokens at once',
+      loreDesc: '“Twin tuning forks.” Resonant acoustic waves drop two of your amber tokens stacked into one column.'
+    },
+    mirror_shard: {
+      loreShortDesc: 'Reflect top piece as Wild',
+      loreDesc: '“Looking-glass fragment.” Clones your highest piece in the column upward into the empty slot above as a Wild token.'
+    },
+    hydraulic_piston: {
+      loreShortDesc: 'Swap two neighboring columns',
+      loreDesc: '“Dwarven steam-ram.” Pushes the entire vertical stack of a column across to trade places with its neighbor.'
+    },
+    abyssal_upheaval: {
+      loreShortDesc: 'Flip the entire board 180°',
+      loreDesc: '“Cataclysmic table-turn.” Physically flips the entire cavern board and every column stack upside down.'
+    },
+    ouroboros_fang: {
+      loreShortDesc: 'Devour 3 bases • Loop yours up',
+      loreDesc: '“The eternal serpent.” Swallows the bottom of three columns—digesting foes into gold and regurgitating your pieces on top.'
+    },
+    croupier_jackpot: {
+      loreShortDesc: 'Wild drop • Gild • Ring payout',
+      loreDesc: '“The house always wins.” Drops a Wild token, gilds the column above, and pays out coin for every active board ring.'
+    },
+    brimstone_beam: {
+      loreShortDesc: 'Vaporize all foes in column',
+      loreDesc: '“Blood-sulfur barrage.” Obliterates every rival and stone piece in an entire column while leaving yours untouched.'
+    },
+    basilisk_gaze: {
+      loreShortDesc: 'Petrify foes & shatter for gold',
+      loreDesc: '“Lethal reptilian stare.” Turns exposed rival tokens into stone and shatters one into a shower of gold.'
+    },
+    seraphim_halo: {
+      loreShortDesc: 'Sanctify to Wild + bonus drop',
+      loreDesc: '“Six-winged benediction.” Ascends your highest piece in the column into a Wild token and drops another piece on top.'
+    },
+    dead_weight: {
+      loreShortDesc: 'Curse • Spend mana to banish',
+      loreDesc: '“Hexed burden.” Clutters your hand until you spend mana on any column to pulverize it forever.'
+    }
+  },
+
+  reserves: {
+    fools_penny: {
+      loreDesc: '“Heads you win.” Drops your piece and flips a crooked coin—usually minting gold and mana, unless it turns to stone.'
+    },
+    loaded_die: {
+      loreDesc: '“High roller’s bone.” Drops your piece and rolls for bonus gold, card draw, or a prismatic Wild upgrade.'
+    },
+    anvil: {
+      loreDesc: '“Crushing weight.” Drops your piece and pulverizes whatever token sits directly underneath.'
+    },
+    cave_bat: {
+      loreDesc: '“Vampiric bite.” Drops your piece and latches onto the token below, converting it to your color.'
+    },
+    wild: {
+      loreDesc: '“Prismatic harmony.” A shimmering gem token that counts for both sides in any four-in-a-row line.'
+    },
+    jalapeno_bomb: {
+      loreDesc: '“Spicy demolition.” Drops your piece and detonates in a fiery cross, shattering nearby rival tokens.'
+    },
+    acid_slug: {
+      loreDesc: '“Corrosive trail.” Drops your piece and dissolves every petrified stone in the column into gold coins.'
+    },
+    parasite_egg: {
+      loreDesc: '“Silken brood.” Hatches on impact to spin sticky spider web traps into both neighboring columns.'
+    },
+    powder_keg: {
+      loreDesc: '“Downward blast.” Drops your piece and blows away blockers underneath it for demolition gold.'
+    },
+    quicksilver_glob: {
+      loreDesc: '“Slippery mercury.” Drops a Wild token that sinks underneath a rival piece below to trade places.'
+    },
+    midas_eye: {
+      loreDesc: '“Golden touch.” Drops a Wild token, converts adjacent blockers to your side, and gilds the slot above.'
+    },
+    eclipse_idol: {
+      loreDesc: '“Black sun totem.” Drops a Wild token, draws a spell, restores mana, and crowns the column with an Amplifier ring.'
+    }
+  },
+
+  gambits: {
+    shrinking_shroom: {
+      loreDesc: '“Fun-sized tokens!” Visually shrinks your pieces and squeaks out bonus gold and stability every few drops.'
+    },
+    lucky_rabbit_paw: {
+      loreDesc: '“Lucky charm.” Shores up starting cavern stability each floor and tips a gold coin whenever you cast a cheap spell.'
+    },
+    butter_crust: {
+      loreDesc: '“Edge artisan.” Dropping tokens along the far left or right walls rewards bonus coin and stability.'
+    },
+    amber_flea: {
+      loreDesc: '“Ancient resin.” Spawns an extra Gilded ring on every floor and makes Gilded slots pay out richer gold.'
+    },
+    plumb_bob: {
+      loreDesc: '“True center.” Dropping tokens down the middle spire mints a gold coin and steadies the ceiling.'
+    },
+    dali_clock: {
+      loreDesc: '“Persistence of memory.” Discounts gravity-warping spells and reveals the AI’s inner column thoughts.'
+    },
+    echo_bell: {
+      loreDesc: '“Ringing resonance.” Reserve tokens echo on impact, triggering their landing power a second time.'
+    },
+    coaster_apex: {
+      loreDesc: '“Airtime momentum.” Dropping tokens in ascending left-to-right steps surges with bonus mana and gold.'
+    },
+    copper_retort: {
+      loreDesc: '“Spellweaver’s flask.” Casting two arcane cards in the same turn distills refund mana and coin.'
+    },
+    obsidian_cat: {
+      loreDesc: '“Nine lives.” Claws away the AI’s winning fourth piece once per floor and pays bounty coin on shatters.'
+    },
+    jalapeno_overdrive: {
+      loreDesc: '“Spicy ignition.” Grants extra starting mana, and shattering tokens periodically converts a random foe to your side.'
+    },
+    jeweler_loupe: {
+      loreDesc: '“Master appraiser.” Draws an extra opening card each floor and rewards gold when casting mastery spells.'
+    },
+    crimson_chalice: {
+      loreDesc: '“Blood harvest.” Every token shattered on the board restores ceiling stability and mints gold.'
+    },
+    flywheel_coil: {
+      loreDesc: '“Perpetual motion.” Every third token you drop onto the board sparks a burst of mana and coin.'
+    },
+    sacred_heart_prism: {
+      loreDesc: '“Divine prism.” Spawns extra Amplifier rings, and landing on any enchanted ring draws a card and mana.'
+    },
+    alkahest_vial: {
+      loreDesc: '“Universal solvent.” Grants extra starting mana and dissolves all stone on the board into gold upon floor victory.'
+    }
+  },
+
+  wheel: {
+    jackpot_hoard: 'A royal windfall of gold coins and a Wild Prismatic token!',
+    pickpocket_gremlin: 'A cave gremlin ambushes your pouch and runs off with half your gold!',
+    relic_vault: 'Cracks open an ancient vault containing a free Gambit Relic!',
+    cave_in_hazard: 'Starts the next floor with falling stone blockers and a weakened ceiling!',
+    arcane_surge: 'Charges the next floor with bonus mana and a volatile Jalapeño Bomb!',
+    hex_of_abyss: 'Slips a Dead Weight stone curse into your deck and drains next floor’s mana!',
+    gilded_blessing: 'Seeds the next cavern floor with three extra golden enchanted rings!',
+    ai_headstart: 'The cavern guardian claims a two-token headstart on the next floor!',
+    tectonic_reinforce: 'Reinforces the next cavern ceiling with extra turns of stability!'
+  },
+
+  bosses: {
+    spore_queen: 'Periodically infects empty board slots with mana-draining mycelial spores.',
+    chronos_dali: 'Periodically flips the entire token stack upside down in the marked warning column.',
+    petrifier_archon: 'Periodically calcifies your highest token in the fullest column into neutral stone.',
+    mirror_virtuoso: 'Periodically swaps the colors of two exposed surface tokens across the board.',
+    magma_leviathan: 'Periodically melts the bottom-most token of a column, shifting the stack downward.',
+    tectonic_behemoth: 'Rapidly quakes the cavern ceiling and drops heavy stone blockers.'
+  }
+};
+
+(function applyLoreTooltipsToCatalogs() {
+  if (typeof CARD_CATALOG !== 'undefined') {
+    for (const [id, data] of Object.entries(C4_LORE_TOOLTIPS.cards)) {
+      if (CARD_CATALOG[id]) Object.assign(CARD_CATALOG[id], data);
+    }
+  }
+  if (typeof RESERVE_CATALOG !== 'undefined') {
+    for (const [id, data] of Object.entries(C4_LORE_TOOLTIPS.reserves)) {
+      if (RESERVE_CATALOG[id]) Object.assign(RESERVE_CATALOG[id], data);
+    }
+  }
+  if (typeof GAMBIT_CATALOG !== 'undefined') {
+    for (const [id, data] of Object.entries(C4_LORE_TOOLTIPS.gambits)) {
+      if (GAMBIT_CATALOG[id]) Object.assign(GAMBIT_CATALOG[id], data);
+    }
+  }
+  if (typeof ROULETTE_WEDGES !== 'undefined' && Array.isArray(ROULETTE_WEDGES)) {
+    ROULETTE_WEDGES.forEach((w) => {
+      if (w && C4_LORE_TOOLTIPS.wheel[w.id]) {
+        w.loreDesc = C4_LORE_TOOLTIPS.wheel[w.id];
+      }
+    });
+  }
+  if (typeof BOSS_ARCHETYPES !== 'undefined' && Array.isArray(BOSS_ARCHETYPES)) {
+    BOSS_ARCHETYPES.forEach((b) => {
+      if (b && C4_LORE_TOOLTIPS.bosses[b.id]) {
+        b.loreRule = C4_LORE_TOOLTIPS.bosses[b.id];
+      }
+    });
+  }
+})();
+
+
+// ============================================================================
+// ONE-LINE ISAAC-STYLE SHOP WHISPERS FOR SIMPLIFIED BAZAAR & BOSS CHEST VIEW
+// Boiled down to just the brief quoted lore blurb for shop pedestals/rows
+// ============================================================================
+const C4_SHOP_WHISPERS = {
+  cards: {
+    pebble: '“A humble wedge stone.”',
+    oracle_peek: '“Guiding subterranean flame.”',
+    loaded_knucklebones: '“Shaved ivory dice.”',
+    leech_lancet: '“Forbidden surgical pact.”',
+    petrified: '“Calcified ancient timber.”',
+    jar_of_flies: '“Buzzing blind accompaniment.”',
+    pickaxe: '“Heavy iron miner’s swing.”',
+    guano_fertilizer: '“Pungent alchemical poultice.”',
+    rusty_bear_trap: '“Serrated iron jaws.”',
+    divining_wishbone: '“Snap for fortune.”',
+    tar_bubble: '“Viscous black pitch.”',
+    tectonic_anchor: '“Dwarven keystone press.”',
+    sinkhole_chute: '“Unbolt the cellar.”',
+    lodestone: '“Magnetic polarity.”',
+    hibachi: '“Sizzling wok flare.”',
+    alchemy_crucible: '“Transmuting acid.”',
+    guillotine_blade: '“Weighted executioner.”',
+    mercury_siphon: '“Alembic siphon tube.”',
+    mimic_tooth: '“Ravenous treasure fang.”',
+    inversion: '“As above, so below.”',
+    pendulum_scythe: '“Clockwork crescent.”',
+    wax_effigy: '“Sympathetic voodoo.”',
+    transmute: '“Philosopher’s touch.”',
+    echo_drop: '“Twin tuning forks.”',
+    mirror_shard: '“Looking-glass fragment.”',
+    hydraulic_piston: '“Dwarven steam-ram.”',
+    abyssal_upheaval: '“Cataclysmic table-turn.”',
+    ouroboros_fang: '“The eternal serpent.”',
+    croupier_jackpot: '“The house always wins.”',
+    brimstone_beam: '“Blood-sulfur barrage.”',
+    basilisk_gaze: '“Lethal reptilian stare.”',
+    seraphim_halo: '“Six-winged benediction.”',
+    dead_weight: '“Hexed burden.”'
+  },
+  reserves: {
+    fools_penny: '“Heads you win.”',
+    loaded_die: '“High roller’s bone.”',
+    anvil: '“Crushing deadweight.”',
+    cave_bat: '“Vampiric night-fang.”',
+    wild: '“Prismatic harmony.”',
+    jalapeno_bomb: '“Spicy core demolition.”',
+    acid_slug: '“Corrosive brine trail.”',
+    parasite_egg: '“Silken spider clutch.”',
+    powder_keg: '“Downward black-powder blast.”',
+    quicksilver_glob: '“Slippery liquid metal.”',
+    midas_eye: '“All-gilding gaze.”',
+    eclipse_idol: '“Black sun totem.”'
+  },
+  gambits: {
+    shrinking_shroom: '“Fun-sized tokens!”',
+    lucky_rabbit_paw: '“Charm of the warren.”',
+    butter_crust: '“Crispy golden edge.”',
+    amber_flea: '“Trapped in golden resin.”',
+    plumb_bob: '“True center weight.”',
+    dali_clock: '“Persistence of memory.”',
+    echo_bell: '“Ringing twin resonance.”',
+    coaster_apex: '“Ascending airtime thrill.”',
+    copper_retort: '“Spellweaver’s condensing flask.”',
+    obsidian_cat: '“Nine lives.”',
+    jalapeno_overdrive: '“Heartburn ignition.”',
+    jeweler_loupe: '“Master appraiser’s eye.”',
+    crimson_chalice: '“Sanguine blood harvest.”',
+    flywheel_coil: '“Perpetual kinetic dynamo.”',
+    sacred_heart_prism: '“Blessed prismatic radiance.”',
+    alkahest_vial: '“Universal stone solvent.”'
+  }
+};
+
+(function applyShopWhispers() {
+  if (typeof CARD_CATALOG !== 'undefined') {
+    for (const [id, w] of Object.entries(C4_SHOP_WHISPERS.cards)) {
+      if (CARD_CATALOG[id]) CARD_CATALOG[id].shopWhisper = w;
+    }
+  }
+  if (typeof RESERVE_CATALOG !== 'undefined') {
+    for (const [id, w] of Object.entries(C4_SHOP_WHISPERS.reserves)) {
+      if (RESERVE_CATALOG[id]) RESERVE_CATALOG[id].shopWhisper = w;
+    }
+  }
+  if (typeof GAMBIT_CATALOG !== 'undefined') {
+    for (const [id, w] of Object.entries(C4_SHOP_WHISPERS.gambits)) {
+      if (GAMBIT_CATALOG[id]) GAMBIT_CATALOG[id].shopWhisper = w;
+    }
+  }
+})();

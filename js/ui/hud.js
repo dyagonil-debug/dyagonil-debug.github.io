@@ -197,8 +197,8 @@ function updateHUD() {
   const stabEl = document.getElementById('stability-badge');
   stabEl.textContent = state.stability;
   stabEl.className = state.stability <= 4
-    ? 'font-mono-code font-bold text-xs text-rose-400 animate-pulse'
-    : 'font-mono-code font-bold text-xs text-orange-300';
+    ? 'font-mono-code font-bold text-xs md:text-sm text-rose-400 animate-pulse'
+    : 'font-mono-code font-bold text-xs md:text-sm text-orange-300';
 
   document.getElementById('mana-current').textContent = state.mana;
   document.getElementById('mana-max').textContent = state.maxMana;
@@ -229,8 +229,8 @@ function updateHUD() {
     const isUnlocked = i < state.maxGambitSlots;
     const slot = document.createElement('div');
     slot.className = isUnlocked
-      ? 'w-6 h-6 rounded-lg border border-dashed border-amber-400/30 flex items-center justify-center text-[9px] text-amber-300/60 shrink-0'
-      : 'w-6 h-6 rounded-lg border border-white/5 bg-stone-950/60 flex items-center justify-center text-[9px] text-slate-700 shrink-0';
+      ? 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-dashed border-amber-400/30 flex items-center justify-center text-[9px] text-amber-300/60 shrink-0'
+      : 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-white/5 bg-stone-950/60 flex items-center justify-center text-[9px] text-slate-700 shrink-0';
     slot.textContent = isUnlocked ? '+' : '🔒';
     slot.title = isUnlocked ? 'Unlocked Gambit Slot' : 'Locked Gambit Slot (Defeat Bosses or Upgrade in Bazaar)';
     gambitStrip.appendChild(slot);
@@ -258,7 +258,7 @@ function updateHUD() {
       const tok = RESERVE_CATALOG[rId];
       const isSel = selectedType === rId;
       const pill = document.createElement('button');
-      pill.className = `reserve-token-pill px-2 py-1 rounded-xl flex items-center gap-1 shrink-0 active:scale-95 ${
+      pill.className = `reserve-token-pill px-2 py-1 md:px-2.5 md:py-1.5 rounded-xl flex items-center gap-1 md:gap-1.5 shrink-0 active:scale-95 ${
         isSel ? 'token-selected' : ''
       }`;
       const countBadgeHtml = count > 1
@@ -298,13 +298,13 @@ function updateHUD() {
         : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
 
       const cardBtn = document.createElement('div');
-      cardBtn.className = `arcane-card w-32 sm:w-36 p-2 rounded-xl shrink-0 cursor-pointer flex flex-col justify-between ${
+      cardBtn.className = `arcane-card w-32 sm:w-36 md:w-44 lg:w-48 p-2 md:p-2.5 lg:p-3 rounded-xl md:rounded-2xl shrink-0 cursor-pointer flex flex-col justify-between ${
         !affordable ? 'card-disabled' : ''
       } ${selected ? 'card-selected' : ''}`;
 
       cardBtn.innerHTML = `
         <div class="flex items-center justify-between gap-1">
-          <span class="text-base leading-none">${c.icon}</span>
+          <span class="text-base md:text-lg lg:text-xl leading-none">${c.icon}</span>
           <div class="flex items-center gap-1">
             ${t > 0 ? `<span class="px-1 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase border ${tierBadgeClass}">T${t}</span>` : ''}
             <span class="px-1.5 py-0.5 rounded text-[9px] font-mono-code font-bold ${
@@ -313,8 +313,8 @@ function updateHUD() {
           </div>
         </div>
         <div class="mt-1">
-          <div class="font-display font-bold text-[11px] text-white truncate">${c.name}</div>
-          <p class="text-[9px] text-slate-300 leading-tight mt-0.5 line-clamp-2">${c.shortDesc}</p>
+          <div class="font-display font-bold text-[11px] md:text-xs lg:text-sm text-white truncate">${c.name}</div>
+          <p class="text-[9px] text-slate-300 leading-tight mt-0.5 line-clamp-2">${typeof getCardShortDesc === "function" ? getCardShortDesc(c) : c.shortDesc}</p>
         </div>
       `;
 
@@ -346,7 +346,7 @@ function toggleSelectCard(idx) {
     document.getElementById('inspector-icon').textContent = c.icon;
     document.getElementById('inspector-name').textContent = c.name;
     document.getElementById('inspector-cost').textContent = `${getEffectiveCardCost(cardId)} Mana • Tier ${c.tier || 1}`;
-    document.getElementById('inspector-desc').textContent = c.desc;
+    document.getElementById('inspector-desc').textContent = typeof getItemDesc === 'function' ? getItemDesc(c) : c.desc;
     document.getElementById('action-inspector').classList.remove('hidden');
 
     colHighlightMat.color.setHex(0x2dd4bf);
@@ -374,7 +374,7 @@ function toggleSelectReserveToken(idx) {
     document.getElementById('inspector-icon').textContent = tok.icon;
     document.getElementById('inspector-name').textContent = heldCount > 1 ? `${tok.name} (×${heldCount})` : tok.name;
     document.getElementById('inspector-cost').textContent = `Tier ${tok.tier || 1} Reserve`;
-    document.getElementById('inspector-desc').textContent = tok.desc;
+    document.getElementById('inspector-desc').textContent = typeof getItemDesc === 'function' ? getItemDesc(tok) : tok.desc;
     document.getElementById('action-inspector').classList.remove('hidden');
 
     colHighlightMat.color.setHex(0xf43f5e);
