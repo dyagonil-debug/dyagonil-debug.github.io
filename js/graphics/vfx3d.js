@@ -2867,3 +2867,891 @@ function playReservePropVFX(r, col, colorHex = 0xfacc15, accentHex = 0x38bdf8, p
     }
   });
 }
+
+
+// ============================================================================
+// 36. BESPOKE SCULPTED 3D CHOREOGRAPHY FOR ALL 9 BOSS SPECIAL ABILITIES
+// ============================================================================
+
+// 36A. MYCELIAL SPORE QUEEN: Giant Bioluminescent Mushroom Cap & Arcing 3D Spore Pods
+function playBossSporeQueenVFX(pickedCoords, onInfect, onComplete) {
+  const group = new THREE.Group();
+  const queenPos = new THREE.Vector3(0, VFX_MAX_VISIBLE_Y - 0.35, 1.06);
+
+  // Sculpted Mycelial Queen Mushroom Cap + Spotted Warts + Pleated Gill Underside + Stalk
+  const shroom = new THREE.Group();
+  shroom.position.copy(queenPos);
+
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.38, 0.86, 14), C4_VFX_MATS.boneIvory);
+  stalk.position.y = -0.36;
+  shroom.add(stalk);
+
+  const collarRing = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.06, 8, 18), C4_VFX_MATS.agedBrass);
+  collarRing.rotation.x = Math.PI / 2;
+  collarRing.position.y = -0.18;
+  shroom.add(collarRing);
+
+  const capDome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.96, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.58),
+    C4_VFX_MATS.emeraldJade
+  );
+  capDome.scale.set(1.15, 0.78, 0.92);
+  shroom.add(capDome);
+
+  const gillPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.98, 0.32, 0.14, 20), C4_VFX_MATS.agedBrass);
+  gillPlate.position.y = -0.04;
+  shroom.add(gillPlate);
+
+  // Glowing golden spore warts across the cap dome
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const rad = i % 2 === 0 ? 0.58 : 0.34;
+    const wart = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 1), C4_VFX_MATS.beeswaxGold);
+    wart.position.set(Math.cos(ang) * rad, 0.42 + (i % 2) * 0.16, Math.sin(ang) * rad * 0.75);
+    shroom.add(wart);
+  }
+  group.add(shroom);
+
+  // Arcing 3D Spore Pods flying from the Queen Cap into each infected board slot
+  const targets = (Array.isArray(pickedCoords) && pickedCoords.length > 0) ? pickedCoords : [[2, 3]];
+  const pods = targets.map(([tr, tc], idx) => {
+    const podGroup = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 1), C4_VFX_MATS.emeraldJade);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.045, 8, 18), C4_VFX_MATS.beeswaxGold);
+    podGroup.add(core);
+    podGroup.add(halo);
+    const dest = getCellWorldPos(tr, tc, 0.96);
+    podGroup.userData = {
+      tr,
+      tc,
+      destX: dest.x,
+      destY: clampVisibleY(dest.y),
+      arcOffset: (idx % 2 === 0 ? -1 : 1) * 0.85
+    };
+    group.add(podGroup);
+    return podGroup;
+  });
+
+  let infected = false;
+  addTimedVFX(group, 860, (p) => {
+    shroom.rotation.y = Math.sin(p * Math.PI * 3) * 0.38;
+    const pulse = 1 + Math.sin(p * Math.PI * 6) * 0.08;
+    capDome.scale.set(1.15 * pulse, 0.78 / pulse, 0.92 * pulse);
+
+    if (p < 0.54) {
+      const t = p / 0.54;
+      const ease = t * t * (3 - 2 * t);
+      pods.forEach((pod) => {
+        const d = pod.userData;
+        const x = queenPos.x + (d.destX - queenPos.x) * ease + Math.sin(t * Math.PI) * d.arcOffset;
+        const y = queenPos.y + (d.destY - queenPos.y) * ease + Math.sin(t * Math.PI) * 0.65;
+        pod.position.set(x, clampVisibleY(y), 1.02);
+        pod.rotation.x += 0.18;
+        pod.rotation.y += 0.22;
+      });
+    } else {
+      if (!infected) {
+        infected = true;
+        if (typeof sfx !== 'undefined' && sfx && typeof sfx.playFlyBuzz === 'function') {
+          sfx.playFlyBuzz(false);
+        }
+        triggerBoardShake(0.24);
+        pods.forEach((pod) => {
+          pod.visible = false;
+          const { tr, tc } = pod.userData;
+          spawn3DShockwaveRing(tr, tc, 0x84cc16, 2.7, 520);
+          spawn3DParticleBurst(tr, tc, 0xa3e635, 18, 0.14, 520, 'octa');
+        });
+        if (typeof onInfect === 'function') onInfect();
+      }
+      const fadeP = (p - 0.54) / 0.46;
+      shroom.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36B. CHRONOS DALÍ WARDEN: Melting Brass Pocket Watch, Gyroscope & 3D Column Stack Spiral
+function playBossChronosDaliVFX(col, occupiedRows, onInvert, onComplete) {
+  const colX = START_X + col * CELL_SPACING;
+  const centerY = VFX_CENTER_Y + 0.20;
+
+  const group = new THREE.Group();
+  const clockGroup = new THREE.Group();
+  clockGroup.position.set(colX, centerY, 1.06);
+
+  // Surrealist Warped Elliptical Brass Pocket Watch Case + Ivory Dial + Crown Bow
+  const outerBezel = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.10, 12, 28), C4_VFX_MATS.agedBrass);
+  outerBezel.scale.set(1.12, 0.88, 1);
+  clockGroup.add(outerBezel);
+
+  const dialFace = new THREE.Mesh(new THREE.CylinderGeometry(0.80, 0.80, 0.08, 24), C4_VFX_MATS.boneIvory);
+  dialFace.rotation.x = Math.PI / 2;
+  dialFace.scale.set(1.10, 1, 0.86);
+  dialFace.position.z = -0.04;
+  clockGroup.add(dialFace);
+
+  const crownStem = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 0.28, 10), C4_VFX_MATS.agedBrass);
+  crownStem.position.set(0, 0.92, 0);
+  const bowRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.035, 8, 16), C4_VFX_MATS.agedBrass);
+  bowRing.position.set(0, 1.10, 0);
+  clockGroup.add(crownStem);
+  clockGroup.add(bowRing);
+
+  // Hour & Minute Hands + Center Ruby Jewel Pivot
+  const minuteHand = new THREE.Group();
+  const mBlade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.66, 0.06), C4_VFX_MATS.obsidianPitch);
+  mBlade.position.y = 0.28;
+  minuteHand.add(mBlade);
+  minuteHand.position.z = 0.05;
+
+  const hourHand = new THREE.Group();
+  const hBlade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.46, 0.06), C4_VFX_MATS.crimsonRuby);
+  hBlade.position.y = 0.18;
+  hourHand.add(hBlade);
+  hourHand.position.z = 0.07;
+
+  const pivotGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 1), C4_VFX_MATS.agedBrass);
+  pivotGem.position.z = 0.10;
+  clockGroup.add(minuteHand);
+  clockGroup.add(hourHand);
+  clockGroup.add(pivotGem);
+
+  // Orbiting Temporal Gyroscope Ring
+  const gyroRing = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.045, 10, 28), C4_VFX_MATS.quicksilverChrome);
+  clockGroup.add(gyroRing);
+  group.add(clockGroup);
+
+  // Capture existing token meshes in the marked column so they visually spiral 180° in 3D space
+  const rowList = Array.isArray(occupiedRows) ? occupiedRows : [];
+  const tokenSnapshots = rowList.map((r, i) => {
+    const destR = rowList[rowList.length - 1 - i];
+    const m = state.meshes[r] && state.meshes[r][col];
+    return {
+      mesh: m,
+      startY: START_Y + r * CELL_SPACING,
+      endY: START_Y + destR * CELL_SPACING
+    };
+  });
+
+  let inverted = false;
+  addTimedVFX(group, 860, (p) => {
+    // Melt/warp wobble + rapid counter-clockwise time rewind
+    const warp = Math.sin(p * Math.PI * 4) * 0.16;
+    clockGroup.scale.set(1 + warp, 1 - warp * 0.7, 1);
+    minuteHand.rotation.z = -p * Math.PI * 10;
+    hourHand.rotation.z = -p * Math.PI * 3.5;
+    gyroRing.rotation.x = p * Math.PI * 4;
+    gyroRing.rotation.y = p * Math.PI * 3;
+
+    if (p < 0.56) {
+      const t = p / 0.56;
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      tokenSnapshots.forEach((snap, idx) => {
+        if (!snap.mesh) return;
+        const side = idx % 2 === 0 ? 1 : -1;
+        snap.mesh.position.y = snap.startY + (snap.endY - snap.startY) * ease;
+        snap.mesh.position.x = colX + Math.sin(ease * Math.PI) * 0.42 * side;
+        snap.mesh.position.z = Math.sin(ease * Math.PI) * 0.75;
+        snap.mesh.rotation.x = ease * Math.PI;
+      });
+    } else {
+      if (!inverted) {
+        inverted = true;
+        tokenSnapshots.forEach((snap) => {
+          if (!snap.mesh) return;
+          snap.mesh.position.x = colX;
+          snap.mesh.position.z = 0;
+          snap.mesh.rotation.set(0, 0, 0);
+        });
+        if (typeof sfx !== 'undefined' && sfx) {
+          if (typeof sfx.playGravityVortex === 'function') sfx.playGravityVortex();
+          if (typeof sfx.playDaliClockTick === 'function') sfx.playDaliClockTick();
+        }
+        triggerBoardShake(0.26);
+        spawn3DColumnBeam(col, 0x38bdf8, 0.50, 520, true);
+        if (rowList.length > 0) {
+          spawn3DShockwaveRing(rowList[0], col, 0xfde047, 2.5, 480);
+          spawn3DShockwaveRing(rowList[rowList.length - 1], col, 0x38bdf8, 2.5, 480);
+        } else {
+          spawn3DShockwaveRing(2, col, 0x38bdf8, 2.5, 480);
+        }
+        if (typeof onInvert === 'function') onInvert();
+      }
+      const fadeP = (p - 0.56) / 0.44;
+      clockGroup.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36C. PETRIFIER ARCHON: Crowned Obsidian Archon Mask, Twin Chisels & Encasing Basalt Shards
+function playBossPetrifierArchonVFX(targetRow, targetCol, onPetrify, onComplete) {
+  const safeR = Math.max(0, targetRow);
+  const safeC = Math.max(0, targetCol);
+  const colX = START_X + safeC * CELL_SPACING;
+  const targetY = getVisibleRowY(safeR);
+  const headY = clampVisibleY(targetY + 1.15);
+
+  const group = new THREE.Group();
+
+  // Sculpted Crowned Obsidian Archon Mask hovering above the target column
+  const archon = new THREE.Group();
+  archon.position.set(colX, headY, 1.06);
+
+  const faceSlab = new THREE.Mesh(new THREE.BoxGeometry(1.04, 1.12, 0.46), C4_VFX_MATS.basaltStone);
+  archon.add(faceSlab);
+
+  const browRidge = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.22, 0.56), C4_VFX_MATS.obsidianPitch);
+  browRidge.position.set(0, 0.28, 0.06);
+  archon.add(browRidge);
+
+  [-0.26, 0.26].forEach((ex) => {
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 1), C4_VFX_MATS.crimsonRuby);
+    eye.position.set(ex, 0.12, 0.26);
+    archon.add(eye);
+  });
+
+  // 5-Spire Golden Archon Crown
+  for (let i = -2; i <= 2; i++) {
+    const spire = new THREE.Mesh(
+      new THREE.ConeGeometry(0.11, 0.44 - Math.abs(i) * 0.06, 5),
+      C4_VFX_MATS.agedBrass
+    );
+    spire.position.set(i * 0.22, 0.74, 0.04);
+    archon.add(spire);
+  }
+  group.add(archon);
+
+  // Twin Crossed Mason Chisels striking inward at (targetRow, targetCol)
+  const leftChisel = new THREE.Group();
+  const rightChisel = new THREE.Group();
+  [leftChisel, rightChisel].forEach((ch, idx) => {
+    const dir = idx === 0 ? -1 : 1;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.92, 8), C4_VFX_MATS.darkIron);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.28, 4), C4_VFX_MATS.polishedSteel);
+    tip.rotation.x = Math.PI;
+    tip.position.y = -0.56;
+    ch.add(shaft);
+    ch.add(tip);
+    ch.position.set(colX + dir * 0.85, targetY + 0.45, 1.02);
+    ch.rotation.z = dir * 0.78;
+    group.add(ch);
+  });
+
+  // 6 Jagged Basalt Stalagmite Shards erupting around the target token
+  const shardCage = new THREE.Group();
+  shardCage.position.set(colX, targetY, 0.96);
+  for (let i = 0; i < 6; i++) {
+    const ang = (i / 6) * Math.PI * 2;
+    const shard = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.56, 5), C4_VFX_MATS.basaltStone);
+    shard.position.set(Math.cos(ang) * 0.44, Math.sin(ang) * 0.44, 0);
+    shard.rotation.z = ang + Math.PI / 2;
+    shardCage.add(shard);
+  }
+  group.add(shardCage);
+
+  let petrified = false;
+  addTimedVFX(group, 840, (p) => {
+    archon.position.y = headY + Math.sin(p * Math.PI * 4) * 0.10;
+    if (p < 0.52) {
+      const strike = Math.pow(p / 0.52, 2);
+      leftChisel.position.set(colX - (1 - strike) * 0.85 - 0.18, targetY + (1 - strike) * 0.45, 1.02);
+      rightChisel.position.set(colX + (1 - strike) * 0.85 + 0.18, targetY + (1 - strike) * 0.45, 1.02);
+      shardCage.scale.setScalar(0.35 + strike * 0.85);
+      shardCage.rotation.z = strike * Math.PI;
+    } else {
+      if (!petrified) {
+        petrified = true;
+        if (typeof sfx !== 'undefined' && sfx) {
+          if (typeof sfx.playPetrifiedSeal === 'function') sfx.playPetrifiedSeal();
+          if (typeof sfx.playAnvilClang === 'function') sfx.playAnvilClang();
+        }
+        triggerBoardShake(0.32);
+        spawn3DColumnBeam(safeC, 0xa8a29e, 0.46, 500, false);
+        spawn3DShockwaveRing(safeR, safeC, 0xfbbf24, 2.8, 520);
+        spawn3DParticleBurst(safeR, safeC, 0x78716c, 20, 0.15, 520, 'box');
+        if (typeof onPetrify === 'function') onPetrify();
+      }
+      const fadeP = (p - 0.52) / 0.48;
+      group.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36D. MIRROR VIRTUOSO: Twin Baroque Looking-Glasses, Theatre Masks & 3D Token Swap Arc
+function playBossMirrorVirtuosoVFX(pr, pc, ar, ac, onSwap, onComplete) {
+  const xP = START_X + pc * CELL_SPACING;
+  const yP = getVisibleRowY(pr);
+  const xA = START_X + ac * CELL_SPACING;
+  const yA = getVisibleRowY(ar);
+
+  const group = new THREE.Group();
+
+  const buildBaroqueMirror = (isGoldMask) => {
+    const mGroup = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.08, 12, 28), C4_VFX_MATS.agedBrass);
+    frame.scale.set(0.88, 1.15, 1);
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.06, 24), C4_VFX_MATS.quicksilverChrome);
+    glass.rotation.x = Math.PI / 2;
+    glass.scale.set(0.85, 1, 1.12);
+    const crown = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), C4_VFX_MATS.crimsonRuby);
+    crown.position.set(0, 0.86, 0.06);
+    const mask = new THREE.Mesh(
+      new THREE.BoxGeometry(0.46, 0.56, 0.14),
+      isGoldMask ? C4_VFX_MATS.boneIvory : C4_VFX_MATS.obsidianPitch
+    );
+    mask.position.z = 0.08;
+    mGroup.add(frame);
+    mGroup.add(glass);
+    mGroup.add(crown);
+    mGroup.add(mask);
+    return mGroup;
+  };
+
+  const mirrorLeft = buildBaroqueMirror(true);
+  const mirrorRight = buildBaroqueMirror(false);
+  mirrorLeft.position.set(xP, yP, 0.94);
+  mirrorRight.position.set(xA, yA, 0.94);
+  group.add(mirrorLeft);
+  group.add(mirrorRight);
+
+  // Shimmering Prismatic Diamond Bridge between the two mirrors
+  const bridgeShards = [];
+  for (let i = 0; i < 8; i++) {
+    const sh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.15, 0),
+      i % 2 === 0 ? C4_VFX_MATS.quicksilverChrome : C4_VFX_MATS.crimsonRuby
+    );
+    group.add(sh);
+    bridgeShards.push(sh);
+  }
+
+  const meshP = state.meshes[pr] && state.meshes[pr][pc];
+  const meshA = state.meshes[ar] && state.meshes[ar][ac];
+  const realYP = START_Y + pr * CELL_SPACING;
+  const realYA = START_Y + ar * CELL_SPACING;
+
+  let swapped = false;
+  addTimedVFX(group, 860, (p) => {
+    mirrorLeft.rotation.y = Math.sin(p * Math.PI * 4) * 0.45;
+    mirrorRight.rotation.y = -Math.sin(p * Math.PI * 4) * 0.45;
+
+    bridgeShards.forEach((sh, idx) => {
+      const frac = (idx + 0.5) / 8;
+      const bx = xP + (xA - xP) * frac;
+      const by = yP + (yA - yP) * frac + Math.sin(frac * Math.PI + p * Math.PI * 6) * 0.42;
+      sh.position.set(bx, clampVisibleY(by), 1.08);
+      sh.rotation.z += 0.22;
+      sh.scale.setScalar(1 - Math.abs(p - 0.5) * 1.4);
+    });
+
+    if (p < 0.58) {
+      const t = p / 0.58;
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const arcLift = Math.sin(ease * Math.PI) * 0.95;
+      if (meshP) {
+        meshP.position.x = xP + (xA - xP) * ease;
+        meshP.position.y = realYP + (realYA - realYP) * ease + arcLift;
+        meshP.position.z = Math.sin(ease * Math.PI) * 0.85;
+        meshP.rotation.y = ease * Math.PI;
+      }
+      if (meshA) {
+        meshA.position.x = xA + (xP - xA) * ease;
+        meshA.position.y = realYA + (realYP - realYA) * ease - arcLift * 0.75;
+        meshA.position.z = Math.sin(ease * Math.PI) * 0.65;
+        meshA.rotation.y = -ease * Math.PI;
+      }
+    } else {
+      if (!swapped) {
+        swapped = true;
+        if (meshP) {
+          meshP.position.set(xP, realYP, 0);
+          meshP.rotation.set(0, 0, 0);
+        }
+        if (meshA) {
+          meshA.position.set(xA, realYA, 0);
+          meshA.rotation.set(0, 0, 0);
+        }
+        if (typeof sfx !== 'undefined' && sfx && typeof sfx.playSurrealTransmute === 'function') {
+          sfx.playSurrealTransmute();
+        }
+        triggerBoardShake(0.24);
+        spawn3DShockwaveRing(pr, pc, 0xe879f9, 2.7, 500);
+        spawn3DShockwaveRing(ar, ac, 0x38bdf8, 2.7, 500);
+        spawn3DParticleBurst(pr, pc, 0xfde047, 16, 0.14, 500, 'octa');
+        spawn3DParticleBurst(ar, ac, 0xe2e8f0, 16, 0.14, 500, 'octa');
+        if (typeof onSwap === 'function') onSwap();
+      }
+      const fadeP = (p - 0.58) / 0.42;
+      mirrorLeft.scale.setScalar(Math.max(0.01, 1 - fadeP));
+      mirrorRight.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36E. MAGMA LEVIATHAN: Horned Molten Dragon Maw & Subterranean Lava Geyser
+function playBossMagmaLeviathanVFX(botR, targetCol, onMelt, onComplete) {
+  const safeR = Math.max(0, botR);
+  const safeC = Math.max(0, targetCol);
+  const colX = START_X + safeC * CELL_SPACING;
+  const botY = getVisibleRowY(safeR);
+
+  const group = new THREE.Group();
+
+  // Sculpted Horned Molten Leviathan Jaws rising from beneath the bottom row
+  const maw = new THREE.Group();
+  maw.position.set(colX, botY - 0.25, 1.04);
+
+  const leftJaw = new THREE.Group();
+  const rightJaw = new THREE.Group();
+  [-1, 1].forEach((dir) => {
+    const jawSide = dir === -1 ? leftJaw : rightJaw;
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.82, 0.58), C4_VFX_MATS.obsidianPitch);
+    plate.position.x = dir * 0.34;
+    jawSide.add(plate);
+
+    const crest = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.64, 6), C4_VFX_MATS.crimsonRuby);
+    crest.position.set(dir * 0.58, 0.36, 0.10);
+    crest.rotation.z = -dir * 0.42;
+    jawSide.add(crest);
+
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 1), C4_VFX_MATS.beeswaxGold);
+    eye.position.set(dir * 0.42, 0.18, 0.32);
+    jawSide.add(eye);
+
+    for (let f = -1; f <= 1; f++) {
+      const fang = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 5), C4_VFX_MATS.boneIvory);
+      fang.position.set(dir * 0.16, f * 0.22, 0.24);
+      fang.rotation.z = dir * (Math.PI / 2);
+      jawSide.add(fang);
+    }
+    maw.add(jawSide);
+  });
+  group.add(maw);
+
+  // 16 Swirling Molten Magma Plume Cones erupting up the column
+  const plumes = [];
+  const plumeGeo = new THREE.ConeGeometry(0.22, 0.58, 6);
+  for (let i = 0; i < 16; i++) {
+    const pMat = new THREE.MeshBasicMaterial({
+      color: i % 2 === 0 ? 0xf97316 : 0xef4444,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    const pm = new THREE.Mesh(plumeGeo, pMat);
+    group.add(pm);
+    plumes.push(pm);
+  }
+
+  let melted = false;
+  addTimedVFX(group, 860, (p) => {
+    const bite = p < 0.48 ? Math.sin((p / 0.48) * Math.PI * 0.5) : 1;
+    maw.position.y = clampVisibleY((botY - 0.55) + bite * 0.55);
+    leftJaw.rotation.z = -(1 - bite) * 0.45;
+    rightJaw.rotation.z = (1 - bite) * 0.45;
+
+    plumes.forEach((pm, idx) => {
+      const ang = (idx / 16) * Math.PI * 2 + p * Math.PI * 6;
+      const hFrac = ((idx / 16) + p * 1.6) % 1;
+      const py = clampVisibleY(VFX_MIN_VISIBLE_Y + hFrac * 3.8);
+      pm.position.set(colX + Math.cos(ang) * 0.42, py, 0.98 + Math.sin(ang) * 0.24);
+      pm.material.opacity = 1 - p;
+    });
+
+    if (p >= 0.52 && !melted) {
+      melted = true;
+      if (typeof sfx !== 'undefined' && sfx) {
+        if (typeof sfx.playBrimstoneLaser === 'function') sfx.playBrimstoneLaser();
+        if (typeof sfx.playHibachiSizzle === 'function') sfx.playHibachiSizzle();
+      }
+      triggerBoardShake(0.36);
+      spawn3DColumnBeam(safeC, 0xf97316, 0.54, 540, true);
+      spawn3DShockwaveRing(safeR, safeC, 0xef4444, 2.9, 520);
+      spawn3DParticleBurst(safeR, safeC, 0xfbbf24, 22, 0.16, 540, 'cone');
+      if (typeof onMelt === 'function') onMelt();
+    }
+    if (p > 0.72) {
+      maw.scale.setScalar(Math.max(0.01, (1 - p) / 0.28));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36F. TECTONIC BEHEMOTH: Colossal Chained Basalt War-Fist & Seismic Ceiling Slam
+function playBossTectonicBehemothVFX(destR, destCol, onQuake, onComplete) {
+  const safeR = Math.max(0, destR);
+  const safeC = Math.max(0, destCol);
+  const colX = START_X + safeC * CELL_SPACING;
+  const startY = VFX_MAX_VISIBLE_Y + 0.35;
+  const endY = getVisibleRowY(safeR);
+
+  const group = new THREE.Group();
+  const fist = new THREE.Group();
+  fist.position.set(colX, startY, 1.06);
+
+  // Armored Basalt Gauntlet Core + Molten Core Seam + 4 Brass Knuckle Spikes + Trailing Iron Chain
+  const gauntletBlock = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.06, 0.76), C4_VFX_MATS.basaltStone);
+  fist.add(gauntletBlock);
+
+  const wristCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.62, 0.36, 12), C4_VFX_MATS.darkIron);
+  wristCuff.position.y = 0.64;
+  fist.add(wristCuff);
+
+  const magmaCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.36, 1), C4_VFX_MATS.crimsonRuby);
+  magmaCore.position.z = 0.32;
+  fist.add(magmaCore);
+
+  for (let k = -1.5; k <= 1.5; k += 1) {
+    const knuckleSpike = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.42, 5), C4_VFX_MATS.agedBrass);
+    knuckleSpike.rotation.x = Math.PI;
+    knuckleSpike.position.set(k * 0.28, -0.66, 0.16);
+    fist.add(knuckleSpike);
+  }
+
+  for (let l = 1; l <= 3; l++) {
+    const link = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.045, 8, 16), C4_VFX_MATS.agedBrass);
+    link.position.y = 0.82 + l * 0.28;
+    link.rotation.y = (l % 2) * (Math.PI / 2);
+    fist.add(link);
+  }
+  group.add(fist);
+
+  let quaked = false;
+  addTimedVFX(group, 860, (p) => {
+    if (p < 0.48) {
+      const fallFrac = Math.pow(p / 0.48, 3);
+      fist.position.y = clampVisibleY(startY - (startY - endY) * fallFrac);
+      fist.rotation.z = Math.sin(p * Math.PI * 8) * 0.08;
+    } else {
+      if (!quaked) {
+        quaked = true;
+        if (typeof sfx !== 'undefined' && sfx) {
+          if (typeof sfx.playTremorQuake === 'function') sfx.playTremorQuake();
+          if (typeof sfx.playShatterCrunch === 'function') sfx.playShatterCrunch();
+        }
+        triggerBoardShake(0.42);
+        spawn3DColumnBeam(safeC, 0xf59e0b, 0.56, 540, true);
+        spawn3DShockwaveRing(safeR, safeC, 0xf97316, 3.1, 540);
+        spawn3DParticleBurst(safeR, safeC, 0x78716c, 24, 0.16, 540, 'box');
+        for (let c = 0; c < COLS; c += 2) {
+          spawn3DShockwaveRing(0, c, 0xfbbf24, 1.9, 420);
+        }
+        if (typeof onQuake === 'function') onQuake();
+      }
+      const fadeP = (p - 0.48) / 0.52;
+      fist.position.y = clampVisibleY(endY + Math.sin(fadeP * Math.PI) * 0.35);
+      fist.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36G. ABYSSAL LODESTONE: Giant Horseshoe Singularity Magnet & 3D Neighbor Token Pull Arcs
+function playBossAbyssalLodestoneVFX(mc, pullMoves, condensedStoneCell, onResolve, onComplete) {
+  const colX = START_X + mc * CELL_SPACING;
+  const centerY = VFX_CENTER_Y + 0.25;
+
+  const group = new THREE.Group();
+  const magnet = new THREE.Group();
+  magnet.position.set(colX, centerY, 1.06);
+
+  // Giant U-Shaped Astral Horseshoe Magnet + Crimson/Cyan Pole Caps + Spinning Singularity Core
+  const uArch = new THREE.Mesh(
+    new THREE.TorusGeometry(0.76, 0.18, 12, 24, Math.PI),
+    C4_VFX_MATS.darkIron
+  );
+  uArch.position.y = 0.22;
+  magnet.add(uArch);
+
+  [-0.76, 0.76].forEach((px, idx) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.58, 12), C4_VFX_MATS.darkIron);
+    leg.position.set(px, -0.06, 0);
+    const poleCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.20, 0.20, 0.26, 12),
+      idx === 0 ? C4_VFX_MATS.crimsonRuby : C4_VFX_MATS.quicksilverChrome
+    );
+    poleCap.position.set(px, -0.44, 0);
+    magnet.add(leg);
+    magnet.add(poleCap);
+  });
+
+  const singularityCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 1), C4_VFX_MATS.beeswaxGold);
+  singularityCore.position.set(0, -0.15, 0.08);
+  magnet.add(singularityCore);
+  group.add(magnet);
+
+  // 3 Concentric Gravitic Pulse Rings contracting inward toward Singularity Column mc
+  const pulseRings = [];
+  for (let i = 0; i < 3; i++) {
+    const rMesh = new THREE.Mesh(
+      new THREE.TorusGeometry(1.45 - i * 0.28, 0.04, 8, 28),
+      C4_VFX_MATS.quicksilverChrome
+    );
+    rMesh.position.set(colX, centerY, 0.96);
+    group.add(rMesh);
+    pulseRings.push(rMesh);
+  }
+
+  // Capture neighbor token meshes being pulled laterally into column mc
+  const activePulls = (Array.isArray(pullMoves) ? pullMoves : []).map((mv) => {
+    const m = state.meshes[mv.fromR] && state.meshes[mv.fromR][mv.fromC];
+    return {
+      ...mv,
+      mesh: m,
+      startX: START_X + mv.fromC * CELL_SPACING,
+      startY: START_Y + mv.fromR * CELL_SPACING,
+      endX: START_X + mv.toC * CELL_SPACING,
+      endY: START_Y + mv.toR * CELL_SPACING
+    };
+  });
+
+  let resolved = false;
+  addTimedVFX(group, 860, (p) => {
+    singularityCore.rotation.x += 0.22;
+    singularityCore.rotation.y += 0.28;
+    magnet.position.y = centerY + Math.sin(p * Math.PI * 6) * 0.12;
+
+    pulseRings.forEach((rm, idx) => {
+      const cycle = (p * 2.2 + idx * 0.33) % 1;
+      rm.scale.setScalar(1.35 - cycle * 0.95);
+      rm.rotation.z = p * Math.PI * (idx % 2 === 0 ? 3 : -3);
+    });
+
+    if (p < 0.56) {
+      const t = p / 0.56;
+      const ease = t * t * (3 - 2 * t);
+      activePulls.forEach((pl) => {
+        if (!pl.mesh) return;
+        pl.mesh.position.x = pl.startX + (pl.endX - pl.startX) * ease;
+        pl.mesh.position.y = pl.startY + (pl.endY - pl.startY) * ease + Math.sin(ease * Math.PI) * 0.68;
+        pl.mesh.position.z = Math.sin(ease * Math.PI) * 0.82;
+        pl.mesh.rotation.z = ease * Math.PI * 1.5;
+      });
+    } else {
+      if (!resolved) {
+        resolved = true;
+        activePulls.forEach((pl) => {
+          if (!pl.mesh) return;
+          pl.mesh.position.set(pl.startX, pl.startY, 0);
+          pl.mesh.rotation.set(0, 0, 0);
+        });
+        if (typeof sfx !== 'undefined' && sfx) {
+          if (typeof sfx.playGravityVortex === 'function') sfx.playGravityVortex();
+          if (typeof sfx.playAnvilClang === 'function') sfx.playAnvilClang();
+        }
+        triggerBoardShake(0.32);
+        spawn3DColumnBeam(mc, 0x38bdf8, 0.54, 540, true);
+        activePulls.forEach((pl) => {
+          spawn3DShockwaveRing(pl.toR, pl.toC, 0x38bdf8, 2.7, 500);
+          spawn3DParticleBurst(pl.toR, pl.toC, 0xfde047, 16, 0.14, 500, 'octa');
+        });
+        if (condensedStoneCell) {
+          spawn3DShockwaveRing(condensedStoneCell[0], condensedStoneCell[1], 0x38bdf8, 2.7, 500);
+          spawn3DParticleBurst(condensedStoneCell[0], condensedStoneCell[1], 0x94a3b8, 16, 0.14, 500, 'box');
+        }
+        if (typeof onResolve === 'function') onResolve();
+      }
+      const fadeP = (p - 0.56) / 0.44;
+      group.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36H. ASTRAL VOID WEAVER: 8-Legged Articulated Arachnid, Silk Snares & Lateral Token Drag
+function playBossVoidWeaverVFX(snareCoords, dragMove, onWeave, onComplete) {
+  const focusCol = dragMove ? dragMove.fromC : 3;
+  const spiderX = START_X + focusCol * CELL_SPACING;
+  const spiderY = VFX_MAX_VISIBLE_Y - 0.32;
+
+  const group = new THREE.Group();
+  const spider = new THREE.Group();
+  spider.position.set(spiderX, spiderY, 1.08);
+
+  // Sculpted Arachnid Abdomen + Cephalothorax + Crimson Hourglass + 6 Ruby Eyes + 8 Articulated Legs
+  const abdomen = new THREE.Mesh(new THREE.OctahedronGeometry(0.56, 2), C4_VFX_MATS.obsidianPitch);
+  abdomen.scale.set(0.95, 1.22, 0.78);
+  abdomen.position.y = 0.28;
+  spider.add(abdomen);
+
+  const hourglass = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), C4_VFX_MATS.crimsonRuby);
+  hourglass.position.set(0, 0.28, 0.42);
+  spider.add(hourglass);
+
+  const thorax = new THREE.Mesh(new THREE.OctahedronGeometry(0.36, 1), C4_VFX_MATS.obsidianPitch);
+  thorax.position.y = -0.26;
+  spider.add(thorax);
+
+  for (let e = -1; e <= 1; e++) {
+    const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), C4_VFX_MATS.crimsonRuby);
+    eye.position.set(e * 0.14, -0.34, 0.30);
+    spider.add(eye);
+  }
+
+  const legs = [];
+  [-1, 1].forEach((side) => {
+    for (let l = 0; l < 4; l++) {
+      const legGroup = new THREE.Group();
+      const femur = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.68, 8), C4_VFX_MATS.darkIron);
+      femur.position.set(side * 0.34, 0.12, 0);
+      femur.rotation.z = -side * 1.05;
+      const tibia = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.74, 8), C4_VFX_MATS.agedBrass);
+      tibia.position.set(side * 0.72, -0.18, 0.08);
+      tibia.rotation.z = side * 2.35;
+      legGroup.add(femur);
+      legGroup.add(tibia);
+      legGroup.position.y = 0.12 - l * 0.18;
+      spider.add(legGroup);
+      legs.push({ legGroup, side, idx: l });
+    }
+  });
+  group.add(spider);
+
+  // Glowing Silk Web Pods descending to each snared cell
+  const snares = (Array.isArray(snareCoords) ? snareCoords : []).map(([sr, sc]) => {
+    const dest = getCellWorldPos(sr, sc, 0.96);
+    const webRing = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.04, 8, 16), C4_VFX_MATS.quicksilverChrome);
+    webRing.userData = { sr, sc, destX: dest.x, destY: clampVisibleY(dest.y) };
+    group.add(webRing);
+    return webRing;
+  });
+
+  const dragMesh = (dragMove && state.meshes[dragMove.fromR])
+    ? state.meshes[dragMove.fromR][dragMove.fromC]
+    : null;
+  const dragStartX = dragMove ? (START_X + dragMove.fromC * CELL_SPACING) : 0;
+  const dragStartY = dragMove ? (START_Y + dragMove.fromR * CELL_SPACING) : 0;
+  const dragEndX = dragMove ? (START_X + dragMove.toC * CELL_SPACING) : 0;
+  const dragEndY = dragMove ? (START_Y + dragMove.toR * CELL_SPACING) : 0;
+
+  let woven = false;
+  addTimedVFX(group, 860, (p) => {
+    spider.position.y = clampVisibleY(spiderY - Math.sin(p * Math.PI) * 0.55);
+    legs.forEach(({ legGroup, side, idx }) => {
+      legGroup.rotation.z = Math.sin(p * Math.PI * 8 + idx) * 0.22 * side;
+    });
+
+    if (p < 0.56) {
+      const t = p / 0.56;
+      const ease = t * t * (3 - 2 * t);
+      snares.forEach((wr) => {
+        const d = wr.userData;
+        wr.position.set(
+          spiderX + (d.destX - spiderX) * ease,
+          clampVisibleY(spider.position.y + (d.destY - spider.position.y) * ease),
+          1.02
+        );
+        wr.rotation.z = p * Math.PI * 6;
+      });
+      if (dragMesh && dragMove) {
+        dragMesh.position.x = dragStartX + (dragEndX - dragStartX) * ease;
+        dragMesh.position.y = dragStartY + (dragEndY - dragStartY) * ease + Math.sin(ease * Math.PI) * 0.55;
+        dragMesh.position.z = Math.sin(ease * Math.PI) * 0.78;
+      }
+    } else {
+      if (!woven) {
+        woven = true;
+        if (dragMesh && dragMove) {
+          dragMesh.position.set(dragStartX, dragStartY, 0);
+        }
+        if (typeof sfx !== 'undefined' && sfx) {
+          if (typeof sfx.playBatEcholocation === 'function') sfx.playBatEcholocation();
+          if (typeof sfx.playCurseBuzzer === 'function') sfx.playCurseBuzzer();
+        }
+        triggerBoardShake(0.28);
+        snares.forEach((wr) => {
+          wr.visible = false;
+          spawn3DShockwaveRing(wr.userData.sr, wr.userData.sc, 0xc084fc, 2.5, 480);
+          spawn3DParticleBurst(wr.userData.sr, wr.userData.sc, 0xa855f7, 14, 0.13, 480, 'octa');
+        });
+        if (dragMove) {
+          spawn3DShockwaveRing(dragMove.fromR, dragMove.fromC, 0xa855f7, 2.4, 480);
+          spawn3DShockwaveRing(dragMove.toR, dragMove.toC, 0xc084fc, 2.7, 520);
+          spawn3DParticleBurst(dragMove.toR, dragMove.toC, 0xe9d5ff, 18, 0.14, 500, 'octa');
+        }
+        if (typeof onWeave === 'function') onWeave();
+      }
+      const fadeP = (p - 0.56) / 0.44;
+      spider.scale.setScalar(Math.max(0.01, 1 - fadeP));
+    }
+
+    if (p >= 0.98 && typeof onComplete === 'function') {
+      const cb = onComplete;
+      onComplete = null;
+      cb();
+    }
+  });
+}
+
+// 36I. SOVEREIGN TESSERACT: 4D Hypercube Hologram & Dimensional Strut Projection
+function playBossSovereignTesseractVFX() {
+  const group = new THREE.Group();
+  group.position.set(0, VFX_CENTER_Y + 0.15, 1.16);
+
+  const outerCube = new THREE.Mesh(
+    new THREE.BoxGeometry(2.15, 2.15, 2.15),
+    new THREE.MeshBasicMaterial({ color: 0xfde047, wireframe: true, transparent: true, opacity: 0.85 })
+  );
+  const innerCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1.12, 1.12, 1.12),
+    new THREE.MeshBasicMaterial({ color: 0xf43f5e, wireframe: true, transparent: true, opacity: 0.95 })
+  );
+  const coreStar = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 1), C4_VFX_MATS.beeswaxGold);
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.52, 0.05, 10, 32), C4_VFX_MATS.agedBrass);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.26, 0.04, 10, 32), C4_VFX_MATS.crimsonRuby);
+
+  group.add(outerCube);
+  group.add(innerCube);
+  group.add(coreStar);
+  group.add(ring1);
+  group.add(ring2);
+
+  addTimedVFX(group, 720, (p) => {
+    outerCube.rotation.set(p * Math.PI * 2.5, p * Math.PI * 3.2, 0);
+    innerCube.rotation.set(-p * Math.PI * 3.5, -p * Math.PI * 2.5, p * Math.PI * 2);
+    coreStar.rotation.y = p * Math.PI * 5;
+    ring1.rotation.x = p * Math.PI * 4;
+    ring2.rotation.y = -p * Math.PI * 4;
+    const scaleEnv = p < 0.25 ? (p / 0.25) : (p > 0.72 ? (1 - p) / 0.28 : 1);
+    group.scale.setScalar(Math.max(0.01, scaleEnv));
+  });
+}

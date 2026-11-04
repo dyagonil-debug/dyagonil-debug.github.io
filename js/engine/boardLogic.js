@@ -2642,18 +2642,16 @@ function triggerAITurn() {
       triggerSlotEnchantment(r, col, AI);
     }
 
-    if (floorData.isBoss && floorData.bossArchetype) {
-      executeRandomizedBossAbility(floorData.bossArchetype);
-    }
-
-    const bossShiftPlayerWin = aiEngine.findWinningLine(state.board, PLAYER);
-    if (bossShiftPlayerWin) {
-      handleFloorVictory(bossShiftPlayerWin);
+    // Check if the AI's standard token drop immediately ended the floor before firing Boss abilities
+    const immediatePlayerWin = aiEngine.findWinningLine(state.board, PLAYER);
+    if (immediatePlayerWin) {
+      handleFloorVictory(immediatePlayerWin);
       return;
     }
 
-    const aiWin = aiEngine.findWinningLine(state.board, AI);
-    if (aiWin) {
+    const checkAndResolveAIWin = () => {
+      const aiWin = aiEngine.findWinningLine(state.board, AI);
+      if (!aiWin) return false;
       if (hasGambit('obsidian_cat') && !state.catNineLivesUsed) {
         state.catNineLivesUsed = true;
         sfx.playCatMeowSlash(true);
@@ -2668,61 +2666,93 @@ function triggerAITurn() {
         rebuildBoardMeshes([winC]);
         onTokenShattered(1);
         showToast("🐈‍⬛ NINE LIVES! Obsidian Cat clawed & shattered the AI's winning 4th token!", '🐈‍⬛');
-      } else {
-        handleFloorDefeat(aiWin);
-        return;
+        return false;
       }
-    }
+      handleFloorDefeat(aiWin);
+      return true;
+    };
 
-    state.stability--;
-    if (state.stability <= 0) {
-      const validCols = getPlayableColumns();
-      if (validCols.length > 0) {
-        const collapseCol = validCols[Math.floor(Math.random() * validCols.length)];
-        const cr = aiEngine.getAvailableRow(state.board, collapseCol);
-        spawnTokenMesh(cr, collapseCol, STONE);
-        showToast(`🌋 Cavern Collapse dropped Stone in Col ${collapseCol + 1}!`, '🪨');
-      }
-    }
-
-    if (aiEngine.isBoardFull(state.board)) {
-      handleDraw();
+    if (checkAndResolveAIWin()) {
       return;
     }
 
-    state.turn = PLAYER;
-    state.turnNumber++;
-    state.cardsCastThisTurn = 0;
-    state.bellowsTriggeredThisTurn = false;
-    state.bloodletterHealCountThisTurn = 0;
-    if (!state.isCarouselRotating) {
-      state.busy = false;
-    }
+    const finalizeAITurn = () => {
+      if (state.gameOver) return;
 
-    const diff = getActiveDifficulty();
-    const regenInterval = diff.manaRegenInterval || 1;
-    if (state.turnNumber % regenInterval === 0) {
-      const regenAmt = diff.manaRegenPerTurn || 1;
-      state.mana = Math.min(state.maxMana, state.mana + regenAmt);
-    }
-
-    const drawInterval = diff.drawRateInterval || 1;
-    if (state.turnNumber % drawInterval === 0) {
-      let cardsToDraw = diff.cardsPerTurn || 1;
-      if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
-        cardsToDraw += 1;
+      const bossShiftPlayerWin = aiEngine.findWinningLine(state.board, PLAYER);
+      if (bossShiftPlayerWin) {
+        handleFloorVictory(bossShiftPlayerWin);
+        return;
       }
-      drawCards(cardsToDraw);
-    }
 
-    updateHUD();
-    updateTelemetryBadges();
-    setStatusBanner(true, 'Your Turn • Drag across columns to aim');
+      if (checkAndResolveAIWin()) {
+        return;
+      }
+
+      state.stability--;
+      if (state.stability <= 0) {
+        const validCols = getPlayableColumns();
+        if (validCols.length > 0) {
+          const collapseCol = validCols[Math.floor(Math.random() * validCols.length)];
+          const cr = aiEngine.getAvailableRow(state.board, collapseCol);
+          spawn3DColumnBeam(collapseCol, 0x78716c, 0.42, 460, false);
+          spawn3DShockwaveRing(cr, collapseCol, 0xf97316, 2.4, 460);
+          spawnTokenMesh(cr, collapseCol, STONE);
+          showToast(`🌋 Cavern Collapse dropped Stone in Col ${collapseCol + 1}!`, '🪨');
+        }
+      }
+
+      if (aiEngine.isBoardFull(state.board)) {
+        handleDraw();
+        return;
+      }
+
+      state.turn = PLAYER;
+      state.turnNumber++;
+      state.cardsCastThisTurn = 0;
+      state.bellowsTriggeredThisTurn = false;
+      state.bloodletterHealCountThisTurn = 0;
+      if (!state.isCarouselRotating) {
+        state.busy = false;
+      }
+
+      const diff = getActiveDifficulty();
+      const regenInterval = diff.manaRegenInterval || 1;
+      if (state.turnNumber % regenInterval === 0) {
+        const regenAmt = diff.manaRegenPerTurn || 1;
+        state.mana = Math.min(state.maxMana, state.mana + regenAmt);
+      }
+
+      const drawInterval = diff.drawRateInterval || 1;
+      if (state.turnNumber % drawInterval === 0) {
+        let cardsToDraw = diff.cardsPerTurn || 1;
+        if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
+          cardsToDraw += 1;
+        }
+        drawCards(cardsToDraw);
+      }
+
+      updateHUD();
+      updateTelemetryBadges();
+      setStatusBanner(true, 'Your Turn • Drag across columns to aim');
+    };
+
+    const arch = floorData.isBoss ? floorData.bossArchetype : null;
+    const isBossAbilityDue = arch && (state.turnNumber % getEffectiveBossInterval(arch) === 0);
+    if (isBossAbilityDue) {
+      setStatusBanner(false, `⚡ ${floorData.boss} is unleashing its Boss Ability...`);
+      setTimeout(() => {
+        if (state.gameOver) return;
+        executeRandomizedBossAbility(arch, finalizeAITurn);
+      }, 360);
+    } else {
+      finalizeAITurn();
+    }
   }, 460);
 }
 
 const BOSS_ABILITY_HANDLERS = {
-  petrifier_archon() {
+  petrifier_archon(onComplete) {
     let bestCol = -1;
     let maxCount = 0;
     let targetRow = -1;
@@ -2740,13 +2770,28 @@ const BOSS_ABILITY_HANDLERS = {
       }
     }
     if (bestCol !== -1 && targetRow !== -1) {
+      if (typeof playBossPetrifierArchonVFX === 'function') {
+        playBossPetrifierArchonVFX(
+          targetRow,
+          bestCol,
+          () => {
+            state.board[targetRow][bestCol] = STONE;
+            rebuildBoardMeshes();
+            showToast(`🗿 Petrifier Archon turned your Col ${bestCol + 1} token into Stone!`, '🗿');
+            updateHUD();
+          },
+          onComplete
+        );
+        return;
+      }
       state.board[targetRow][bestCol] = STONE;
       rebuildBoardMeshes();
       showToast(`🗿 Petrifier Archon turned your Col ${bestCol + 1} token into Stone!`, '🗿');
     }
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  chronos_dali() {
+  chronos_dali(onComplete) {
     const mc = state.bossMarkedCol;
     const occupiedRows = [];
     const stack = [];
@@ -2756,6 +2801,40 @@ const BOSS_ABILITY_HANDLERS = {
         stack.push(state.board[r][mc]);
       }
     }
+    const selectNextMarkedCol = () => {
+      const popCols = [];
+      for (let c = 0; c < COLS; c++) {
+        if (aiEngine.getBottomOccupiedRow(state.board, c) !== -1) popCols.push(c);
+      }
+      state.bossMarkedCol = popCols.length > 0
+        ? popCols[Math.floor(Math.random() * popCols.length)]
+        : Math.floor(Math.random() * COLS);
+    };
+
+    if (typeof playBossChronosDaliVFX === 'function') {
+      playBossChronosDaliVFX(
+        mc,
+        occupiedRows,
+        () => {
+          if (stack.length >= 2) {
+            stack.reverse();
+            for (let i = 0; i < occupiedRows.length; i++) {
+              state.board[occupiedRows[i]][mc] = stack[i];
+            }
+            rebuildBoardMeshes();
+            showToast(`🕰️ Chronos Dalí Warden inverted Col ${mc + 1}!`, '🌀');
+          } else {
+            showToast(`🕰️ Chronos Dalí Warden warped Col ${mc + 1}!`, '🌀');
+          }
+          selectNextMarkedCol();
+          updateHUD();
+          updateTelemetryBadges();
+        },
+        onComplete
+      );
+      return;
+    }
+
     if (stack.length >= 2) {
       stack.reverse();
       for (let i = 0; i < occupiedRows.length; i++) {
@@ -2764,16 +2843,11 @@ const BOSS_ABILITY_HANDLERS = {
       rebuildBoardMeshes();
       showToast(`🕰️ Chronos Dalí Warden inverted Col ${mc + 1}!`, '🌀');
     }
-    const popCols = [];
-    for (let c = 0; c < COLS; c++) {
-      if (aiEngine.getBottomOccupiedRow(state.board, c) !== -1) popCols.push(c);
-    }
-    state.bossMarkedCol = popCols.length > 0
-      ? popCols[Math.floor(Math.random() * popCols.length)]
-      : Math.floor(Math.random() * COLS);
+    selectNextMarkedCol();
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  magma_leviathan() {
+  magma_leviathan(onComplete) {
     const stackedCols = [];
     const anyPopCols = [];
     for (let c = 0; c < COLS; c++) {
@@ -2789,6 +2863,22 @@ const BOSS_ABILITY_HANDLERS = {
       const tc = pool[Math.floor(Math.random() * pool.length)];
       const botR = aiEngine.getBottomOccupiedRow(state.board, tc);
       if (botR !== -1) {
+        if (typeof playBossMagmaLeviathanVFX === 'function') {
+          playBossMagmaLeviathanVFX(
+            botR,
+            tc,
+            () => {
+              state.board[botR][tc] = EMPTY;
+              applyColumnGravity(tc);
+              onTokenShattered(1);
+              rebuildBoardMeshes([tc]);
+              showToast(`🌋 Magma Leviathan melted the base of Col ${tc + 1} & shifted the stack down!`, '🔥');
+              updateHUD();
+            },
+            onComplete
+          );
+          return;
+        }
         state.board[botR][tc] = EMPTY;
         applyColumnGravity(tc);
         onTokenShattered(1);
@@ -2796,9 +2886,10 @@ const BOSS_ABILITY_HANDLERS = {
         showToast(`🌋 Magma Leviathan melted the base of Col ${tc + 1} & shifted the stack down!`, '🔥');
       }
     }
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  spore_queen() {
+  spore_queen(onComplete) {
     const emptyCoords = [];
     for (let r = 0; r < ROWS - 1; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -2808,16 +2899,32 @@ const BOSS_ABILITY_HANDLERS = {
       }
     }
     const picked = shuffle(emptyCoords).slice(0, 2);
-    picked.forEach(([r, c]) => {
-      state.enchantGrid[r][c] = ENCHANT_TYPES.CURSED_SPORE;
-    });
     if (picked.length > 0) {
+      if (typeof playBossSporeQueenVFX === 'function') {
+        playBossSporeQueenVFX(
+          picked,
+          () => {
+            picked.forEach(([r, c]) => {
+              state.enchantGrid[r][c] = ENCHANT_TYPES.CURSED_SPORE;
+            });
+            rebuildEnchantmentRings();
+            showToast(`🍄 Spore Queen infected ${picked.length} slots with Cursed Spores!`, '🍄');
+            updateHUD();
+          },
+          onComplete
+        );
+        return;
+      }
+      picked.forEach(([r, c]) => {
+        state.enchantGrid[r][c] = ENCHANT_TYPES.CURSED_SPORE;
+      });
       rebuildEnchantmentRings();
       showToast(`🍄 Spore Queen infected ${picked.length} slots with Cursed Spores!`, '🍄');
     }
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  mirror_virtuoso() {
+  mirror_virtuoso(onComplete) {
     const playerTops = [];
     const aiTops = [];
     for (let c = 0; c < COLS; c++) {
@@ -2830,65 +2937,128 @@ const BOSS_ABILITY_HANDLERS = {
     if (playerTops.length > 0 && aiTops.length > 0) {
       const [pr, pc] = playerTops[Math.floor(Math.random() * playerTops.length)];
       const [ar, ac] = aiTops[Math.floor(Math.random() * aiTops.length)];
+      if (typeof playBossMirrorVirtuosoVFX === 'function') {
+        playBossMirrorVirtuosoVFX(
+          pr,
+          pc,
+          ar,
+          ac,
+          () => {
+            state.board[pr][pc] = AI;
+            state.board[ar][ac] = PLAYER;
+            rebuildBoardMeshes();
+            showToast(`🎭 Mirror Virtuoso swapped top tokens in Col ${pc + 1} & Col ${ac + 1}!`, '🎭');
+            updateHUD();
+          },
+          onComplete
+        );
+        return;
+      }
       state.board[pr][pc] = AI;
       state.board[ar][ac] = PLAYER;
       rebuildBoardMeshes();
       showToast(`🎭 Mirror Virtuoso swapped top tokens in Col ${pc + 1} & Col ${ac + 1}!`, '🎭');
     }
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  tectonic_behemoth() {
-    state.stability = Math.max(0, state.stability - 1);
+  tectonic_behemoth(onComplete) {
     const openCols = getPlayableColumns();
     if (openCols.length > 0) {
       const sc = openCols[Math.floor(Math.random() * openCols.length)];
       const sr = aiEngine.getAvailableRow(state.board, sc);
+      if (typeof playBossTectonicBehemothVFX === 'function') {
+        playBossTectonicBehemothVFX(
+          sr,
+          sc,
+          () => {
+            state.stability = Math.max(0, state.stability - 1);
+            spawnTokenMesh(sr, sc, STONE);
+            showToast(`🦖 Tectonic Behemoth quaked -1 Stability & dropped Stone in Col ${sc + 1}!`, '🦖');
+            updateHUD();
+          },
+          onComplete
+        );
+        return;
+      }
+      state.stability = Math.max(0, state.stability - 1);
       spawnTokenMesh(sr, sc, STONE);
       showToast(`🦖 Tectonic Behemoth quaked -1 Stability & dropped Stone in Col ${sc + 1}!`, '🦖');
     }
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  abyssal_lodestone() {
+  abyssal_lodestone(onComplete) {
     const mc = state.bossMarkedCol;
     const neighbors = [mc - 1, mc + 1].filter((c) => c >= 0 && c < COLS);
-    let pulledCount = 0;
+    const pullMoves = [];
+    let simDestR = aiEngine.getAvailableRow(state.board, mc);
 
     neighbors.forEach((nc) => {
       const topR = aiEngine.getTopOccupiedRow(state.board, nc);
-      const destR = aiEngine.getAvailableRow(state.board, mc);
-      if (topR !== -1 && destR !== -1) {
+      if (topR !== -1 && simDestR !== -1 && simDestR < ROWS && (!state.boardMask || state.boardMask[simDestR][mc])) {
         const piece = state.board[topR][nc];
-        state.board[topR][nc] = EMPTY;
-        applyColumnGravity(nc);
-        state.board[destR][mc] = piece;
-        spawn3DShockwaveRing(destR, mc, 0x38bdf8, 2.2, 460);
-        pulledCount++;
+        pullMoves.push({ fromR: topR, fromC: nc, toR: simDestR, toC: mc, piece });
+        // Find next available row above simDestR in column mc
+        let nextAvail = -1;
+        for (let r = simDestR + 1; r < ROWS; r++) {
+          if (state.board[r][mc] === VOID_CELL) continue;
+          if (state.board[r][mc] === EMPTY) {
+            nextAvail = r;
+            break;
+          }
+        }
+        simDestR = nextAvail;
       }
     });
 
-    if (pulledCount > 0) {
-      rebuildBoardMeshes([mc, ...neighbors]);
-      showToast(`🧲 Abyssal Lodestone pulled ${pulledCount} neighbor token(s) into Singularity Col ${mc + 1}!`, '🧲');
-    } else {
+    let condensedStoneCell = null;
+    if (pullMoves.length === 0) {
       const openCols = getPlayableColumns();
       if (openCols.length > 0) {
         const sc = openCols.includes(mc) ? mc : openCols[Math.floor(Math.random() * openCols.length)];
         const sr = aiEngine.getAvailableRow(state.board, sc);
-        if (sr !== -1) {
-          spawnTokenMesh(sr, sc, STONE);
-          showToast(`🧲 Abyssal Lodestone condensed a Magnetic Stone in Col ${sc + 1}!`, '🧲');
-        }
+        if (sr !== -1) condensedStoneCell = [sr, sc];
       }
     }
 
-    const validMarkCols = [1, 2, 3, 4, 5].filter((c) => aiEngine.getAvailableRow(state.board, c) !== -1);
-    state.bossMarkedCol = validMarkCols.length > 0
-      ? validMarkCols[Math.floor(Math.random() * validMarkCols.length)]
-      : Math.floor(Math.random() * COLS);
+    const applyLodestoneOutcome = () => {
+      if (pullMoves.length > 0) {
+        pullMoves.forEach((mv) => {
+          state.board[mv.fromR][mv.fromC] = EMPTY;
+          applyColumnGravity(mv.fromC);
+          const actualDestR = aiEngine.getAvailableRow(state.board, mc);
+          if (actualDestR !== -1) {
+            state.board[actualDestR][mc] = mv.piece;
+          }
+        });
+        rebuildBoardMeshes([mc, ...neighbors]);
+        showToast(`🧲 Abyssal Lodestone pulled ${pullMoves.length} neighbor token(s) into Singularity Col ${mc + 1}!`, '🧲');
+      } else if (condensedStoneCell) {
+        const [sr, sc] = condensedStoneCell;
+        spawnTokenMesh(sr, sc, STONE);
+        showToast(`🧲 Abyssal Lodestone condensed a Magnetic Stone in Col ${sc + 1}!`, '🧲');
+      }
+
+      const validMarkCols = [1, 2, 3, 4, 5].filter((c) => aiEngine.getAvailableRow(state.board, c) !== -1);
+      state.bossMarkedCol = validMarkCols.length > 0
+        ? validMarkCols[Math.floor(Math.random() * validMarkCols.length)]
+        : Math.floor(Math.random() * COLS);
+      updateHUD();
+      updateTelemetryBadges();
+    };
+
+    if (typeof playBossAbyssalLodestoneVFX === 'function' && (pullMoves.length > 0 || condensedStoneCell)) {
+      playBossAbyssalLodestoneVFX(mc, pullMoves, condensedStoneCell, applyLodestoneOutcome, onComplete);
+      return;
+    }
+
+    applyLodestoneOutcome();
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  void_weaver() {
-    // 1. Weave Cursed Spore + Web snares on up to 2 empty slots
+  void_weaver(onComplete) {
+    // 1. Pick up to 2 empty slots for Cursed Spore + Web snares
     const emptyCoords = [];
     for (let r = 0; r < ROWS - 1; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -2898,11 +3068,8 @@ const BOSS_ABILITY_HANDLERS = {
       }
     }
     const picked = shuffle(emptyCoords).slice(0, 2);
-    picked.forEach(([r, c], idx) => {
-      state.enchantGrid[r][c] = idx === 0 ? ENCHANT_TYPES.CURSED_SPORE : ENCHANT_TYPES.WEB;
-    });
 
-    // 2. Drag the highest Player surface token sideways into an adjacent column
+    // 2. Pre-select the highest Player surface token to drag sideways into an adjacent column
     const playerCols = [];
     for (let c = 0; c < COLS; c++) {
       const topR = aiEngine.getTopOccupiedRow(state.board, c);
@@ -2910,31 +3077,53 @@ const BOSS_ABILITY_HANDLERS = {
         playerCols.push([topR, c]);
       }
     }
-    let draggedMsg = '';
+    let dragMove = null;
     if (playerCols.length > 0) {
       const [pr, pc] = playerCols[Math.floor(Math.random() * playerCols.length)];
       const adjOpen = [pc - 1, pc + 1].filter((ac) => ac >= 0 && ac < COLS && aiEngine.getAvailableRow(state.board, ac) !== -1);
       if (adjOpen.length > 0) {
         const destC = adjOpen[Math.floor(Math.random() * adjOpen.length)];
         const destR = aiEngine.getAvailableRow(state.board, destC);
-        state.board[pr][pc] = EMPTY;
-        state.enchantGrid[pr][pc] = ENCHANT_TYPES.WEB;
-        applyColumnGravity(pc);
-        state.board[destR][destC] = PLAYER;
-        spawn3DShockwaveRing(destR, destC, 0xa855f7, 2.2, 460);
-        rebuildBoardMeshes([destC]);
-        draggedMsg = ` & dragged your Col ${pc + 1} token into Col ${destC + 1}`;
+        dragMove = { fromR: pr, fromC: pc, toR: destR, toC: destC };
       }
     }
 
-    rebuildEnchantmentRings();
-    showToast(`🕸️ Void Weaver spun ${picked.length} Silk Snares${draggedMsg}!`, '🕸️');
+    const applyVoidWeaverOutcome = () => {
+      picked.forEach(([r, c], idx) => {
+        state.enchantGrid[r][c] = idx === 0 ? ENCHANT_TYPES.CURSED_SPORE : ENCHANT_TYPES.WEB;
+      });
+      let draggedMsg = '';
+      if (dragMove) {
+        const { fromR, fromC, toR, toC } = dragMove;
+        state.board[fromR][fromC] = EMPTY;
+        state.enchantGrid[fromR][fromC] = ENCHANT_TYPES.WEB;
+        applyColumnGravity(fromC);
+        state.board[toR][toC] = PLAYER;
+        rebuildBoardMeshes([fromC, toC]);
+        draggedMsg = ` & dragged your Col ${fromC + 1} token into Col ${toC + 1}`;
+      }
+      rebuildEnchantmentRings();
+      showToast(`🕸️ Void Weaver spun ${picked.length} Silk Snares${draggedMsg}!`, '🕸️');
+      updateHUD();
+    };
+
+    if (typeof playBossVoidWeaverVFX === 'function' && (picked.length > 0 || dragMove)) {
+      playBossVoidWeaverVFX(picked, dragMove, applyVoidWeaverOutcome, onComplete);
+      return;
+    }
+
+    applyVoidWeaverOutcome();
+    if (typeof onComplete === 'function') onComplete();
   },
 
-  sovereign_tesseract() {
-    if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) return;
+  sovereign_tesseract(onComplete) {
+    if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) {
+      if (typeof onComplete === 'function') onComplete();
+      return;
+    }
     // Do not rotate away if either side already connected 4 on this board
     if (aiEngine.findWinningLine(state.board, PLAYER) || aiEngine.findWinningLine(state.board, AI)) {
+      if (typeof onComplete === 'function') onComplete();
       return;
     }
     const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
@@ -2942,7 +3131,9 @@ const BOSS_ABILITY_HANDLERS = {
       nextIdx,
       `🌌 Sovereign Tesseract rotated to Parallel Board ${nextIdx + 1}/4!`,
       () => {
-        if (!state.gameOver && state.turn === PLAYER) {
+        if (typeof onComplete === 'function') {
+          onComplete();
+        } else if (!state.gameOver && state.turn === PLAYER) {
           state.busy = false;
           updateHUD();
           updateTelemetryBadges();
@@ -2990,6 +3181,9 @@ function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = nul
   triggerBoardShake(0.24);
   if (typeof triggerCavernBossEnragePulse === 'function') {
     triggerCavernBossEnragePulse(0.75);
+  }
+  if (typeof playBossSovereignTesseractVFX === 'function') {
+    playBossSovereignTesseractVFX();
   }
   spawn3DShockwaveRing(2, 3, 0xc084fc, 3.8, 620);
 
@@ -3132,14 +3326,22 @@ function triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData) {
   }, 940);
 }
 
-function executeRandomizedBossAbility(arch) {
+function executeRandomizedBossAbility(arch, onComplete = null) {
   const interval = getEffectiveBossInterval(arch);
-  if (state.turnNumber % interval !== 0) return;
+  if (state.turnNumber % interval !== 0) {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
   sfx.playBossAlarm();
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(0.65);
+  }
 
   const handler = BOSS_ABILITY_HANDLERS[arch.id];
   if (handler) {
-    handler();
+    handler(onComplete);
+  } else if (typeof onComplete === 'function') {
+    onComplete();
   }
 }
 
