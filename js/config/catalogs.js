@@ -759,9 +759,9 @@ const BOSS_POOLS_BY_ACT = {
       maxHp: 3,
       name: 'The Petrifier Archon',
       icon: '🗿',
-      interval: 3,
+      interval: 4,
       shortTelegraph: 'Petrifies top Player token in fullest col',
-      fullRule: 'Every 3 turns, calcifies the highest Player token in the most-populated column into neutral Petrified Stone!'
+      fullRule: 'Every 4 turns, calcifies the highest Player token in the most-populated column into neutral Petrified Stone!'
     },
     {
       id: 'mirror_virtuoso',
@@ -792,11 +792,11 @@ const BOSS_POOLS_BY_ACT = {
       poolTier: 'HARD',
       poolLabel: 'Act III Boss Pool',
       maxHp: 3,
-      interval: 2,
+      interval: 3,
       name: 'Tectonic Behemoth',
       icon: '🦖',
       shortTelegraph: 'Quakes -1 Stability & drops Blocker Stone',
-      fullRule: 'Every 2 turns, slams the cavern floor—draining -1 extra Seismic Stability and dropping a heavy Petrified Stone blocker!'
+      fullRule: 'Every 3 turns, slams the cavern floor—draining -1 extra Seismic Stability and dropping a heavy Petrified Stone blocker!'
     }
   ],
   ACT4: [
@@ -1083,15 +1083,15 @@ const C4_LORE_TOOLTIPS = {
   },
 
   bosses: {
-    spore_queen: 'Periodically infects empty board slots with mana-draining mycelial spores.',
-    chronos_dali: 'Periodically flips the entire token stack upside down in the marked warning column.',
-    petrifier_archon: 'Periodically calcifies your highest token in the fullest column into neutral stone.',
-    mirror_virtuoso: 'Periodically swaps the colors of two exposed surface tokens across the board.',
-    magma_leviathan: 'Periodically melts the bottom-most token of a column, shifting the stack downward.',
-    tectonic_behemoth: 'Rapidly quakes the cavern ceiling and drops heavy stone blockers.',
-    abyssal_lodestone: '“Living magnetic singularity.” Warps adjacent pieces toward its marked core—and shakes the entire board clean at half health!',
-    void_weaver: '“Arachnid of the astral fault.” Spins cursed silk snares across the grid—and shakes the entire board clean at half health!',
-    sovereign_tesseract: '“Architect of the fourfold nexus.” Rotates between four parallel Connect-4 boards in play, preserving each board as the carousel turns!'
+    spore_queen: 'Every 3 turns, infects empty board slots with mana-draining Cursed Spores.',
+    chronos_dali: 'Every 3 turns, flips the entire token stack upside down in the marked warning column.',
+    petrifier_archon: 'Every 4 turns, turns your highest token in the fullest column into neutral stone.',
+    mirror_virtuoso: 'Every 3 turns, swaps the colors of one of your tokens and an enemy token.',
+    magma_leviathan: 'Every 3 turns, melts the bottom token of a column and shifts the stack down.',
+    tectonic_behemoth: 'Every 3 turns, quakes the cavern ceiling (-1 Stability) and drops a stone blocker.',
+    abyssal_lodestone: 'Every 3 turns, pulls adjacent tokens into its marked column—and shakes the board clean at half health!',
+    void_weaver: 'Every 3 turns, spins cursed silk snares & drags a token sideways—and shakes the board clean at half health!',
+    sovereign_tesseract: 'Every 3 turns (and when losing a Heart), rotates between four parallel Connect-4 boards in play!'
   }
 };
 

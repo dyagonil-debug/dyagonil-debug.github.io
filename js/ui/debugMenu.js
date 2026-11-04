@@ -225,6 +225,23 @@ function renderDebugMenu() {
         bossSelect.addEventListener('change', (e) => {
             sfx.playHoverTick();
             debugLoadout.bossOverride = e.target.value;
+            if (debugLoadout.bossOverride !== 'AUTO' && debugLoadout.bossOverride !== 'SENTINEL') {
+                const canonicalFloorByBoss = {
+                    spore_queen: 2,
+                    chronos_dali: 2,
+                    petrifier_archon: 5,
+                    mirror_virtuoso: 5,
+                    magma_leviathan: 8,
+                    tectonic_behemoth: 8,
+                    abyssal_lodestone: 11,
+                    void_weaver: 11,
+                    sovereign_tesseract: 14
+                };
+                if (!isBossFloorIndex(debugLoadout.floorIdx)) {
+                    debugLoadout.floorIdx = canonicalFloorByBoss[debugLoadout.bossOverride] ?? 2;
+                }
+            }
+            renderDebugMenu();
         });
     }
     if (bossSelect) bossSelect.value = debugLoadout.bossOverride;

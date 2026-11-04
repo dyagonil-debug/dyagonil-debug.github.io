@@ -170,15 +170,16 @@ function updateHUD() {
     const arch = floorData.bossArchetype;
     const interval = getEffectiveBossInterval(arch);
     const rem = interval - ((state.turnNumber - 1) % interval);
+    const remLabel = rem === 1 ? 'NEXT!' : `in ${rem}T`;
     if (arch.id === 'chronos_dali') {
-      teleEl.textContent = `⚡ Inverts Col ${state.bossMarkedCol + 1} in ${rem}T`;
+      teleEl.textContent = `⚡ Inverts Col ${state.bossMarkedCol + 1} (${remLabel})`;
     } else if (arch.id === 'abyssal_lodestone') {
-      teleEl.textContent = `🧲 Pulls into Col ${state.bossMarkedCol + 1} in ${rem}T • Flush at 2/4❤️`;
+      teleEl.textContent = `🧲 Pulls into Col ${state.bossMarkedCol + 1} (${remLabel}) • Flush at 2/4❤️`;
     } else if (arch.id === 'sovereign_tesseract') {
       const bNum = (state.activeTesseractBoardIdx || 0) + 1;
-      teleEl.textContent = `🌌 Board ${bNum}/4 Active • Carousel Rotates in ${rem}T`;
+      teleEl.textContent = `🌌 Board ${bNum}/4 Active • Rotates (${remLabel})`;
     } else {
-      teleEl.textContent = `⚡ ${arch.shortTelegraph} (${rem}T)`;
+      teleEl.textContent = `⚡ ${arch.shortTelegraph} (${remLabel})`;
     }
     teleEl.className = 'text-[10px] font-mono-code text-rose-300 font-bold truncate animate-pulse';
   }

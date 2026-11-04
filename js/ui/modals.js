@@ -228,6 +228,19 @@ function syncLoadoutViewModePill() {
       ? 'px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0'
       : 'px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition shrink-0';
   }
+  const introModeBtn = document.getElementById('floor-intro-view-mode-btn');
+  if (introModeBtn) {
+    introModeBtn.innerHTML = simp ? '🕯️ Lore' : '📐 Math';
+    introModeBtn.className = simp
+      ? 'px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0 pointer-events-auto'
+      : 'px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition shrink-0 pointer-events-auto';
+  }
+  if (typeof window._refreshActiveFloorIntroCard === 'function') {
+    const introOverlay = document.getElementById('floor-intro-overlay');
+    if (introOverlay && !introOverlay.classList.contains('hidden')) {
+      window._refreshActiveFloorIntroCard();
+    }
+  }
   const roulLegend = document.getElementById('roulette-legend-section');
   if (roulLegend) {
     roulLegend.classList.toggle('hidden', simp);

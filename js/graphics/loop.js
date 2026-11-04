@@ -74,6 +74,7 @@ function animate() {
 
   tokensGroup.children.forEach((mesh) => {
     const d = mesh.userData;
+    if (!d || d.vfxControlled) return;
     if (mesh.position.y > d.targetY) {
       d.velY -= 0.035;
       mesh.position.y += d.velY;

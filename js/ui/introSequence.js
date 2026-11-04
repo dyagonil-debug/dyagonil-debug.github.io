@@ -81,54 +81,129 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   bgm.pauseForLevelIntro(targetBgmMode);
   state.busy = true;
 
-  // Populate Act & Depth theme details
+  // Populate Act & Depth theme details (supports live toggling between Simplified Lore & Detailed Math)
   const actIdx = Math.max(0, Math.min(ACT_DEFINITIONS.length - 1, Math.floor(state.floorIdx / 3)));
   const actDef = ACT_DEFINITIONS[actIdx];
-  actBadge.textContent = actDef.badge;
 
-  if (floorData.isBoss) {
-    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-rose-500/70 text-center space-y-3.5 shadow-[0_0_70px_rgba(244,63,94,0.38)] relative overflow-hidden';
-    actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-[10px] font-mono-code uppercase tracking-[0.2em] text-rose-300 font-bold animate-pulse';
-    iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/30 to-purple-800/35 border border-rose-400/60 flex items-center justify-center text-4xl shadow-inner mb-2';
-    iconWrap.textContent = floorData.bossArchetype ? floorData.bossArchetype.icon : '💀';
-    floorTitle.textContent = `⚠️ BOSS FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}`;
-    floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-rose-400';
-    bossName.textContent = floorData.boss;
+  const SENTINEL_SIMPLE_FLAVOR = [
+    'A waking grotto scout guarding a classic 7×6 board. Claim glowing rings and build up Gold!',
+    'An unblinking subterranean watchman on an open 7×6 grid. Connect 4 before the ceiling quakes!',
+    'A crystalline delver patrolling the catacombs. Stockpile Gold and Mana before the Boss chamber!',
+    'An obsidian sentinel standing guard over the caldera. Use enchanted slots to outpace its defense!',
+    'A cosmic gatekeeper beyond the bedrock. Outmaneuver its blocks and prepare for the final trials!'
+  ];
 
-    hpRow.classList.remove('hidden');
-    hpRow.classList.add('inline-flex');
-    hpRow.innerHTML = `<span>${'❤️'.repeat(state.bossMaxHp)}</span><span>${state.bossMaxHp} HP PHASES • ${floorData.bossArchetype.poolLabel}</span>`;
-    const bossText = (typeof isSimplifiedView === 'function' && isSimplifiedView() && floorData.bossArchetype.loreRule) ? floorData.bossArchetype.loreRule : floorData.bossArchetype.fullRule;
-    ruleDesc.textContent = `⚡ ${bossText}`;
-  } else if (floorData.isPreBoss) {
-    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-orange-400/60 text-center space-y-3.5 shadow-[0_0_60px_rgba(249,115,22,0.3)] relative overflow-hidden';
-    actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/50 text-[10px] font-mono-code uppercase tracking-[0.2em] text-orange-200 font-bold';
-    iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500/25 to-amber-700/25 border border-orange-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
-    iconWrap.textContent = topo.icon || '⚔️';
-    floorTitle.textContent = `⚔️ VANGUARD FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}`;
-    floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-amber-300';
-    bossName.textContent = floorData.boss;
-    hpRow.classList.add('hidden');
-    hpRow.classList.remove('inline-flex');
-    const topoText = (typeof isSimplifiedView === 'function' && isSimplifiedView() && topo.loreDesc) ? topo.loreDesc : topo.desc;
-    ruleDesc.textContent = `Warped Pre-Boss Chamber: ${topoText}`;
-  } else {
-    card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden';
-    actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.2em] text-amber-300 font-bold';
-    iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/25 to-orange-700/25 border border-amber-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
-    iconWrap.textContent = '🛡️';
-    const activeVessel = (typeof getActiveLoadout === 'function') ? getActiveLoadout() : null;
-    const vesselTag = (activeVessel && floorData.floor === 1) ? ` • ${activeVessel.name.toUpperCase()}` : '';
-    floorTitle.textContent = `DESCENDING TO FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}${vesselTag}`;
-    floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-teal-300';
-    bossName.textContent = floorData.boss;
-    hpRow.classList.add('hidden');
-    hpRow.classList.remove('inline-flex');
-    ruleDesc.textContent = 'Standard Cavern Sentinel. Build your Gold economy and claim Enchanted Slots before the Boss chamber!';
+  const renderIntroCalloutContent = () => {
+    const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+    const topoLabelEl = document.getElementById('floor-intro-topo-label');
+    const aiRowEl = document.getElementById('floor-intro-ai-row');
+    const viewModeBtn = document.getElementById('floor-intro-view-mode-btn');
+
+    if (viewModeBtn) {
+      viewModeBtn.innerHTML = simp ? '🕯️ Lore' : '📐 Math';
+      viewModeBtn.className = simp
+        ? 'px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0 pointer-events-auto'
+        : 'px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition shrink-0 pointer-events-auto';
+    }
+
+    actBadge.textContent = simp ? `ACT ${actDef.roman} • ${actDef.title}` : actDef.badge;
+    if (topoLabelEl) {
+      topoLabelEl.textContent = simp ? 'ARENA:' : 'BOARD TOPOLOGY:';
+    }
+    if (aiRowEl) {
+      aiRowEl.classList.toggle('hidden', simp);
+      aiRowEl.classList.toggle('flex', !simp);
+    }
+
+    topoName.innerHTML = `${topo.icon} ${topo.name}`;
+    aiStats.textContent = `Lv.${floorData.floor} • Depth ${floorData.depth} (${floorData.aiPrecisionPct}% IQ) • ${floorData.stability}T Stab`;
+
+    if (floorData.isBoss) {
+      const arch = floorData.bossArchetype;
+      const effInt = typeof getEffectiveBossInterval === 'function' ? getEffectiveBossInterval(arch) : (arch ? arch.interval : 3);
+      card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-rose-500/70 text-center space-y-3.5 shadow-[0_0_70px_rgba(244,63,94,0.38)] relative overflow-hidden';
+      actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-[10px] font-mono-code uppercase tracking-[0.16em] text-rose-300 font-bold animate-pulse truncate';
+      iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/30 to-purple-800/35 border border-rose-400/60 flex items-center justify-center text-4xl shadow-inner mb-2';
+      iconWrap.innerHTML = arch ? arch.icon : '💀';
+      floorTitle.textContent = simp
+        ? `⚠️ ACT ${actDef.roman} BOSS • FLOOR ${floorData.floor}`
+        : `⚠️ BOSS FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}`;
+      floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-rose-400';
+      bossName.innerHTML = floorData.boss;
+
+      hpRow.classList.remove('hidden');
+      hpRow.classList.add('inline-flex');
+      if (simp) {
+        hpRow.innerHTML = `<span>${'❤️'.repeat(state.bossMaxHp)}</span><span>${state.bossMaxHp} Hearts • Ability Every ${effInt} Turns</span>`;
+        const simpleBossRule = (arch && arch.loreRule) ? arch.loreRule : (arch ? arch.fullRule : '');
+        ruleDesc.textContent = `⚡ ${simpleBossRule} Connect 4 to shatter each Heart!`;
+      } else {
+        hpRow.innerHTML = `<span>${'❤️'.repeat(state.bossMaxHp)}</span><span>${state.bossMaxHp} HP PHASES • ${arch ? arch.poolLabel : 'Boss'} • Every ${effInt}T</span>`;
+        ruleDesc.textContent = `⚡ ${arch ? arch.fullRule : ''} (${topo.name}: ${topo.desc})`;
+      }
+    } else if (floorData.isPreBoss) {
+      card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-orange-400/60 text-center space-y-3.5 shadow-[0_0_60px_rgba(249,115,22,0.3)] relative overflow-hidden';
+      actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/50 text-[10px] font-mono-code uppercase tracking-[0.16em] text-orange-200 font-bold truncate';
+      iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500/25 to-amber-700/25 border border-orange-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
+      iconWrap.innerHTML = topo.icon || '⚔️';
+      floorTitle.textContent = simp
+        ? `⚔️ VANGUARD • FLOOR ${floorData.floor}`
+        : `⚔️ VANGUARD FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}`;
+      floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-amber-300';
+      bossName.innerHTML = floorData.boss;
+
+      if (simp) {
+        hpRow.classList.remove('hidden');
+        hpRow.classList.add('inline-flex');
+        hpRow.innerHTML = `<span>🧭 Warped Cavern Board • No Boss Ability</span>`;
+        ruleDesc.textContent = topo.loreDesc || topo.desc;
+      } else {
+        hpRow.classList.add('hidden');
+        hpRow.classList.remove('inline-flex');
+        ruleDesc.textContent = `Warped Pre-Boss Chamber (Negamax D${floorData.depth} • ${floorData.aiPrecisionPct}% Precision): ${topo.desc}`;
+      }
+    } else {
+      card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden';
+      actBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.16em] text-amber-300 font-bold truncate';
+      iconWrap.className = 'w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/25 to-orange-700/25 border border-amber-400/50 flex items-center justify-center text-4xl shadow-inner mb-2';
+      iconWrap.innerHTML = '🛡️';
+      const activeVessel = (typeof getActiveLoadout === 'function') ? getActiveLoadout() : null;
+      const vesselTag = (activeVessel && floorData.floor === 1) ? ` • ${activeVessel.name.toUpperCase()}` : '';
+      floorTitle.textContent = simp
+        ? `FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}${vesselTag}`
+        : `DESCENDING TO FLOOR ${floorData.floor} OF ${TOTAL_FLOORS}${vesselTag}`;
+      floorTitle.className = 'font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-teal-300';
+      bossName.innerHTML = floorData.boss;
+
+      if (simp) {
+        hpRow.classList.remove('hidden');
+        hpRow.classList.add('inline-flex');
+        hpRow.innerHTML = `<span>🛡️ Standard Guardian • No Special Ability</span>`;
+        ruleDesc.textContent = SENTINEL_SIMPLE_FLAVOR[actIdx] || SENTINEL_SIMPLE_FLAVOR[0];
+      } else {
+        hpRow.classList.add('hidden');
+        hpRow.classList.remove('inline-flex');
+        ruleDesc.textContent = `Standard Cavern Sentinel (Negamax D${floorData.depth} • ${floorData.aiPrecisionPct}% Precision • ${floorData.stability}T Stability). Build your Gold economy and claim Enchanted Slots before the Boss chamber!`;
+      }
+    }
+  };
+
+  window._refreshActiveFloorIntroCard = renderIntroCalloutContent;
+  renderIntroCalloutContent();
+
+  const introModeBtn = document.getElementById('floor-intro-view-mode-btn');
+  if (introModeBtn) {
+    introModeBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof toggleSimplifiedViewSetting === 'function') {
+        toggleSimplifiedViewSetting();
+      } else if (typeof userSettings !== 'undefined' && userSettings) {
+        userSettings.simplifiedViewEnabled = !userSettings.simplifiedViewEnabled;
+        if (typeof saveUserSettings === 'function') saveUserSettings();
+      }
+      renderIntroCalloutContent();
+    };
   }
-
-  topoName.textContent = `${topo.icon} ${topo.name}`;
-  aiStats.textContent = `Lv.${floorData.floor} • Depth ${floorData.depth} (${floorData.aiPrecisionPct}% IQ)`;
 
   // Reset any inline styles that persistence.js or other modals may have set
   overlay.style.display = '';

@@ -23,10 +23,10 @@
   <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="./css/main.css">
-  <link rel="stylesheet" href="./css/animations.css">
-  <link rel="stylesheet" href="./css/overlays.css">
-  <link rel="stylesheet" href="./css/icons.css">
+  <link rel="stylesheet" href="./css/main.css?v=58">
+  <link rel="stylesheet" href="./css/animations.css?v=58">
+  <link rel="stylesheet" href="./css/overlays.css?v=58">
+  <link rel="stylesheet" href="./css/icons.css?v=58">
 </head>
 <body class="flex flex-col justify-between">
 
@@ -815,9 +815,14 @@
 
     <!-- STAGE 2: FLOOR INTRO DISPLAY CARD -->
     <div id="floor-intro-card" class="cavern-panel w-full max-w-sm rounded-3xl p-6 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden">
-      <!-- Top Act & Depth Pill -->
-      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.2em] text-amber-300 font-bold" id="floor-intro-act-badge">
-        ACT I • THE GLOWWORM GROTTO
+      <!-- Top Act Pill & Simple Mode (Lore/Math) Toggle -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.16em] text-amber-300 font-bold truncate" id="floor-intro-act-badge">
+          ACT I • THE GLOWWORM GROTTO
+        </div>
+        <button type="button" id="floor-intro-view-mode-btn" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0 pointer-events-auto" title="Toggle Simplified Lore View vs Detailed Math View">
+          🕯️ Lore
+        </button>
       </div>
 
       <!-- Floor Number & Guardian Icon -->
@@ -831,20 +836,20 @@
         <h2 id="floor-intro-boss-name" class="font-display font-bold text-2xl text-white mt-0.5 tracking-tight">
           Cavern Pebble Scout
         </h2>
-        <!-- Boss Health Hearts Row (Shown on Boss Floors 3, 6, 9) -->
+        <!-- Boss Health Hearts Row (Shown on Boss Floors 3, 6, 9, 12, 15) -->
         <div id="floor-intro-hp-row" class="hidden items-center justify-center gap-1.5 mt-1.5 px-3 py-1 rounded-full bg-rose-950/90 border border-rose-500/50 text-xs font-mono-code text-rose-200">
         </div>
       </div>
 
       <!-- Board Topology & AI Telemetry Box -->
       <div class="p-3 rounded-2xl bg-stone-950/85 border border-white/10 text-left space-y-1.5 text-xs">
-        <div class="flex items-center justify-between text-[11px] font-mono-code">
-          <span class="text-slate-400">BOARD TOPOLOGY:</span>
-          <span id="floor-intro-topo-name" class="text-amber-300 font-bold">📐 Classic 7x6 Grid</span>
+        <div id="floor-intro-topo-row" class="flex items-center justify-between text-[11px] font-mono-code gap-2">
+          <span id="floor-intro-topo-label" class="text-slate-400 shrink-0">ARENA:</span>
+          <span id="floor-intro-topo-name" class="text-amber-300 font-bold truncate">📐 Classic 7x6 Grid</span>
         </div>
-        <div class="flex items-center justify-between text-[11px] font-mono-code">
-          <span class="text-slate-400">GUARDIAN AI:</span>
-          <span id="floor-intro-ai-stats" class="text-teal-300 font-bold">Lv.1 • Depth 2</span>
+        <div id="floor-intro-ai-row" class="flex items-center justify-between text-[11px] font-mono-code gap-2">
+          <span class="text-slate-400 shrink-0">GUARDIAN AI:</span>
+          <span id="floor-intro-ai-stats" class="text-teal-300 font-bold truncate">Lv.1 • Depth 2</span>
         </div>
         <p id="floor-intro-rule-desc" class="text-[11px] text-slate-300 leading-snug pt-1 border-t border-white/10">
           Standard Cavern Guardian. Connect 4 tokens before Seismic Stability collapses!
@@ -1194,46 +1199,46 @@
 
   <!-- Option B: Ordered Classic Scripts (Double-Click file:// & GitHub Pages Compatible) -->
   <!-- 1. Configuration & Static Catalogs -->
-  <script defer src="./js/config/constants.js"></script>
-  <script defer src="./js/config/topologies.js"></script>
-  <script defer src="./js/config/catalogs.js"></script>
-  <script defer src="./js/config/loadouts.js"></script>
-  <script defer src="./js/ui/iconSystem.js"></script>
-  <script defer src="./js/ui/emojiReplacer.js"></script>
-  <script defer src="./js/config/difficulty.js"></script>
+  <script defer src="./js/config/constants.js?v=58"></script>
+  <script defer src="./js/config/topologies.js?v=58"></script>
+  <script defer src="./js/config/catalogs.js?v=58"></script>
+  <script defer src="./js/config/loadouts.js?v=58"></script>
+  <script defer src="./js/ui/iconSystem.js?v=58"></script>
+  <script defer src="./js/ui/emojiReplacer.js?v=58"></script>
+  <script defer src="./js/config/difficulty.js?v=58"></script>
 
   <!-- 2. Persistent Settings & Run State -->
-  <script defer src="./js/state/settings.js"></script>
-  <script defer src="./js/state/gameState.js"></script>
-  <script src="./js/state/persistence.js"></script>
+  <script defer src="./js/state/settings.js?v=58"></script>
+  <script defer src="./js/state/gameState.js?v=58"></script>
+  <script src="./js/state/persistence.js?v=58"></script>
 
   <!-- 3. 8-Bit Web Audio Synthesizers -->
-  <script defer src="./js/audio/sfx.js"></script>
-  <script defer src="./js/audio/bgm.js"></script>
+  <script defer src="./js/audio/sfx.js?v=58"></script>
+  <script defer src="./js/audio/bgm.js?v=58"></script>
 
   <!-- 4. Grandmaster Negamax AI Solver -->
-  <script defer src="./js/engine/ai.js"></script>
+  <script defer src="./js/engine/ai.js?v=58"></script>
 
   <!-- 5. Three.js 3D Scene, Board Geometry & Choreography VFX -->
-  <script defer src="./js/graphics/scene3d.js"></script>
-  <script defer src="./js/graphics/vfx3d.js"></script>
+  <script defer src="./js/graphics/scene3d.js?v=58"></script>
+  <script defer src="./js/graphics/vfx3d.js?v=58"></script>
 
   <!-- 6. HUD, Notifications & Core Board Mechanics -->
-  <script defer src="./js/ui/notifications.js"></script>
-  <script defer src="./js/ui/hud.js"></script>
-  <script defer src="./js/engine/boardLogic.js"></script>
-  <script defer src="./js/engine/rouletteSim.js"></script>
+  <script defer src="./js/ui/notifications.js?v=58"></script>
+  <script defer src="./js/ui/hud.js?v=58"></script>
+  <script defer src="./js/engine/boardLogic.js?v=58"></script>
+  <script defer src="./js/engine/rouletteSim.js?v=58"></script>
 
   <!-- 7. Modals, Pointer Raycasting, Intro, Tutorial & Debug Console -->
-  <script defer src="./js/ui/modals.js"></script>
-  <script defer src="./js/ui/input.js"></script>
-  <script defer src="./js/ui/introSequence.js"></script>
-  <script defer src="./js/ui/tutorial.js"></script>
-  <script defer src="./js/ui/debugMenu.js"></script>
+  <script defer src="./js/ui/modals.js?v=58"></script>
+  <script defer src="./js/ui/input.js?v=58"></script>
+  <script defer src="./js/ui/introSequence.js?v=58"></script>
+  <script defer src="./js/ui/tutorial.js?v=58"></script>
+  <script defer src="./js/ui/debugMenu.js?v=58"></script>
 
   <!-- 8. Render Loop & Application Boot Entry Point -->
-  <script defer src="./js/graphics/loop.js"></script>
-  <script defer src="./js/main.js"></script>
+  <script defer src="./js/graphics/loop.js?v=58"></script>
+  <script defer src="./js/main.js?v=58"></script>
 
 </body>
 </html>

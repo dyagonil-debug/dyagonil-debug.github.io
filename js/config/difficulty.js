@@ -32,7 +32,7 @@ const DIFFICULTY_TIERS = {
     rerollCost: 3,
     slotExpandCost: 6,
     extraEnchantedSlots: 1,
-    bossCooldownOffset: 1,
+    bossCooldownOffset: 0,
     preSpawnStones: 0,
     bossHeadstartTokens: 0,
     starterGambitId: 'obsidian_cat',
@@ -152,9 +152,8 @@ function getScaledPrice(basePrice) {
 }
 
 function getEffectiveBossInterval(arch) {
-  const diff = getActiveDifficulty();
-  const base = (arch && arch.interval) ? arch.interval : 3;
-  return Math.max(2, base + (diff.bossCooldownOffset || 0));
+  if (arch && arch.id === 'petrifier_archon') return 4;
+  return (arch && typeof arch.interval === 'number') ? arch.interval : 3;
 }
 
 function getFloorConfig(floorIdx) {

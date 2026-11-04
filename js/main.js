@@ -13,7 +13,20 @@ function registerSubterraneanServiceWorker() {
       window.location.hostname === '127.0.0.1')
   ) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((err) => {
+      if (window.caches && typeof window.caches.keys === 'function') {
+        window.caches.keys().then((keys) => {
+          keys.forEach((k) => {
+            if (k !== 'subterranean-ascension-v58.0.0') {
+              window.caches.delete(k).catch(() => {});
+            }
+          });
+        }).catch(() => {});
+      }
+      navigator.serviceWorker.register('./sw.js?v=58').then((reg) => {
+        if (reg && typeof reg.update === 'function') {
+          reg.update().catch(() => {});
+        }
+      }).catch((err) => {
         console.warn('[C4 PWA] Service Worker registration skipped:', err);
       });
     });
@@ -22,7 +35,7 @@ function registerSubterraneanServiceWorker() {
 
 // Expose structured global namespace for inspection and extensibility
 window.C4 = {
-  version: '2.9.0-ascension-v56',
+  version: '2.9.0-ascension-v58',
   config: {
     ROWS,
     COLS,
