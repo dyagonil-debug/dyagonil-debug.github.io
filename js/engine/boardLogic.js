@@ -162,6 +162,24 @@ function onTokenShattered(count = 1) {
 }
 
 function startFloorMatch(showIntroScreen = true) {
+  if (!Array.isArray(state.shuffledBossPool) || state.shuffledBossPool.length < 5) {
+    const easyPick = shuffle(BOSS_POOLS_BY_ACT.EASY)[0];
+    const mediumPick = shuffle(BOSS_POOLS_BY_ACT.MEDIUM)[0];
+    const hardPick = shuffle(BOSS_POOLS_BY_ACT.HARD)[0];
+    const act4Pick = shuffle(BOSS_POOLS_BY_ACT.ACT4)[0];
+    const finalPick = shuffle(BOSS_POOLS_BY_ACT.FINAL)[0];
+    state.shuffledBossPool = [
+      (state.shuffledBossPool && state.shuffledBossPool[0]) || easyPick,
+      (state.shuffledBossPool && state.shuffledBossPool[1]) || mediumPick,
+      (state.shuffledBossPool && state.shuffledBossPool[2]) || hardPick,
+      (state.shuffledBossPool && state.shuffledBossPool[3]) || act4Pick,
+      (state.shuffledBossPool && state.shuffledBossPool[4]) || finalPick
+    ];
+  }
+  if (!Array.isArray(state.shuffledTopologyPool) || state.shuffledTopologyPool.length < BOARD_TOPOLOGIES.length) {
+    state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
+  }
+  state.isCarouselRotating = false;
   const floorData = getFloorConfig(state.floorIdx);
   const topo = getFloorTopology(state.floorIdx);
   state.currentTopology = topo;
@@ -195,29 +213,29 @@ function startFloorMatch(showIntroScreen = true) {
   state.firstCol4DropDoneThisFloor = false;
   state.firstCardCastDoneThisFloor = false;
   state.bloodletterHealCountThisTurn = 0;
-  if (state.loadoutId === 'spelunker' && (state.floorIdx === 0 || state.floorIdx === 3 || state.floorIdx === 6)) {
+  if (state.loadoutId === 'spelunker' && state.floorIdx % 3 === 0) {
     state.freeRerollsRemaining = 1;
   }
   state.bossMarkedCol = Math.floor(Math.random() * COLS);
+  boardGroup.rotation.set(0, 0, 0);
+  boardGroup.position.set(0, 0, 0);
 
+  const bossActIdx = Math.floor(state.floorIdx / 3);
+  const bossBgmModes = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5'];
   const targetBgmMode = floorData.isBoss
-    ? (state.floorIdx >= 8 ? 'boss3' : (state.floorIdx >= 5 ? 'boss2' : 'boss1'))
+    ? (bossBgmModes[Math.min(4, bossActIdx)] || 'boss1')
     : 'cavern';
   if (!showIntroScreen) {
     bgm.setMode(targetBgmMode);
   }
 
+  if (typeof updateCavernAesthetics === 'function') {
+    updateCavernAesthetics();
+  }
   if (floorData.isBoss) {
-    amberLanternLight.color.setHex(0xf43f5e);
-    tealBiolumLight.color.setHex(0xa855f7);
     showToast(`💀 BOSS F${floorData.floor}: ${floorData.boss} • Board: ${topo.name}!`, topo.icon);
   } else if (floorData.isPreBoss) {
-    amberLanternLight.color.setHex(0xf97316);
-    tealBiolumLight.color.setHex(0x38bdf8);
     showToast(`⚔️ PRE-BOSS VANGUARD • Warped Board: ${topo.name}!`, topo.icon);
-  } else {
-    amberLanternLight.color.setHex(0xf59e0b);
-    tealBiolumLight.color.setHex(0x14b8a6);
   }
 
   colHighlightMesh.visible = false;
@@ -226,6 +244,35 @@ function startFloorMatch(showIntroScreen = true) {
   document.getElementById('action-inspector').classList.add('hidden');
 
   generateSlotEnchantments();
+
+  // Initialize 4 Parallel Tesseract Boards if fighting the Act V Final Boss
+  const isTesseractBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract';
+  if (isTesseractBoss) {
+    const cloneGrid2D = (g) => g.map((row) => row.slice());
+    state.tesseractBoards = [];
+    state.activeTesseractBoardIdx = 0;
+    const boardLabels = ['Board I (Alpha)', 'Board II (Beta)', 'Board III (Gamma)', 'Board IV (Omega)'];
+    for (let bIdx = 0; bIdx < 4; bIdx++) {
+      if (bIdx > 0) {
+        generateSlotEnchantments();
+      }
+      state.tesseractBoards.push({
+        label: boardLabels[bIdx],
+        boardMask: cloneGrid2D(topo.mask),
+        board: Array.from({ length: ROWS }, (_, r) =>
+          Array.from({ length: COLS }, (_, c) => (topo.mask[r][c] ? EMPTY : VOID_CELL))
+        ),
+        enchantGrid: cloneGrid2D(state.enchantGrid)
+      });
+    }
+    // Restore Board I (index 0) as the starting active board
+    state.board = cloneGrid2D(state.tesseractBoards[0].board);
+    state.enchantGrid = cloneGrid2D(state.tesseractBoards[0].enchantGrid);
+    rebuildEnchantmentRings();
+  } else {
+    state.tesseractBoards = [];
+    state.activeTesseractBoardIdx = 0;
+  }
 
   const diff = getActiveDifficulty();
   const bastionBonusStone = state.loadoutId === 'bastion' ? 1 : 0;
@@ -612,11 +659,22 @@ function commitColumnAction(col) {
     return;
   }
 
-  sfx.playWoodClack(true);
-
   if (state.selectedReserveIdx !== null) {
     const rType = state.reservePouch[state.selectedReserveIdx];
     const rTok = RESERVE_CATALOG[rType];
+    if (rType === 'anvil') {
+      const topR = aiEngine.getTopOccupiedRow(state.board, col);
+      if (topR === -1 || (state.board[topR][col] !== AI && state.board[topR][col] !== STONE)) {
+        showToast(
+          topR === -1
+            ? 'Heavy Anvil requires a token below to crush!'
+            : 'Heavy Anvil cannot crush your own token! Target an AI or Stone blocker.',
+          '⚓'
+        );
+        return;
+      }
+    }
+    sfx.playWoodClack(true);
     state.reservePouch.splice(state.selectedReserveIdx, 1);
     clearActionSelection();
     updateColumnPreviewVisual(-1);
@@ -647,6 +705,7 @@ function commitColumnAction(col) {
     return;
   }
 
+  sfx.playWoodClack(true);
   spawnTokenMesh(r, col, PLAYER);
   triggerSlotEnchantment(r, col, PLAYER);
   checkPlayerDropGambits(col);
@@ -666,7 +725,7 @@ function commitColumnAction(col) {
 }
 
 // ============================================================================
-// RESERVE TOKEN DEPLOYMENT HANDLERS (12 Total: 4× T1, 4× T2, 4× T3)
+// RESERVE TOKEN DEPLOYMENT HANDLERS (11 Total across Tiers 1–5)
 // ============================================================================
 const RESERVE_EFFECT_HANDLERS = {
   fools_penny(r, col, repeat) {
@@ -675,7 +734,7 @@ const RESERVE_EFFECT_HANDLERS = {
     playFoolsPennyFlipVFX(r, col, luckyRoll);
     if (luckyRoll) {
       spawnTokenMesh(r, col, PLAYER);
-      const goldGain = 4 * repeat;
+      const goldGain = 5 * repeat;
       const manaGain = 1 * repeat;
       state.gold += goldGain;
       state.mana = Math.min(state.maxMana + 2, state.mana + manaGain);
@@ -689,12 +748,13 @@ const RESERVE_EFFECT_HANDLERS = {
       showToast(`🪙 Fool's Counterfeit Penny passed inspection! Minted +$${goldGain} Gold & +${manaGain} Mana!`, '🪙');
     } else {
       spawnTokenMesh(r, col, STONE);
-      state.gold += 1;
+      const consolationGold = 2 * repeat;
+      state.gold += consolationGold;
       sfx.playCurseBuzzer();
       triggerBoardShake(0.18);
       spawn3DParticleBurst(r, col, 0x78716c, 14, 0.11, 460, 'box');
-      spawnFloatingPop('💩 Counterfeit Dud! Turned to Stone (+$1)', 'text-stone-300', 5000);
-      showToast("💩 BUSTED! Fool's Counterfeit Penny was a dud and petrified into neutral Stone (+$1 consolation)!", '💩');
+      spawnFloatingPop(`💩 Counterfeit Dud! Turned to Stone (+$${consolationGold})`, 'text-stone-300', 5000);
+      showToast(`💩 BUSTED! Fool's Counterfeit Penny was a dud and petrified into neutral Stone (+$${consolationGold} consolation)!`, '💩');
     }
   },
 
@@ -703,16 +763,22 @@ const RESERVE_EFFECT_HANDLERS = {
     sfx.playDiceClatter(roll >= 4);
     playLoadedKnucklebonesVFX(col, roll, roll);
     triggerHaptic([20, 25, 35]);
+    spawnTokenMesh(r, col, PLAYER);
     if (roll === 6) {
-      spawnTokenMesh(r, col, WILD);
-      state.gold += 2 * repeat;
-      spawn3DShockwaveRing(r, col, 0xe879f9, 2.6, 500);
-      spawn3DParticleBurst(r, col, 0xfde047, 18, 0.13, 500, 'octa');
+      const goldGain = 4 * repeat;
+      const manaGain = 1 * repeat;
+      const stabGain = 1 * repeat;
+      state.gold += goldGain;
+      state.mana = Math.min(state.maxMana + 2, state.mana + manaGain);
+      state.stability += stabGain;
+      drawCards(repeat);
+      sfx.playCoinDing();
+      spawn3DShockwaveRing(r, col, 0xfde047, 2.6, 500);
+      spawn3DParticleBurst(r, col, 0xfacc15, 18, 0.13, 500, 'octa');
       triggerSlotEnchantment(r, col, PLAYER);
-      spawnFloatingPop(`🎲 Rolled 6! WILD Token & +$${2 * repeat}!`, 'text-amber-300', 5000);
-      showToast(`🎲 Weighted Bone Die rolled a natural 6! Upgraded into a Wild Prismatic Token (+$${2 * repeat} Gold)!`, '🎲');
+      spawnFloatingPop(`🎲 Natural 6 Jackpot! +$${goldGain}, +${manaGain}M, +${stabGain} Stab & +${repeat} Card!`, 'text-amber-300', 5000);
+      showToast(`🎲 Weighted Bone Die rolled a natural 6 JACKPOT! Awarded +$${goldGain} Gold, +${manaGain} Mana, +${stabGain} Stability & drew ${repeat} Card(s)!`, '🎲');
     } else if (roll >= 4) {
-      spawnTokenMesh(r, col, PLAYER);
       const goldGain = 3 * repeat;
       state.gold += goldGain;
       drawCards(repeat);
@@ -722,7 +788,6 @@ const RESERVE_EFFECT_HANDLERS = {
       spawnFloatingPop(`🎲 Rolled ${roll}: +$${goldGain} & +${repeat} Card!`, 'text-amber-300', 4800);
       showToast(`🎲 Weighted Bone Die rolled a ${roll}! Awarded +$${goldGain} Gold & drew ${repeat} Card(s)!`, '🎲');
     } else {
-      spawnTokenMesh(r, col, PLAYER);
       const goldGain = 2 * repeat;
       const stabGain = 1 * repeat;
       state.gold += goldGain;
@@ -740,6 +805,7 @@ const RESERVE_EFFECT_HANDLERS = {
     triggerHaptic([45, 30, 65]);
     triggerBoardShake(0.28);
     spawnTokenMesh(r, col, PLAYER);
+    let crushedCount = 0;
     for (let i = 0; i < repeat; i++) {
       const topR = aiEngine.getTopOccupiedRow(state.board, col);
       let belowR = -1;
@@ -749,55 +815,57 @@ const RESERVE_EFFECT_HANDLERS = {
           break;
         }
       }
-      if (topR !== -1 && belowR !== -1) {
+      if (
+        topR !== -1 &&
+        belowR !== -1 &&
+        (state.board[belowR][col] === AI || state.board[belowR][col] === STONE)
+      ) {
         spawn3DParticleBurst(belowR, col, 0x94a3b8, 16, 0.14, 480, 'box');
         spawn3DShockwaveRing(belowR, col, 0xf59e0b, 2.2, 420);
         state.board[belowR][col] = state.board[topR][col];
         state.board[topR][col] = EMPTY;
         applyColumnGravity(col);
-        onTokenShattered(1);
+        crushedCount++;
+      } else {
+        break;
       }
+    }
+    if (crushedCount > 0) {
+      const bountyGold = crushedCount * 2;
+      state.gold += bountyGold;
+      onTokenShattered(crushedCount);
+      spawnFloatingPop(`⚓ Anvil Crush: +$${bountyGold} Gold!`, 'text-amber-300', 4800);
     }
     rebuildBoardMeshes();
     const landedR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
     if (!aiEngine.findWinningLine(state.board, PLAYER)) {
       triggerSlotEnchantment(landedR, col, PLAYER);
     }
-    showToast('⚓ Heavy Anvil crushed the token beneath it!', '⚓');
+    showToast(`⚓ Heavy Anvil crushed ${crushedCount} blocker(s) beneath it for +$${crushedCount * 2} Gold!`, '⚓');
   },
 
-  cave_bat(r, col) {
+  cave_bat(r, col, repeat = 1) {
     sfx.playBatEcholocation();
     playReservePropVFX(r, col, 0xc084fc, 0xe879f9, 'wings');
     triggerHaptic([20, 20, 40]);
     spawnTokenMesh(r, col, PLAYER);
     spawn3DShockwaveRing(r, col, 0xa855f7, 2.2, 460);
-    let belowR = -1;
-    for (let rr = r - 1; rr >= 0; rr--) {
-      if (state.board[rr][col] !== VOID_CELL && state.board[rr][col] !== EMPTY) {
-        belowR = rr;
-        break;
+    let converted = 0;
+    for (let rr = r - 1; rr >= 0 && converted < repeat; rr--) {
+      if (state.board[rr][col] === AI || state.board[rr][col] === STONE) {
+        state.board[rr][col] = PLAYER;
+        spawn3DShockwaveRing(rr, col, 0xfbbf24, 2.0, 440);
+        spawn3DParticleBurst(rr, col, 0xc084fc, 14, 0.11, 460, 'cone');
+        converted++;
       }
     }
-    if (belowR !== -1) {
-      state.board[belowR][col] = PLAYER;
+    if (converted > 0) {
       rebuildBoardMeshes();
-      spawn3DShockwaveRing(belowR, col, 0xfbbf24, 2.0, 440);
-      spawn3DParticleBurst(belowR, col, 0xc084fc, 14, 0.11, 460, 'cone');
-      showToast('🦇 Vampire Bat latched onto & converted the token below!', '🦇');
+      showToast(`🦇 Vampire Bat latched onto & converted ${converted} blocker(s) below!`, '🦇');
+    } else {
+      showToast('🦇 Vampire Bat deployed!', '🦇');
     }
     triggerSlotEnchantment(r, col, PLAYER);
-  },
-
-  wild(r, col) {
-    sfx.playWildPrismatic();
-    playReservePropVFX(r, col, 0xe879f9, 0x38bdf8, 'crystal');
-    triggerHaptic([20, 25, 35]);
-    spawnTokenMesh(r, col, WILD);
-    spawn3DShockwaveRing(r, col, 0xe879f9, 2.5, 480);
-    spawn3DParticleBurst(r, col, 0x38bdf8, 16, 0.12, 500, 'octa');
-    triggerSlotEnchantment(r, col, PLAYER);
-    showToast('💎 Wild Prismatic Token deployed!', '💎');
   },
 
   jalapeno_bomb(r, col, repeat) {
@@ -871,10 +939,15 @@ const RESERVE_EFFECT_HANDLERS = {
     [col - 1, col + 1].forEach((nc) => {
       if (nc >= 0 && nc < COLS) {
         const ar = aiEngine.getAvailableRow(state.board, nc);
-        if (ar !== -1 && state.enchantGrid && state.enchantGrid[ar]) {
-          state.enchantGrid[ar][nc] = ENCHANT_TYPES.WEB;
-          spawn3DShockwaveRing(ar, nc, 0xa855f7, 2.1, 440);
-          webbedCols++;
+        if (ar !== -1 && state.enchantGrid) {
+          for (let step = 0; step < repeat; step++) {
+            const targetR = ar + step;
+            if (targetR < ROWS && state.board[targetR][nc] === EMPTY && state.enchantGrid[targetR]) {
+              state.enchantGrid[targetR][nc] = ENCHANT_TYPES.WEB;
+              spawn3DShockwaveRing(targetR, nc, 0xa855f7, 2.1, 440);
+              webbedCols++;
+            }
+          }
         }
       }
     });
@@ -918,19 +991,22 @@ const RESERVE_EFFECT_HANDLERS = {
     sfx.playQuicksilverFlow();
     playQuicksilverSiphonVFX(Math.min(ROWS - 1, r + 1), col, r, col);
     triggerHaptic([30, 25, 45]);
-    spawnTokenMesh(r, col, WILD);
+    spawnTokenMesh(r, col, PLAYER);
     state.mana = Math.min(state.maxMana + 2, state.mana + repeat);
     state.stability += 2 * repeat;
 
-    // If an AI token is directly below, swap places so the AI token is buried underneath
-    if (r > 0 && state.board[r - 1][col] === AI) {
-      state.board[r - 1][col] = PLAYER;
-      rebuildBoardMeshes([col]);
-      spawn3DShockwaveRing(r - 1, col, 0x38bdf8, 2.2, 450);
+    let converted = 0;
+    for (let rr = r - 1; rr >= 0 && converted < repeat; rr--) {
+      if (state.board[rr][col] === AI || state.board[rr][col] === STONE) {
+        state.board[rr][col] = PLAYER;
+        spawn3DShockwaveRing(rr, col, 0x38bdf8, 2.2, 450);
+        converted++;
+      }
     }
+    if (converted > 0) rebuildBoardMeshes([col]);
     spawn3DShockwaveRing(r, col, 0x38bdf8, 2.7, 500);
     triggerSlotEnchantment(r, col, PLAYER);
-    showToast(`💧 Living Quicksilver deployed WILD, displaced the token below, & restored +${repeat}M / +${2 * repeat} Stability!`, '💧');
+    showToast(`💧 Living Quicksilver deployed your token, converted ${converted} blocker(s) below, & restored +${repeat}M / +${2 * repeat} Stability!`, '💧');
   },
 
   midas_eye(r, col, repeat) {
@@ -938,14 +1014,14 @@ const RESERVE_EFFECT_HANDLERS = {
     playReservePropVFX(r, col, 0xfde047, 0xfacc15, 'crystal');
     triggerHaptic([35, 25, 55, 25, 45]);
     triggerBoardShake(0.24);
-    spawnTokenMesh(r, col, WILD);
+    spawnTokenMesh(r, col, PLAYER);
     spawn3DColumnBeam(col, 0xfacc15, 0.42, 520, true);
     spawn3DShockwaveRing(r, col, 0xfde047, 3.0, 540);
     spawn3DParticleBurst(r, col, 0xfacc15, 22, 0.15, 560, 'octa');
 
     let converted = 0;
-    const ortho = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of ortho) {
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+    for (const [dr, dc] of dirs) {
       const nr = r + dr;
       const nc = col + dc;
       if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
@@ -958,46 +1034,46 @@ const RESERVE_EFFECT_HANDLERS = {
         }
       }
     }
-    for (let upR = r + 1; upR < ROWS; upR++) {
+    let gildedCount = 0;
+    for (let upR = r + 1; upR < ROWS && gildedCount < repeat; upR++) {
       if (state.board[upR][col] !== VOID_CELL) {
         if (state.board[upR][col] === EMPTY) {
           state.enchantGrid[upR][col] = ENCHANT_TYPES.GILDED;
-          rebuildEnchantmentRings();
           spawn3DShockwaveRing(upR, col, 0xfacc15, 1.9, 440);
+          gildedCount++;
         }
-        break;
       }
     }
+    if (gildedCount > 0) rebuildEnchantmentRings();
     rebuildBoardMeshes();
     if (!aiEngine.findWinningLine(state.board, PLAYER)) {
       triggerSlotEnchantment(r, col, PLAYER);
     }
-    showToast(`👁️‍🗨️ Golden Midas Eye deployed Wild, transmuted ${converted} adjacent piece(s), & gilded Col ${col + 1}!`, '👁️‍🗨️');
+    showToast(`👁️‍🗨️ Golden Midas Eye deployed your token, transmuted ${converted} adjacent piece(s), & gilded ${gildedCount} slot(s) in Col ${col + 1}!`, '👁️‍🗨️');
   },
 
   eclipse_idol(r, col, repeat) {
     sfx.playWildPrismatic();
     playSeraphimHaloVFX(col);
     triggerHaptic([30, 25, 50]);
-    spawnTokenMesh(r, col, WILD);
+    spawnTokenMesh(r, col, PLAYER);
     state.mana = Math.min(state.maxMana + 3, state.mana + repeat);
     state.stability += 3 * repeat;
     drawCards(repeat);
-    for (let upR = r + 1; upR < ROWS; upR++) {
-      if (state.board[upR][col] !== VOID_CELL) {
-        if (state.board[upR][col] === EMPTY && state.enchantGrid && state.enchantGrid[upR]) {
-          state.enchantGrid[upR][col] = ENCHANT_TYPES.AMPLIFIER;
-          rebuildEnchantmentRings();
-        }
-        break;
+    let enchantedAbove = 0;
+    for (let upR = r + 1; upR < ROWS && enchantedAbove < repeat; upR++) {
+      if (state.board[upR][col] !== VOID_CELL && state.board[upR][col] === EMPTY && state.enchantGrid && state.enchantGrid[upR]) {
+        state.enchantGrid[upR][col] = enchantedAbove === 0 ? ENCHANT_TYPES.AMPLIFIER : ENCHANT_TYPES.GILDED;
+        enchantedAbove++;
       }
     }
+    if (enchantedAbove > 0) rebuildEnchantmentRings();
     spawn3DColumnBeam(col, 0xa855f7, 0.42, 520, true);
     spawn3DShockwaveRing(r, col, 0xfde047, 2.8, 500);
     spawn3DParticleBurst(r, col, 0xc084fc, 18, 0.13, 500, 'octa');
     triggerSlotEnchantment(r, col, PLAYER);
-    spawnFloatingPop(`🌑 Black Sun Idol: WILD, +${repeat}M, +${3 * repeat} Stab & Draw!`, 'text-purple-300', 5000);
-    showToast(`🌑 Black Sun Idol deployed WILD, spawned an Amplifier Slot, drew ${repeat} card(s), & restored +${repeat}M / +${3 * repeat} Stability!`, '🌑');
+    spawnFloatingPop(`🌑 Black Sun Idol: +${repeat}M, +${3 * repeat} Stab & Draw!`, 'text-purple-300', 5000);
+    showToast(`🌑 Black Sun Idol deployed your token, spawned an Amplifier Slot above, drew ${repeat} card(s), & restored +${repeat}M / +${3 * repeat} Stability!`, '🌑');
   }
 };
 
@@ -1031,8 +1107,22 @@ function countTokensInPlay(board = state.board) {
   return count;
 }
 
+function countEnemyOrStoneTokensInPlay(board = state.board) {
+  if (!board || !board.length) return 0;
+  let count = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = board[r] && board[r][c];
+      if (cell === AI || cell === STONE) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
 // ============================================================================
-// ARCANE CARD CASTING & BOARD-WIDE SPELLS (33 Total: 32 Playable + 1 Curse)
+// ARCANE CARD CASTING & BOARD-WIDE SPELLS (32 Total: 31 Playable + 1 Curse)
 // ============================================================================
 function triggerSinkholeTrapdoor(handIdx, effCost) {
   const totalInPlay = countTokensInPlay(state.board);
@@ -1251,9 +1341,9 @@ const CARD_EFFECT_HANDLERS = {
 
     runCardVFXWithCallback(playPebbleNudgeVFX, [baseR, col], 740, () => {
       state.stability += 1;
-      state.gold += 1;
-      spawnFloatingPop('🪨 Pebble +$1 & +1 Stab!', 'text-amber-300');
-      showToast(`Cavern Pebble reinforced Col ${col + 1} (+1 Stability & +$1)!`, '🪨');
+      state.gold += 2;
+      spawnFloatingPop('🪨 Pebble +$2 & +1 Stab!', 'text-amber-300');
+      showToast(`Cavern Pebble reinforced Col ${col + 1} (+1 Stability & +$2)!`, '🪨');
       finalizeChoreographedCard(card, effCost);
     });
     return true;
@@ -1329,11 +1419,11 @@ const CARD_EFFECT_HANDLERS = {
 
     runCardVFXWithCallback(playBloodletterLancetVFX, [col], 780, () => {
       state.stability = Math.max(1, state.stability - 2);
-      state.gold += 1;
+      state.gold += 2;
       state.mana = Math.min(state.maxMana + 3, state.mana + 1);
       drawCards(1);
-      spawnFloatingPop("💉 Lancet Pact: +1M, +1 Card & +$1!", 'text-rose-300', 4800);
-      showToast("💉 Bloodletter's Lancet drained 2 Stability to grant +1 Mana, +1 Card, & +$1 Gold!", '💉');
+      spawnFloatingPop("💉 Lancet Pact: +1M, +1 Card & +$2!", 'text-rose-300', 4800);
+      showToast("💉 Bloodletter's Lancet drained 2 Stability to grant +1 Mana, +1 Card, & +$2 Gold!", '💉');
       finalizeChoreographedCard(card, effCost);
     });
     return true;
@@ -1579,9 +1669,10 @@ const CARD_EFFECT_HANDLERS = {
     triggerHaptic([30, 25, 45]);
     setStatusBanner(true, `🛢️ Boiling Tar Pitch dragging Col ${col + 1} downward...`);
 
+    const hasNonAiBelow = topAiIdx > 0 && tokens.slice(0, topAiIdx).some((t) => t !== AI);
     runCardVFXWithCallback(playBoilingTarPitchVFX, [col, fromR, toR], 800, () => {
       state.stability += 1;
-      if (topAiIdx !== -1 && tokens.length >= 2) {
+      if (topAiIdx > 0 && hasNonAiBelow && tokens.length >= 2) {
         const [pulledAi] = tokens.splice(topAiIdx, 1);
         tokens.unshift(pulledAi);
         occupiedRows.forEach((rr, i) => {
@@ -1801,9 +1892,10 @@ const CARD_EFFECT_HANDLERS = {
     let bestPriority = -1;
     for (const c of spanCols) {
       const topR = aiEngine.getTopOccupiedRow(state.board, c);
-      if (topR !== -1) {
-        const isEnemyOrStone = (state.board[topR][c] === AI || state.board[topR][c] === STONE) ? 1 : 0;
-        const prio = topR * 10 + isEnemyOrStone * 5;
+      if (topR !== -1 && (state.board[topR][c] === AI || state.board[topR][c] === STONE)) {
+        const isAiPiece = state.board[topR][c] === AI ? 1 : 0;
+        const isTargetCol = c === col ? 1 : 0;
+        const prio = topR * 100 + isAiPiece * 10 + isTargetCol;
         if (prio > bestPriority) {
           bestPriority = prio;
           bestCol = c;
@@ -1812,7 +1904,7 @@ const CARD_EFFECT_HANDLERS = {
       }
     }
     if (bestCol === -1) {
-      showToast('No tokens in target 3-column span for Weighted Guillotine!', '🪓');
+      showToast('Pick a 3-column span with at least 1 exposed AI or Stone token on top to decapitate!', '🪓');
       return true;
     }
 
@@ -1846,10 +1938,30 @@ const CARD_EFFECT_HANDLERS = {
       showToast('Adjacent columns are full!', '⚠️');
       return true;
     }
-    const destCol = candidates[0];
+    const origCell = state.board[topR][col];
+    let movingType = origCell;
+    if (movingType === STONE || movingType === AI) movingType = PLAYER;
+    let destCol = candidates[0];
+    if (candidates.length > 1) {
+      let bestCandScore = -Infinity;
+      for (const nc of candidates) {
+        const nr = aiEngine.getAvailableRow(state.board, nc);
+        state.board[topR][col] = EMPTY;
+        state.board[nr][nc] = movingType;
+        const wins = !!aiEngine.findWinningLine(state.board, PLAYER);
+        const ench = (state.enchantGrid && state.enchantGrid[nr]) ? state.enchantGrid[nr][nc] : ENCHANT_TYPES.NONE;
+        const enchBonus = (ench === ENCHANT_TYPES.GILDED || ench === ENCHANT_TYPES.SPICE || ench === ENCHANT_TYPES.WEB) ? 50 : 0;
+        const centerBonus = 10 - Math.abs(nc - 3) * 2;
+        const candScore = (wins ? 10000 : 0) + enchBonus + centerBonus;
+        state.board[nr][nc] = EMPTY;
+        state.board[topR][col] = origCell;
+        if (candScore > bestCandScore) {
+          bestCandScore = candScore;
+          destCol = nc;
+        }
+      }
+    }
     const destR = aiEngine.getAvailableRow(state.board, destCol);
-    let movingType = state.board[topR][col];
-    if (movingType === STONE) movingType = PLAYER;
 
     state.busy = true;
     consumeCardAndClearSelection(handIdx, effCost);
@@ -2062,7 +2174,7 @@ const CARD_EFFECT_HANDLERS = {
   transmute(handIdx, col, effCost) {
     const card = CARD_CATALOG.transmute;
     const topR = aiEngine.getTopOccupiedRow(state.board, col);
-    if (topR === -1 || state.board[topR][col] === PLAYER) {
+    if (topR === -1 || (state.board[topR][col] !== AI && state.board[topR][col] !== STONE)) {
       showToast('Pick a column topped by an AI or Stone token!', '⚠️');
       return true;
     }
@@ -2106,6 +2218,7 @@ const CARD_EFFECT_HANDLERS = {
       spawnTokenMesh(r1, col, PLAYER);
       state.lastPlayedCell = [r1, col];
       triggerSlotEnchantment(r1, col, PLAYER);
+      checkPlayerDropGambits(col);
       const nextR = aiEngine.getAvailableRow(state.board, col);
       if (nextR !== -1) {
         spawnTokenMesh(nextR, col, PLAYER);
@@ -2114,44 +2227,9 @@ const CARD_EFFECT_HANDLERS = {
           state.meshes[nextR][col].position.y += CELL_SPACING * 0.85;
         }
         triggerSlotEnchantment(nextR, col, PLAYER);
+        checkPlayerDropGambits(col);
       }
       showToast(`♊ Echo Drop stacked 2 tokens in Col ${col + 1}!`, '♊');
-      finalizeChoreographedCard(card, effCost);
-    });
-    return true;
-  },
-
-  mirror_shard(handIdx, col, effCost) {
-    const card = CARD_CATALOG.mirror_shard;
-    const topR = aiEngine.getTopOccupiedRow(state.board, col);
-    const availR = aiEngine.getAvailableRow(state.board, col);
-    if (topR === -1 || (state.board[topR][col] !== PLAYER && state.board[topR][col] !== WILD)) {
-      showToast(`Top token in Col ${col + 1} must be your Amber or Wild token to reflect!`, '🪞');
-      return true;
-    }
-    if (availR === -1) {
-      showToast(`Col ${col + 1} is already full!`, '⚠️');
-      return true;
-    }
-
-    state.busy = true;
-    consumeCardAndClearSelection(handIdx, effCost);
-    sfx.playMirrorShard();
-    triggerHaptic([25, 30, 45]);
-    spawn3DColumnBeam(col, 0xe879f9, 0.42, 540, true);
-    setStatusBanner(true, `🪞 Prismatic Mirror Shard reflecting token in Col ${col + 1}...`);
-
-    runCardVFXWithCallback(playMirrorShardVFX, [topR, availR, col], 760, () => {
-      spawnTokenMesh(availR, col, WILD);
-      if (state.meshes[availR] && state.meshes[availR][col]) {
-        state.meshes[availR][col].position.y = START_Y + topR * CELL_SPACING + 0.15;
-        state.meshes[availR][col].userData.velY = 0.08;
-      }
-      state.lastPlayedCell = [availR, col];
-      triggerSlotEnchantment(availR, col, PLAYER);
-      checkPlayerDropGambits(col);
-      spawnFloatingPop('🪞 Reflected Wild Prismatic!', 'text-sky-300', 4800);
-      showToast(`🪞 Prismatic Mirror Shard cloned your top token in Col ${col + 1} into a Wild Prismatic Token!`, '🪞');
       finalizeChoreographedCard(card, effCost);
     });
     return true;
@@ -2261,6 +2339,11 @@ const CARD_EFFECT_HANDLERS = {
   croupier_jackpot(handIdx, col, effCost) {
     const card = CARD_CATALOG.croupier_jackpot;
     const previewR = aiEngine.getAvailableRow(state.board, col);
+    const topR = aiEngine.getTopOccupiedRow(state.board, col);
+    if (previewR === -1 && (topR === -1 || (state.board[topR][col] !== AI && state.board[topR][col] !== STONE))) {
+      showToast('Column is already full of your tokens!', '⚠️');
+      return true;
+    }
 
     state.busy = true;
     consumeCardAndClearSelection(handIdx, effCost);
@@ -2271,14 +2354,13 @@ const CARD_EFFECT_HANDLERS = {
     runCardVFXWithCallback(playCroupierJackpotVFX, [col, previewR], 860, () => {
       let r = aiEngine.getAvailableRow(state.board, col);
       if (r !== -1) {
-        spawnTokenMesh(r, col, WILD);
+        spawnTokenMesh(r, col, PLAYER);
         triggerSlotEnchantment(r, col, PLAYER);
-      } else {
-        r = aiEngine.getTopOccupiedRow(state.board, col);
-        if (r !== -1) {
-          state.board[r][col] = WILD;
-          rebuildBoardMeshes([col]);
-        }
+        checkPlayerDropGambits(col);
+      } else if (topR !== -1 && (state.board[topR][col] === AI || state.board[topR][col] === STONE)) {
+        state.board[topR][col] = PLAYER;
+        state.lastPlayedCell = [topR, col];
+        rebuildBoardMeshes([col]);
       }
 
       let gildedAdded = 0;
@@ -2300,8 +2382,8 @@ const CARD_EFFECT_HANDLERS = {
       }
       const payout = Math.max(3, totalEnchants);
       state.gold += payout;
-      spawnFloatingPop(`🎰 Croupier Jackpot: WILD & +$${payout} Gold!`, 'text-amber-300', 5000);
-      showToast(`🎰 Croupier's Rigged Jackpot dropped WILD in Col ${col + 1}, gilded ${gildedAdded} slot(s), & paid +$${payout} Gold!`, '🎰');
+      spawnFloatingPop(`🎰 Croupier Jackpot: Token & +$${payout} Gold!`, 'text-amber-300', 5000);
+      showToast(`🎰 Croupier's Rigged Jackpot dropped your token in Col ${col + 1}, gilded ${gildedAdded} slot(s), & paid +$${payout} Gold!`, '🎰');
       finalizeChoreographedCard(card, effCost);
     });
     return true;
@@ -2385,6 +2467,19 @@ const CARD_EFFECT_HANDLERS = {
 
   seraphim_halo(handIdx, col, effCost) {
     const card = CARD_CATALOG.seraphim_halo;
+    const availCheck = aiEngine.getAvailableRow(state.board, col);
+    let hasBlockerInCol = false;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (state.board[r][col] === AI || state.board[r][col] === STONE) {
+        hasBlockerInCol = true;
+        break;
+      }
+    }
+    if (availCheck === -1 && !hasBlockerInCol) {
+      showToast('Column is already full of your tokens!', '⚠️');
+      return true;
+    }
+
     state.busy = true;
     consumeCardAndClearSelection(handIdx, effCost);
     sfx.playSacredHeartChoir();
@@ -2393,28 +2488,32 @@ const CARD_EFFECT_HANDLERS = {
 
     runCardVFXWithCallback(playSeraphimHaloVFX, [col], 860, () => {
       state.stability += 3;
-      let upgradedR = -1;
+      let sanctifiedR = -1;
       for (let r = ROWS - 1; r >= 0; r--) {
-        if (state.board[r][col] === PLAYER) {
-          state.board[r][col] = WILD;
-          upgradedR = r;
+        if (state.board[r][col] === AI || state.board[r][col] === STONE) {
+          state.board[r][col] = PLAYER;
+          state.lastPlayedCell = [r, col];
+          sanctifiedR = r;
           break;
         }
       }
       const availR = aiEngine.getAvailableRow(state.board, col);
       if (availR !== -1) {
-        spawnTokenMesh(availR, col, upgradedR === -1 ? WILD : PLAYER);
+        spawnTokenMesh(availR, col, PLAYER);
         triggerSlotEnchantment(availR, col, PLAYER);
-      } else if (upgradedR === -1) {
-        const topR = aiEngine.getTopOccupiedRow(state.board, col);
-        if (topR !== -1) state.board[topR][col] = WILD;
+        checkPlayerDropGambits(col);
       }
       rebuildBoardMeshes([col]);
       const effR = Math.max(0, aiEngine.getTopOccupiedRow(state.board, col));
       spawn3DShockwaveRing(effR, col, 0xfacc15, 2.8, 520);
       spawn3DParticleBurst(effR, col, 0xfde047, 20, 0.15, 540, 'octa');
-      spawnFloatingPop('🪽 Seraphim Halo: WILD, Drop & +3 Stab!', 'text-amber-200', 5000);
-      showToast(`🪽 Six-Winged Seraphim Halo sanctified Col ${col + 1} into WILD, dropped a token, & restored +3 Stability!`, '🪽');
+      spawnFloatingPop('🪽 Seraphim Halo: Sanctified, Drop & +3 Stab!', 'text-amber-200', 5000);
+      showToast(
+        sanctifiedR !== -1
+          ? `🪽 Six-Winged Seraphim Halo sanctified a blocker in Col ${col + 1} to your color, dropped a token, & restored +3 Stability!`
+          : `🪽 Six-Winged Seraphim Halo blessed Col ${col + 1} with a token drop & +3 Seismic Stability!`,
+        '🪽'
+      );
       finalizeChoreographedCard(card, effCost);
     });
     return true;
@@ -2596,7 +2695,9 @@ function triggerAITurn() {
     state.cardsCastThisTurn = 0;
     state.bellowsTriggeredThisTurn = false;
     state.bloodletterHealCountThisTurn = 0;
-    state.busy = false;
+    if (!state.isCarouselRotating) {
+      state.busy = false;
+    }
 
     const diff = getActiveDifficulty();
     const regenInterval = diff.manaRegenInterval || 1;
@@ -2745,8 +2846,291 @@ const BOSS_ABILITY_HANDLERS = {
       spawnTokenMesh(sr, sc, STONE);
       showToast(`🦖 Tectonic Behemoth quaked -1 Stability & dropped Stone in Col ${sc + 1}!`, '🦖');
     }
+  },
+
+  abyssal_lodestone() {
+    const mc = state.bossMarkedCol;
+    const neighbors = [mc - 1, mc + 1].filter((c) => c >= 0 && c < COLS);
+    let pulledCount = 0;
+
+    neighbors.forEach((nc) => {
+      const topR = aiEngine.getTopOccupiedRow(state.board, nc);
+      const destR = aiEngine.getAvailableRow(state.board, mc);
+      if (topR !== -1 && destR !== -1) {
+        const piece = state.board[topR][nc];
+        state.board[topR][nc] = EMPTY;
+        applyColumnGravity(nc);
+        state.board[destR][mc] = piece;
+        spawn3DShockwaveRing(destR, mc, 0x38bdf8, 2.2, 460);
+        pulledCount++;
+      }
+    });
+
+    if (pulledCount > 0) {
+      rebuildBoardMeshes([mc, ...neighbors]);
+      showToast(`🧲 Abyssal Lodestone pulled ${pulledCount} neighbor token(s) into Singularity Col ${mc + 1}!`, '🧲');
+    } else {
+      const openCols = getPlayableColumns();
+      if (openCols.length > 0) {
+        const sc = openCols.includes(mc) ? mc : openCols[Math.floor(Math.random() * openCols.length)];
+        const sr = aiEngine.getAvailableRow(state.board, sc);
+        if (sr !== -1) {
+          spawnTokenMesh(sr, sc, STONE);
+          showToast(`🧲 Abyssal Lodestone condensed a Magnetic Stone in Col ${sc + 1}!`, '🧲');
+        }
+      }
+    }
+
+    const validMarkCols = [1, 2, 3, 4, 5].filter((c) => aiEngine.getAvailableRow(state.board, c) !== -1);
+    state.bossMarkedCol = validMarkCols.length > 0
+      ? validMarkCols[Math.floor(Math.random() * validMarkCols.length)]
+      : Math.floor(Math.random() * COLS);
+  },
+
+  void_weaver() {
+    // 1. Weave Cursed Spore + Web snares on up to 2 empty slots
+    const emptyCoords = [];
+    for (let r = 0; r < ROWS - 1; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (state.board[r][c] === EMPTY && state.enchantGrid[r][c] === ENCHANT_TYPES.NONE) {
+          emptyCoords.push([r, c]);
+        }
+      }
+    }
+    const picked = shuffle(emptyCoords).slice(0, 2);
+    picked.forEach(([r, c], idx) => {
+      state.enchantGrid[r][c] = idx === 0 ? ENCHANT_TYPES.CURSED_SPORE : ENCHANT_TYPES.WEB;
+    });
+
+    // 2. Drag the highest Player surface token sideways into an adjacent column
+    const playerCols = [];
+    for (let c = 0; c < COLS; c++) {
+      const topR = aiEngine.getTopOccupiedRow(state.board, c);
+      if (topR !== -1 && state.board[topR][c] === PLAYER) {
+        playerCols.push([topR, c]);
+      }
+    }
+    let draggedMsg = '';
+    if (playerCols.length > 0) {
+      const [pr, pc] = playerCols[Math.floor(Math.random() * playerCols.length)];
+      const adjOpen = [pc - 1, pc + 1].filter((ac) => ac >= 0 && ac < COLS && aiEngine.getAvailableRow(state.board, ac) !== -1);
+      if (adjOpen.length > 0) {
+        const destC = adjOpen[Math.floor(Math.random() * adjOpen.length)];
+        const destR = aiEngine.getAvailableRow(state.board, destC);
+        state.board[pr][pc] = EMPTY;
+        state.enchantGrid[pr][pc] = ENCHANT_TYPES.WEB;
+        applyColumnGravity(pc);
+        state.board[destR][destC] = PLAYER;
+        spawn3DShockwaveRing(destR, destC, 0xa855f7, 2.2, 460);
+        rebuildBoardMeshes([destC]);
+        draggedMsg = ` & dragged your Col ${pc + 1} token into Col ${destC + 1}`;
+      }
+    }
+
+    rebuildEnchantmentRings();
+    showToast(`🕸️ Void Weaver spun ${picked.length} Silk Snares${draggedMsg}!`, '🕸️');
+  },
+
+  sovereign_tesseract() {
+    if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) return;
+    // Do not rotate away if either side already connected 4 on this board
+    if (aiEngine.findWinningLine(state.board, PLAYER) || aiEngine.findWinningLine(state.board, AI)) {
+      return;
+    }
+    const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
+    triggerFinalBossBoardRotation(
+      nextIdx,
+      `🌌 Sovereign Tesseract rotated to Parallel Board ${nextIdx + 1}/4!`,
+      () => {
+        if (!state.gameOver && state.turn === PLAYER) {
+          state.busy = false;
+          updateHUD();
+          updateTelemetryBadges();
+        }
+      }
+    );
   }
 };
+
+function countEmptyPlayableCells(boardGrid) {
+  let emptyCount = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (boardGrid[r][c] === EMPTY) emptyCount++;
+    }
+  }
+  return emptyCount;
+}
+
+function saveCurrentTesseractBoardState() {
+  if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) return;
+  const idx = state.activeTesseractBoardIdx || 0;
+  if (!state.tesseractBoards[idx]) return;
+  if (Array.isArray(state.boardMask) && state.boardMask.length === ROWS) {
+    state.tesseractBoards[idx].boardMask = state.boardMask.map((row) => row.slice());
+  }
+  state.tesseractBoards[idx].board = state.board.map((row) => row.slice());
+  state.tesseractBoards[idx].enchantGrid = state.enchantGrid.map((row) => row.slice());
+}
+
+function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = null) {
+  if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+  state.busy = true;
+  state.isCarouselRotating = true;
+  saveCurrentTesseractBoardState();
+  const nextIdx = ((targetIdx % 4) + 4) % 4;
+  const startMs = performance.now();
+  const durationMs = 680;
+  let swappedAtMidpoint = false;
+
+  sfx.playBoardFlipWhoosh();
+  triggerBoardShake(0.24);
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(0.75);
+  }
+  spawn3DShockwaveRing(2, 3, 0xc084fc, 3.8, 620);
+
+  function stepCarouselRotation() {
+    const elapsed = performance.now() - startMs;
+    const p = Math.min(1, elapsed / durationMs);
+
+    if (p < 0.5) {
+      // Outgoing board slides & rotates 90 degrees into the Tesseract
+      const t = p / 0.5;
+      const easeIn = t * t;
+      boardGroup.rotation.y = easeIn * (Math.PI * 0.52);
+      boardGroup.position.x = -easeIn * 2.8;
+      boardGroup.position.z = -easeIn * 2.4;
+    } else {
+      if (!swappedAtMidpoint) {
+        swappedAtMidpoint = true;
+        // Re-save right before swapping so any end-of-turn collapse stones are preserved
+        saveCurrentTesseractBoardState();
+        state.activeTesseractBoardIdx = nextIdx;
+        const nextEntry = state.tesseractBoards[nextIdx];
+
+        if (Array.isArray(nextEntry.boardMask) && nextEntry.boardMask.length === ROWS) {
+          state.boardMask = nextEntry.boardMask.map((row) => row.slice());
+          if (state.currentTopology) {
+            state.currentTopology.mask = state.boardMask;
+          }
+          rebuild3DBoardGeometry(state.boardMask);
+        }
+
+        // Ensure incoming board has ample room (if < 6 empty cells remain, flush it clean!)
+        if (countEmptyPlayableCells(nextEntry.board) < 6) {
+          nextEntry.board = Array.from({ length: ROWS }, (_, r) =>
+            Array.from({ length: COLS }, (_, c) => (state.boardMask[r][c] ? EMPTY : VOID_CELL))
+          );
+        }
+
+        state.board = nextEntry.board.map((row) => row.slice());
+        state.enchantGrid = nextEntry.enchantGrid.map((row) => row.slice());
+        rebuildEnchantmentRings();
+        rebuildBoardMeshes();
+        if (typeof updateCavernAesthetics === 'function') {
+          updateCavernAesthetics();
+        }
+        updateHUD();
+        updateTelemetryBadges();
+        if (toastMessage) {
+          showToast(toastMessage, '🌌', 3800);
+        }
+      }
+      // Incoming board slides & rotates smoothly from +90 degrees into center
+      const t = (p - 0.5) / 0.5;
+      const easeOut = 1 - Math.pow(1 - t, 3);
+      boardGroup.rotation.y = -(1 - easeOut) * (Math.PI * 0.52);
+      boardGroup.position.x = (1 - easeOut) * 2.8;
+      boardGroup.position.z = -(1 - easeOut) * 2.4;
+    }
+
+    if (p < 1) {
+      requestAnimationFrame(stepCarouselRotation);
+    } else {
+      boardGroup.rotation.set(0, 0, 0);
+      boardGroup.position.set(0, 0, 0);
+      state.isCarouselRotating = false;
+      updateHUD();
+      updateTelemetryBadges();
+      if (typeof onComplete === 'function') {
+        onComplete();
+      } else if (!state.gameOver && state.turn === PLAYER) {
+        state.busy = false;
+      }
+    }
+  }
+
+  requestAnimationFrame(stepCarouselRotation);
+}
+
+function triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData) {
+  sfx.playTrapdoorRelease();
+  triggerHaptic([60, 40, 90, 40, 80]);
+  triggerBoardShake(0.55);
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(1.25);
+  }
+
+  for (let c = 0; c < COLS; c++) {
+    spawn3DShockwaveRing(0, c, 0x38bdf8, 2.0, 560);
+    spawn3DParticleBurst(0, c, 0xf43f5e, 10, 0.14, 560, 'octa');
+  }
+
+  // Release all tokens in tokensGroup so they plummet downward out of the bottom of the frame
+  tokensGroup.children.forEach((mesh) => {
+    const d = mesh.userData;
+    d.targetY = START_Y - 12.5 - Math.random() * 3.0;
+    d.velY = -0.06 - Math.random() * 0.14;
+    d.rotSpeedX = (Math.random() - 0.5) * 0.22;
+  });
+
+  const startMs = performance.now();
+  const flushDuration = 920;
+  function stepBoardShakeTilt() {
+    const p = Math.min(1, (performance.now() - startMs) / flushDuration);
+    boardGroup.rotation.z = Math.sin(p * Math.PI * 6) * 0.085 * (1 - p);
+    boardGroup.position.y = Math.sin(p * Math.PI * 4) * 0.22 * (1 - p);
+    if (p < 1) {
+      requestAnimationFrame(stepBoardShakeTilt);
+    } else {
+      boardGroup.rotation.set(0, 0, 0);
+      boardGroup.position.set(0, 0, 0);
+    }
+  }
+  requestAnimationFrame(stepBoardShakeTilt);
+
+  spawnFloatingPop('🌪️ MIDPOINT CATACLYSM! Board Shaken Clean!', 'text-cyan-300', 5200);
+  showToast(
+    `🌪️ HALF-HEALTH CATACLYSM (2/4 ❤️)! ${floorData.boss} shook ALL pieces out of the board for a clean arena!`,
+    '🌪️',
+    5400,
+    'border-cyan-400/80 text-cyan-100'
+  );
+  setStatusBanner(true, `🌪️ Midpoint Cataclysm (2/4 ❤️)! Shaking all tokens out for a clean board...`);
+
+  setTimeout(() => {
+    state.board = Array.from({ length: ROWS }, (_, r) =>
+      Array.from({ length: COLS }, (_, c) => (state.boardMask[r][c] ? EMPTY : VOID_CELL))
+    );
+    clearThreeGroup(tokensGroup);
+    state.meshes = createGrid(ROWS, COLS, null);
+    generateSlotEnchantments();
+
+    if (shouldAdvanceToAI) {
+      triggerAITurn();
+    } else {
+      state.turn = PLAYER;
+      state.busy = false;
+      updateHUD();
+      updateTelemetryBadges();
+      setStatusBanner(true, `⚔️ Boss at ${state.bossHp}/${state.bossMaxHp} ❤️ on a Clean Board • Continue Your Turn!`);
+    }
+  }, 940);
+}
 
 function executeRandomizedBossAbility(arch) {
   const interval = getEffectiveBossInterval(arch);
@@ -2784,6 +3168,12 @@ function handleFloorVictory(winLine) {
     sfx.playBossPhaseShatter();
     triggerHaptic([50, 35, 80, 35, 60]);
     triggerBoardShake(0.34);
+    if (typeof triggerCavernBossEnragePulse === 'function') {
+      triggerCavernBossEnragePulse(0.95);
+    }
+    if (typeof updateCavernAesthetics === 'function') {
+      updateCavernAesthetics();
+    }
 
     winLine.forEach(([r, c]) => {
       spawn3DShockwaveRing(r, c, 0xf43f5e, 2.5, 520);
@@ -2808,6 +3198,13 @@ function handleFloorVictory(winLine) {
 
     updateHUD();
     const remHp = state.bossHp;
+
+    // ACT IV BOSS SPECIAL: After 2 hearts of damage (at 2/4 HP), shake all pieces out of the board!
+    if (state.bossMaxHp === 4 && remHp === 2) {
+      triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData);
+      return;
+    }
+
     spawnFloatingPop(`💔 -1 Boss HP! (${remHp}/${state.bossMaxHp} ❤️ Left) +$2`, 'text-rose-300', 4800);
     showToast(
       `💥 Depleted 1 Boss HP (${remHp}/${state.bossMaxHp} ❤️ Left)! Your winning piece in Col ${stoneC + 1} turned into Petrified Stone — Battle Continues!`,
@@ -2831,6 +3228,27 @@ function handleFloorVictory(winLine) {
       spawn3DParticleBurst(stoneR, stoneC, 0x78716c, 16, 0.12, 480, 'box');
       rebuildBoardMeshes();
 
+      const isTesseractBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract';
+      if (isTesseractBoss && Array.isArray(state.tesseractBoards) && state.tesseractBoards.length === 4) {
+        const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
+        triggerFinalBossBoardRotation(
+          nextIdx,
+          `🌌 Heart Shattered (${state.bossHp}/${state.bossMaxHp} ❤️)! Tesseract rotated to Board ${nextIdx + 1}/4!`,
+          () => {
+            if (shouldAdvanceToAI) {
+              triggerAITurn();
+            } else {
+              state.turn = PLAYER;
+              state.busy = false;
+              updateHUD();
+              updateTelemetryBadges();
+              setStatusBanner(true, `🌌 Board ${state.activeTesseractBoardIdx + 1}/4 Active • Boss at ${state.bossHp}/${state.bossMaxHp} ❤️!`);
+            }
+          }
+        );
+        return;
+      }
+
       if (aiEngine.isBoardFull(state.board)) {
         handleDraw();
         return;
@@ -2851,6 +3269,17 @@ function handleFloorVictory(winLine) {
 
   if (floorData.isBoss) {
     state.bossHp = 0;
+    const clearedBossNum = Math.floor(state.floorIdx / 3) + 1;
+    state.unlockedShopTier = Math.min(5, Math.max(state.unlockedShopTier || 1, clearedBossNum + 1));
+    if (state.unlockedShopTier >= 3) {
+      state.highTierCardsUnlocked = true;
+    }
+    if (typeof triggerCavernBossEnragePulse === 'function') {
+      triggerCavernBossEnragePulse(1.35);
+    }
+    if (typeof updateCavernAesthetics === 'function') {
+      updateCavernAesthetics();
+    }
   }
   state.gameOver = true;
   sfx.playResultChime(true);
@@ -2883,7 +3312,7 @@ function handleFloorVictory(winLine) {
       showGameOverModal(
         true,
         'Subterranean Ascension Mastered!',
-        `You conquered all ${TOTAL_FLOORS} cavern floors, vanquished all 3 multi-phase Bosses across warped procedural topologies, and amassed $${state.gold} Gold!`
+        `You conquered all ${TOTAL_FLOORS} cavern floors, vanquished all 5 multi-phase Bosses across warped procedural topologies, and amassed $${state.gold} Gold!`
       );
       return;
     }
@@ -2916,6 +3345,21 @@ function handleFloorDefeat(aiWinLine) {
 }
 
 function handleDraw() {
+  const floorData = getFloorConfig(state.floorIdx);
+  if (floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract') {
+    state.board = Array.from({ length: ROWS }, (_, r) =>
+      Array.from({ length: COLS }, (_, c) => (state.boardMask[r][c] ? EMPTY : VOID_CELL))
+    );
+    saveCurrentTesseractBoardState();
+    const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
+    triggerFinalBossBoardRotation(nextIdx, '🌌 Board Full! Tesseract flushed & rotated to next Parallel Board!', () => {
+      state.turn = PLAYER;
+      state.busy = false;
+      updateHUD();
+      updateTelemetryBadges();
+    });
+    return;
+  }
   state.gameOver = true;
   state.busy = true;
   sfx.playCurseBuzzer();

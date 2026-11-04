@@ -22,7 +22,7 @@ function registerSubterraneanServiceWorker() {
 
 // Expose structured global namespace for inspection and extensibility
 window.C4 = {
-  version: '2.3.0-ascension',
+  version: '2.8.0-ascension-v55',
   config: {
     ROWS,
     COLS,

@@ -10,8 +10,10 @@ const AI = 2;
 const STONE = 3;
 const WILD = 4;
 
-// 9-Floor Ascension Structure (2 Standard Sentinels -> 1 Randomized Boss per Act)
-const TOTAL_FLOORS = 9;
+// 15-Floor / 5-Act Ascension Structure (2 Standard Sentinels -> 1 Boss per Act across 5 Acts)
+const TOTAL_FLOORS = 15;
+const TOTAL_ACTS = 5;
+const MAX_SHOP_TIER = 5;
 
 function createGrid(rows = ROWS, cols = COLS, fillValue = EMPTY) {
   return Array.from({ length: rows }, () => Array(cols).fill(fillValue));

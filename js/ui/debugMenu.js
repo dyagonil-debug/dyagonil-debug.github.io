@@ -54,7 +54,9 @@ getFloorTopology = function(floorIdx) {
                 name: pick.name,
                 icon: pick.icon,
                 desc: pick.desc,
+                loreDesc: pick.loreDesc || pick.desc,
                 isProcedural: true,
+                isAsymmetrical: !!pick.isAsymmetrical,
                 mask: pick.buildMask()
             };
         }
@@ -204,7 +206,7 @@ function renderDebugMenu() {
         topoSelect.innerHTML = `
             <option value="AUTO">🎲 Auto (Floor Default)</option>
             <option value="classic_grid">📐 Classic 7x6 Cavern Grid</option>
-            ${BOARD_TOPOLOGIES.map(t => `<option value="${t.id}">${t.icon} ${t.name}</option>`).join('')}
+            ${BOARD_TOPOLOGIES.map(t => `<option value="${t.id}">${t.rawEmoji || '📐'} ${t.name}</option>`).join('')}
         `;
         topoSelect.addEventListener('change', (e) => {
             sfx.playHoverTick();
@@ -218,7 +220,7 @@ function renderDebugMenu() {
         bossSelect.innerHTML = `
             <option value="AUTO">🎲 Auto (Floor Default)</option>
             <option value="SENTINEL">🛡️ Force Standard Sentinel (No Boss Ability)</option>
-            ${BOSS_ARCHETYPES.map(b => `<option value="${b.id}">${b.icon} ${b.name} (${b.maxHp} HP)</option>`).join('')}
+            ${BOSS_ARCHETYPES.map(b => `<option value="${b.id}">${b.rawEmoji || '💀'} ${b.name} (${b.maxHp} HP)</option>`).join('')}
         `;
         bossSelect.addEventListener('change', (e) => {
             sfx.playHoverTick();
@@ -386,7 +388,7 @@ function launchDebugRunWithLoadout() {
     Object.entries(debugLoadout.cardCounts).forEach(([id, count]) => {
         for (let i = 0; i < count; i++) state.masterDeck.push(id);
     });
-    state.unlockedShopTier = state.floorIdx >= 5 ? 3 : (state.floorIdx >= 2 ? 2 : 1);
+    state.unlockedShopTier = Math.min(5, Math.floor(state.floorIdx / 3) + 1);
     state.highTierCardsUnlocked = state.unlockedShopTier >= 3;
 
     // 7. Dismiss Debug, Intro & Difficulty Overlays and Start the Floor!

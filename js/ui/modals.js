@@ -23,10 +23,19 @@ function clearFloorIntroAndModalLocks() {
   const introEl = document.getElementById('floor-intro-overlay');
   if (introEl) {
     introEl.classList.add('hidden');
-    introEl.classList.remove('floor-intro-active', 'floor-intro-fadeout');
+    introEl.classList.remove('floor-intro-active', 'floor-intro-fadeout', 'act-curtain-mode');
     introEl.style.display = '';
     introEl.style.opacity = '';
     introEl.style.pointerEvents = '';
+  }
+  const actCurtainEl = document.getElementById('act-intro-curtain');
+  if (actCurtainEl) {
+    actCurtainEl.classList.add('hidden');
+    actCurtainEl.classList.remove('act-curtain-visible', 'act-curtain-fadeout');
+  }
+  const introCardEl = document.getElementById('floor-intro-card');
+  if (introCardEl) {
+    introCardEl.classList.remove('hidden', 'floor-card-visible');
   }
 
   const gameOverEl = document.getElementById('gameover-modal');
@@ -211,6 +220,13 @@ function syncLoadoutViewModePill() {
     bazModeBtn.className = simp
       ? 'px-2 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition'
       : 'px-2 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition';
+  }
+  const bossModeBtn = document.getElementById('boss-chest-view-mode-btn');
+  if (bossModeBtn) {
+    bossModeBtn.innerHTML = simp ? '🕯️ Lore' : '📐 Math';
+    bossModeBtn.className = simp
+      ? 'px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0'
+      : 'px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-[9px] font-mono-code font-bold text-amber-200 active:scale-95 transition shrink-0';
   }
   const roulLegend = document.getElementById('roulette-legend-section');
   if (roulLegend) {
@@ -419,9 +435,13 @@ function renderLoadoutSelector() {
         const c = typeof CARD_CATALOG !== 'undefined' ? CARD_CATALOG[cId] : null;
         if (!c) return '';
         const t = c.tier || 1;
-        const tierClr = t >= 3
-          ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
-          : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
+        const tierClr = t >= 5
+          ? 'bg-fuchsia-500/30 text-fuchsia-200 border-fuchsia-400/60'
+          : t === 4
+            ? 'bg-cyan-500/30 text-cyan-200 border-cyan-400/50'
+            : t === 3
+              ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
+              : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
         return `
           <div class="p-1.5 rounded-xl bg-stone-950/85 border border-teal-500/30 flex items-center justify-between gap-1.5" title="${c.desc.replace(/"/g, '&quot;')}">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -688,6 +708,15 @@ function renderDifficultyCards() {
 }
 
 function openDifficultyModal(allowCancel = false) {
+  if (typeof bgm !== 'undefined' && bgm) {
+    if (!allowCancel) {
+      bgm.isPausedForLevelIntro = false;
+      bgm.isPausedForModal = false;
+    }
+    if (typeof bgm.setMode === 'function') {
+      bgm.setMode('cavern');
+    }
+  }
   renderLoadoutSelector();
   renderDifficultyCards();
   const cancelBtn = document.getElementById('cancel-difficulty-modal-btn');
@@ -778,7 +807,14 @@ document.getElementById('difficulty-badge')?.addEventListener('click', () => {
 document.getElementById('cancel-difficulty-modal-btn')?.addEventListener('click', () => {
   sfx.playHoverTick();
   document.getElementById('difficulty-modal')?.classList.add('hidden');
-  bgm.resumeFromSettings();
+  if (typeof bgm !== 'undefined' && bgm) {
+    const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
+    const isBoss = typeof isBossFloorIndex === 'function' ? isBossFloorIndex(fIdx) : ((fIdx + 1) % 3 === 0);
+    const bossActIdx = Math.floor(fIdx / 3);
+    const bossBgmModes = ['boss1', 'boss2', 'boss3', 'boss4', 'boss5'];
+    bgm.setMode(isBoss ? (bossBgmModes[Math.min(4, bossActIdx)] || 'boss1') : 'cavern');
+    bgm.resumeFromSettings();
+  }
 });
 
 // ============================================================================
@@ -878,14 +914,16 @@ document.getElementById('milestone-info-btn')?.addEventListener('click', () => {
   sfx.playHoverTick();
   showInfoSheetModal({
     icon: modalHudIcon('trophy.svg'),
-    category: '9-Floor Ascension Progression',
+    category: '15-Floor / 5-Act Ascension Progression',
     title: 'Boss Milestone Power Spikes',
     descHtml: `
-      <p><strong>Floor 3 Boss Clear (Boss Fight 1):</strong> Unlocks <strong>Tier 2 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, Tactical Reserve Pouch (+1 Heavy Anvil), &amp; 1 free Boss Gambit Relic.</p>
-      <p><strong>Floor 6 Boss Clear (Boss Fight 2):</strong> Unlocks <strong>Tier 3 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, expands to 4 Gambit Slots (+1 Wild Token), &amp; 1 free Boss Gambit Relic.</p>
-      <p><strong>Floor 9 Final Boss Clear:</strong> Complete Subterranean Ascension Mastery!</p>
+      <p><strong>Floor 3 Boss Clear (Act I):</strong> Unlocks <strong>Tier 2 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, Reserve Pouch (+1 Heavy Anvil), &amp; 1 free Boss Relic.</p>
+      <p><strong>Floor 6 Boss Clear (Act II):</strong> Unlocks <strong>Tier 3 Shop Wares</strong>, +1 Max Mana, +1 Hand Size, +1 Brood Spider Egg Token, expands to 3 Relic Slots, &amp; 1 free Boss Relic.</p>
+      <p><strong>Floor 9 Boss Clear (Act III):</strong> Unlocks <strong>Tier 4 Shop Wares</strong>, +1 Max Mana, +1 Dwarven Nitro Cask, expands to 4 Relic Slots, &amp; 1 free Boss Relic.</p>
+      <p><strong>Floor 12 Boss Clear (Act IV • 4❤️):</strong> Unlocks <strong>Tier 5 Sovereign Wares</strong>, +1 Max Mana, +1 Golden Midas Eye, expands to 5 Relic Slots, &amp; 1 free Boss Relic.</p>
+      <p><strong>Floor 15 Final Boss Clear (Act V • 5❤️ 4-Board Tesseract):</strong> Complete Subterranean Ascension Mastery!</p>
     `,
-    statusText: `Current Progress: Floor ${state.floorIdx + 1} of ${TOTAL_FLOORS}`
+    statusText: `Current Progress: Floor ${state.floorIdx + 1} of ${TOTAL_FLOORS} (Shop Tier ${getMaxAllowedShopTier()}/5)`
   });
 });
 
@@ -928,116 +966,335 @@ document.getElementById('info-sheet-modal')?.addEventListener('click', (e) => {
 // ============================================================================
 // 3. BOSS VICTORY CHEST, UNDERGROUND BAZAAR ECONOMY & ROULETTE CONTROLS
 // ============================================================================
-function openBossVictoryChest(floorData) {
-  const milestoneBox = document.getElementById('boss-milestone-box');
+
+// Clear Item Type Pill Badges & Row Accents for Shop & Boss Reward Screens
+function getItemCategoryIndicatorBadge(itemType) {
+  if (itemType === 'card') {
+    return `<span class="px-1.5 py-0.5 rounded-md bg-sky-500/25 border border-sky-400/60 text-[8px] font-mono-code font-bold uppercase tracking-wider text-sky-200 shrink-0">🃏 CARD</span>`;
+  }
+  if (itemType === 'reserve') {
+    return `<span class="px-1.5 py-0.5 rounded-md bg-teal-500/25 border border-teal-400/60 text-[8px] font-mono-code font-bold uppercase tracking-wider text-teal-200 shrink-0">🪙 TOKEN</span>`;
+  }
+  if (itemType === 'unlock_pouch') {
+    return `<span class="px-1.5 py-0.5 rounded-md bg-teal-500/25 border border-teal-400/60 text-[8px] font-mono-code font-bold uppercase tracking-wider text-teal-200 shrink-0">🎒 POUCH + 2 TOKENS</span>`;
+  }
+  if (itemType === 'gambit') {
+    return `<span class="px-1.5 py-0.5 rounded-md bg-amber-500/25 border border-amber-400/60 text-[8px] font-mono-code font-bold uppercase tracking-wider text-amber-200 shrink-0">🏺 RELIC</span>`;
+  }
+  return `<span class="px-1.5 py-0.5 rounded-md bg-purple-500/25 border border-purple-400/60 text-[8px] font-mono-code font-bold uppercase tracking-wider text-purple-200 shrink-0">⚡ UPGRADE</span>`;
+}
+
+function getItemRowAccentClass(itemType) {
+  if (itemType === 'card') return 'border-l-4 border-l-sky-400/80';
+  if (itemType === 'reserve' || itemType === 'unlock_pouch') return 'border-l-4 border-l-teal-400/80';
+  if (itemType === 'gambit') return 'border-l-4 border-l-amber-400/85';
+  return 'border-l-4 border-l-purple-400/80';
+}
+
+function renderBossChestEquippedGambits() {
+  const slotsLabel = document.getElementById('boss-chest-sockets-label');
+  const hintLabel = document.getElementById('boss-chest-sockets-hint');
+  const strip = document.getElementById('boss-chest-equipped-gambits');
+  if (!strip || !slotsLabel) return;
+
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+  const isFull = state.gambits.length >= state.maxGambitSlots;
+
+  slotsLabel.textContent = simp
+    ? `Relic Sockets (${state.gambits.length}/${state.maxGambitSlots})`
+    : `Equipped Gambit Relics (${state.gambits.length}/${state.maxGambitSlots} Sockets)`;
+
+  if (hintLabel) {
+    hintLabel.textContent = isFull
+      ? (simp ? 'Sockets Full • Tap Relic Below to Trade' : 'Sockets Full — Pick a Boss Relic below to trade out an equipped Relic')
+      : (simp ? 'Open Socket Ready' : 'Open Socket Available — Claim 1 Free Boss Relic');
+    hintLabel.className = isFull
+      ? 'text-[9px] font-mono-code font-bold text-amber-300'
+      : 'text-[9px] font-mono-code text-emerald-300';
+  }
+
+  strip.innerHTML = '';
+
+  if (simp) {
+    for (let i = 0; i < state.maxGambitSlots; i++) {
+      const gId = state.gambits[i];
+      const g = gId ? GAMBIT_CATALOG[gId] : null;
+      if (g) {
+        const badge = document.createElement('div');
+        badge.title = `${g.name}: ${g.shopWhisper || g.loreDesc || g.desc}`;
+        badge.className = 'relative w-9 h-9 md:w-10 md:h-10 rounded-xl bg-amber-500/15 border border-amber-400/45 flex items-center justify-center text-lg md:text-xl shrink-0';
+        badge.innerHTML = `<span>${g.icon}</span>`;
+        strip.appendChild(badge);
+      } else {
+        const emptySlot = document.createElement('div');
+        emptySlot.className = 'w-9 h-9 md:w-10 md:h-10 rounded-xl border border-dashed border-emerald-400/40 bg-emerald-950/25 flex items-center justify-center text-[10px] text-emerald-300/80 shrink-0';
+        emptySlot.textContent = '+';
+        strip.appendChild(emptySlot);
+      }
+    }
+    return;
+  }
+
+  if (state.gambits.length === 0) {
+    strip.innerHTML = '<span class="text-[10px] font-mono-code text-slate-400">No Relics equipped yet</span>';
+    return;
+  }
+
+  state.gambits.forEach((gId) => {
+    const g = GAMBIT_CATALOG[gId];
+    if (!g) return;
+    const pill = document.createElement('div');
+    pill.className = 'px-2 py-1 rounded-xl bg-amber-500/15 border border-amber-400/35 flex items-center gap-1.5 shrink-0';
+    pill.innerHTML = `
+      <span class="text-xs">${g.icon}</span>
+      <span class="text-[10px] font-medium text-amber-100">${g.name}</span>
+      <span class="px-1 py-0.2 rounded bg-amber-500/25 text-[7px] font-mono-code font-bold text-amber-200 uppercase">Relic</span>
+    `;
+    strip.appendChild(pill);
+  });
+}
+
+function openBossRelicSwapPrompt(newRelicId) {
+  const newRelic = GAMBIT_CATALOG[newRelicId];
+  if (!newRelic) return;
+  state.pendingBossSwapRelicId = newRelicId;
+
+  const promptEl = document.getElementById('boss-relic-swap-prompt');
+  const optionsEl = document.getElementById('boss-swap-options');
+  const titleEl = document.getElementById('boss-swap-title');
+  const descEl = document.getElementById('boss-swap-desc');
+  if (!promptEl || !optionsEl) return;
+
   const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
 
-  if (state.floorIdx === 2) {
-    state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 2);
-    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
-    state.handSize = Math.min(5, state.handSize + 1);
-    state.maxGambitSlots = Math.max(state.maxGambitSlots, 2);
-    state.reservePouchUnlocked = true;
-    state.reservePouch.push('anvil');
-    if (milestoneBox) {
+  if (titleEl) {
+    titleEl.innerHTML = simp
+      ? `Swap in ${newRelic.icon} ${newRelic.name}`
+      : `Relic Sockets Full (${state.gambits.length}/${state.maxGambitSlots}) — Swap in ${newRelic.icon} ${newRelic.name}`;
+  }
+  if (descEl) {
+    descEl.textContent = simp
+      ? 'Tap one of your current Relics below to trade it out for this Boss Relic:'
+      : `Choose which currently equipped Relic to trade out and replace with ${newRelic.name}:`;
+  }
+
+  optionsEl.innerHTML = '';
+
+  state.gambits.forEach((equippedId, replaceIdx) => {
+    const eq = GAMBIT_CATALOG[equippedId];
+    if (!eq) return;
+    const subText = simp
+      ? (eq.shopWhisper || eq.loreDesc || eq.desc)
+      : eq.desc;
+
+    const swapBtn = document.createElement('button');
+    swapBtn.type = 'button';
+    swapBtn.className = 'p-2.5 rounded-xl border border-amber-400/55 bg-stone-900/95 hover:bg-stone-800/95 flex items-center justify-between gap-2.5 text-left text-xs text-amber-100 active:scale-98 transition';
+    swapBtn.innerHTML = `
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-lg shrink-0">${eq.icon}</span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-display font-bold text-xs text-white truncate">Trade ${eq.name}</span>
+            ${getItemCategoryIndicatorBadge('gambit')}
+          </div>
+          <p class="text-[10px] text-slate-300 leading-tight truncate mt-0.5">${subText}</p>
+        </div>
+      </div>
+      <span class="px-2.5 py-1 rounded-lg bg-amber-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">
+        ${simp ? 'Swap ↻' : 'Replace ↻'}
+      </span>
+    `;
+    swapBtn.addEventListener('click', () => {
+      state.gambits[replaceIdx] = newRelicId;
+      state.pendingBossSwapRelicId = null;
+      promptEl.classList.add('hidden');
+      sfx.playCardChime();
+      document.getElementById('boss-chest-modal')?.classList.add('hidden');
+      showToast(`Traded ${eq.name} for Boss Relic: ${newRelic.name}!`, newRelic.icon);
+      openUndergroundBazaar(state.pendingVictoryPayout.totalEarned, state.pendingVictoryPayout.speedBonus);
+    });
+    optionsEl.appendChild(swapBtn);
+  });
+
+  promptEl.classList.remove('hidden');
+}
+
+function renderBossVictoryChest() {
+  const milestoneBox = document.getElementById('boss-milestone-box');
+  const subtitleEl = document.getElementById('boss-chest-subtitle');
+  const titleEl = document.getElementById('boss-chest-title');
+  const draftLabelEl = document.getElementById('boss-relic-draft-label');
+  const skipBtnEl = document.getElementById('skip-boss-relic-btn');
+  const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
+  if (typeof syncLoadoutViewModePill === 'function') syncLoadoutViewModePill();
+
+  const isSocketsFull = state.gambits.length >= state.maxGambitSlots;
+
+  if (subtitleEl) {
+    subtitleEl.textContent = simp
+      ? 'Boss Vanquished • Vessel Empowered'
+      : 'Boss Vanquished • Ascension Milestone!';
+  }
+  if (titleEl) {
+    titleEl.textContent = simp
+      ? 'Boss Spoils & Relic Chest'
+      : 'Ascension Power Spike Unlocked';
+  }
+  if (draftLabelEl) {
+    draftLabelEl.textContent = isSocketsFull
+      ? (simp ? 'Sockets Full — Tap a Boss Relic to Swap' : 'Relic Sockets Full — Pick 1 Boss Relic to Trade Out (Or Salvage +$8)')
+      : (simp ? 'Pick 1 Free Boss Relic' : 'Draft 1 Free Boss Gambit Relic (Or Claim +$8 Gold)');
+  }
+  if (skipBtnEl) {
+    skipBtnEl.textContent = simp
+      ? '🪙 Salvage Chest (+$8 Gold) →'
+      : 'Salvage Chest for +$8 Gold & Enter Bazaar →';
+  }
+
+  const mFloor = typeof state.lastBossMilestoneFloorIdx === 'number' ? state.lastBossMilestoneFloorIdx : state.floorIdx;
+
+  if (milestoneBox) {
+    if (mFloor === 2) {
       milestoneBox.innerHTML = simp
         ? `
           <div class="text-center space-y-1.5">
-            <div class="text-[10px] text-emerald-200">“Deeper chambers unsealed.” Your vessel expands with newfound power:</div>
-            <div class="flex items-center justify-center flex-wrap gap-2 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚡ +Mana</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🃏 +Draw</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚓ +Anvil</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🏺 +Relic Slot</span>
+            <div class="text-[10px] text-emerald-200">“The Vitreous Catacombs unsealed.” Vessel upgrades &amp; bonus token granted:</div>
+            <div class="flex items-center justify-center flex-wrap gap-1.5 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🛒 Tier 2 Shop</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">⚡ +1 Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🃏 +1 Card Draw</span>
+              <span class="px-2 py-0.5 rounded-lg bg-teal-500/25 border border-teal-400/50 text-teal-200">🪙 TOKEN: +1 Heavy Anvil</span>
+              <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400/45 text-amber-200">🏺 ${state.maxGambitSlots} Relic Sockets</span>
             </div>
           </div>
         `
         : `
-          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 2 Shop Wares Unlocked:</strong> Tier 2 Cards, Reserves &amp; Gambits now in stock</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 2 Shop Wares Unlocked:</strong> Tier 2 Cards, Tokens &amp; Relics now in stock</div>
           <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
           <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
-          <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Tactical Reserve Pouch Unlocked:</strong> +1 Free <strong>Heavy Anvil Token</strong></div>
-          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
+          <div class="flex items-center gap-1.5 flex-wrap">${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Reserve Pouch Unlocked:</strong> +1 Free <strong>Heavy Anvil</strong> ${getItemCategoryIndicatorBadge('reserve')}</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Relic Capacity:</strong> Up to <strong>${state.maxGambitSlots} Relic Sockets</strong></div>
         `;
-    }
-  } else {
-    state.unlockedShopTier = 3;
-    state.highTierCardsUnlocked = true;
-    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
-    state.handSize = Math.min(5, state.handSize + 1);
-    state.maxGambitSlots = Math.min(5, Math.max(state.maxGambitSlots, 4));
-    state.reservePouch.push('wild');
-    if (milestoneBox) {
+    } else if (mFloor === 5) {
       milestoneBox.innerHTML = simp
         ? `
           <div class="text-center space-y-1.5">
-            <div class="text-[10px] text-emerald-200">“Abyssal mastery.” Your vessel awakens to its final form:</div>
-            <div class="flex items-center justify-center flex-wrap gap-2 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">⚡ +Mana</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🃏 +Draw</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">💎 +Wild Gem</span>
-              <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-white/10">🏺 4 Relic Slots</span>
+            <div class="text-[10px] text-emerald-200">“The Brimstone Caldera breached.” Vessel upgrades &amp; bonus token granted:</div>
+            <div class="flex items-center justify-center flex-wrap gap-1.5 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🛒 Tier 3 Shop</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">⚡ +1 Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🃏 +1 Card Draw</span>
+              <span class="px-2 py-0.5 rounded-lg bg-teal-500/25 border border-teal-400/50 text-teal-200">🪙 TOKEN: +1 Spider Egg</span>
+              <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400/45 text-amber-200">🏺 ${state.maxGambitSlots} Relic Sockets</span>
             </div>
           </div>
         `
         : `
-          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 3 Shop Wares Unlocked:</strong> Tier 3 Mastery Cards, Reserves &amp; Gambits now in stock</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 3 Shop Wares Unlocked:</strong> Tier 3 Cards, Tokens &amp; Relics now in stock</div>
           <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
           <div>${modalHudIcon('cards.svg', 'c4-item-icon-sm')} <strong>Opening Hand Expanded:</strong> Draw <strong>${state.handSize} Cards</strong> per floor</div>
-          <div>${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Prismatic Reserve Granted:</strong> +1 Free <strong>Wild Prismatic Token</strong></div>
-          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Gambit Capacity Expanded:</strong> Up to <strong>${state.maxGambitSlots} Relic Slots</strong></div>
+          <div class="flex items-center gap-1.5 flex-wrap">${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Trap-Layer Token Granted:</strong> +1 Free <strong>Brood Spider Egg</strong> ${getItemCategoryIndicatorBadge('reserve')}</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Relic Capacity:</strong> Up to <strong>${state.maxGambitSlots} Relic Sockets</strong></div>
+        `;
+    } else if (mFloor === 8) {
+      milestoneBox.innerHTML = simp
+        ? `
+          <div class="text-center space-y-1.5">
+            <div class="text-[10px] text-cyan-200">“The Horizon Fault opened.” Vessel upgrades &amp; bonus token granted:</div>
+            <div class="flex items-center justify-center flex-wrap gap-1.5 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🛒 Tier 4 Shop</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">⚡ +1 Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-teal-500/25 border border-teal-400/50 text-teal-200">🪙 TOKEN: +1 Nitro Cask</span>
+              <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400/45 text-amber-200">🏺 ${state.maxGambitSlots} Relic Sockets</span>
+            </div>
+          </div>
+        `
+        : `
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 4 Shop Wares Unlocked:</strong> Tier 4 Singularity Cards, Tokens &amp; Relics now in stock</div>
+          <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
+          <div class="flex items-center gap-1.5 flex-wrap">${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Demolition Token Granted:</strong> +1 Free <strong>Dwarven Nitro Cask</strong> ${getItemCategoryIndicatorBadge('reserve')}</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Relic Capacity:</strong> Up to <strong>${state.maxGambitSlots} Relic Sockets</strong></div>
+        `;
+    } else {
+      milestoneBox.innerHTML = simp
+        ? `
+          <div class="text-center space-y-1.5">
+            <div class="text-[10px] text-fuchsia-200">“The Fourfold Sanctum approached.” Apex upgrades &amp; bonus token granted:</div>
+            <div class="flex items-center justify-center flex-wrap gap-1.5 pt-0.5 text-[10px] font-mono-code font-bold text-amber-200">
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">🛒 Tier 5 Shop</span>
+              <span class="px-2 py-0.5 rounded-lg bg-black/45 border border-white/10">⚡ +1 Mana</span>
+              <span class="px-2 py-0.5 rounded-lg bg-teal-500/25 border border-teal-400/50 text-teal-200">🪙 TOKEN: +1 Midas Eye</span>
+              <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400/45 text-amber-200">🏺 ${state.maxGambitSlots} Relic Sockets</span>
+            </div>
+          </div>
+        `
+        : `
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Tier 5 Sovereign Wares Unlocked:</strong> Tier 5 Apex Cards, Tokens &amp; Relics now in stock</div>
+          <div>${modalHudIcon('mana.svg', 'c4-item-icon-sm')} <strong>Max Mana Expanded:</strong> Now <strong>${state.maxMana} Mana</strong></div>
+          <div class="flex items-center gap-1.5 flex-wrap">${modalHudIcon('backpack.svg', 'c4-item-icon-sm')} <strong>Sovereign Token Granted:</strong> +1 Free <strong>Golden Midas Eye</strong> ${getItemCategoryIndicatorBadge('reserve')}</div>
+          <div>${modalHudIcon('chest.svg', 'c4-item-icon-sm')} <strong>Maximum Relic Capacity:</strong> All <strong>${state.maxGambitSlots} Relic Sockets</strong> Unlocked</div>
         `;
     }
   }
 
+  renderBossChestEquippedGambits();
+
   const choicesEl = document.getElementById('boss-relic-choices');
   if (choicesEl) {
     choicesEl.innerHTML = '';
-    const maxTier = getMaxAllowedShopTier();
-    const eligibleIds = Object.keys(GAMBIT_CATALOG)
-      .filter((id) => !state.gambits.includes(id) && getExplicitItemTier(GAMBIT_CATALOG[id], 1) <= maxTier);
-    const topTierPool = eligibleIds
-      .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) === maxTier)
-      .sort(() => Math.random() - 0.5);
-    const lowerTierPool = eligibleIds
-      .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) < maxTier)
-      .sort(() => Math.random() - 0.5);
-    const unowned = [...topTierPool, ...lowerTierPool].slice(0, 3);
+    const unowned = Array.isArray(state.bossRelicChoices) ? state.bossRelicChoices : [];
 
     unowned.forEach((gId) => {
       const g = GAMBIT_CATALOG[gId];
+      if (!g) return;
       const t = getExplicitItemTier(g, 2);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'arcane-card p-2.5 rounded-2xl flex items-center justify-between gap-3 text-left active:scale-98 transition';
+      btn.className = `arcane-card ${getItemRowAccentClass('gambit')} p-2.5 rounded-2xl flex items-center justify-between gap-3 text-left active:scale-98 transition`;
       const whisperText = simp
         ? (g.shopWhisper || g.loreDesc || g.desc)
         : g.desc;
       const tierBadge = simp
         ? ''
         : `<span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
-            t >= 3
-              ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
-              : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
+            t >= 5
+              ? 'bg-fuchsia-500/30 text-fuchsia-200 border border-fuchsia-400/60'
+              : t === 4
+                ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
+                : t === 3
+                  ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
+                  : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
           }">T${t}</span>`;
+      const actionLabel = isSocketsFull
+        ? (simp ? 'Swap ↻' : 'Swap Relic')
+        : (simp ? 'Claim' : 'Claim Free');
+
       btn.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-2xl shrink-0">${g.icon}</span>
           <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-display font-bold text-xs text-white truncate">${g.name}</span>
+              ${getItemCategoryIndicatorBadge('gambit')}
               ${tierBadge}
             </div>
             <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${whisperText}</p>
           </div>
         </div>
-        <span class="px-2.5 py-1 rounded-xl bg-amber-400 text-stone-950 font-mono-code font-bold text-[10px] shrink-0">Claim</span>
+        <span class="px-2.5 py-1 rounded-xl ${
+          isSocketsFull ? 'bg-amber-500/25 border border-amber-400/60 text-amber-200' : 'bg-amber-400 text-stone-950'
+        } font-mono-code font-bold text-[10px] shrink-0">${actionLabel}</span>
       `;
       btn.addEventListener('click', () => {
         if (state.gambits.length >= state.maxGambitSlots) {
-          state.maxGambitSlots = Math.min(5, state.gambits.length + 1);
+          sfx.playHoverTick();
+          openBossRelicSwapPrompt(gId);
+          return;
         }
         state.gambits.push(gId);
+        state.pendingBossSwapRelicId = null;
+        document.getElementById('boss-relic-swap-prompt')?.classList.add('hidden');
         sfx.playCardChime();
         document.getElementById('boss-chest-modal')?.classList.add('hidden');
         showToast(`Claimed Boss Relic: ${g.name}!`, g.icon);
@@ -1047,6 +1304,58 @@ function openBossVictoryChest(floorData) {
     });
   }
 
+  // If the swap prompt was already open when toggling Simple Mode, refresh its text too
+  const swapPromptEl = document.getElementById('boss-relic-swap-prompt');
+  if (swapPromptEl && !swapPromptEl.classList.contains('hidden') && state.pendingBossSwapRelicId) {
+    openBossRelicSwapPrompt(state.pendingBossSwapRelicId);
+  }
+}
+
+function openBossVictoryChest(floorData) {
+  state.lastBossMilestoneFloorIdx = state.floorIdx;
+  state.pendingBossSwapRelicId = null;
+  document.getElementById('boss-relic-swap-prompt')?.classList.add('hidden');
+
+  if (state.floorIdx === 2) {
+    state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 2);
+    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
+    state.handSize = Math.min(5, state.handSize + 1);
+    state.maxGambitSlots = Math.max(state.maxGambitSlots, 2);
+    state.reservePouchUnlocked = true;
+    state.reservePouch.push('anvil');
+  } else if (state.floorIdx === 5) {
+    state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 3);
+    state.highTierCardsUnlocked = true;
+    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
+    state.handSize = Math.min(5, state.handSize + 1);
+    state.maxGambitSlots = Math.min(5, Math.max(state.maxGambitSlots, 3));
+    state.reservePouch.push('parasite_egg');
+  } else if (state.floorIdx === 8) {
+    state.unlockedShopTier = Math.max(state.unlockedShopTier || 1, 4);
+    state.highTierCardsUnlocked = true;
+    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
+    state.maxGambitSlots = Math.min(5, Math.max(state.maxGambitSlots, 4));
+    state.reservePouch.push('powder_keg');
+  } else {
+    state.unlockedShopTier = 5;
+    state.highTierCardsUnlocked = true;
+    state.maxMana = Math.max(state.maxMana, state.maxMana + 1);
+    state.maxGambitSlots = 5;
+    state.reservePouch.push('midas_eye');
+  }
+
+  const maxTier = getMaxAllowedShopTier();
+  const eligibleIds = Object.keys(GAMBIT_CATALOG)
+    .filter((id) => !state.gambits.includes(id) && getExplicitItemTier(GAMBIT_CATALOG[id], 1) <= maxTier);
+  const topTierPool = eligibleIds
+    .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) === maxTier)
+    .sort(() => Math.random() - 0.5);
+  const lowerTierPool = eligibleIds
+    .filter((id) => getExplicitItemTier(GAMBIT_CATALOG[id], 1) < maxTier)
+    .sort(() => Math.random() - 0.5);
+  state.bossRelicChoices = [...topTierPool, ...lowerTierPool].slice(0, 3);
+
+  renderBossVictoryChest();
   updateHUD();
   document.getElementById('boss-chest-modal')?.classList.remove('hidden');
 }
@@ -1062,7 +1371,7 @@ function renderBazaarEquippedGambits() {
 
   slotsLabel.textContent = simp
     ? 'Relic Sockets'
-    : `Shop Tier ${activeShopTier}/3 • Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
+    : `Shop Tier ${activeShopTier}/5 • Equipped Gambits (${state.gambits.length}/${state.maxGambitSlots} Slots)`;
 
   if (expandBtn) {
     if (state.maxGambitSlots >= 5) {
@@ -1310,9 +1619,12 @@ function renderBazaarStock() {
     row.style.zIndex = '2';
     row.style.pointerEvents = isUnavailable ? 'none' : 'auto';
 
+    const displayName = item.cleanName || item.name.replace(/^Card:\s*/i, '');
+    const typeBadgeHtml = getItemCategoryIndicatorBadge(item.type);
+    const rowAccentCls = getItemRowAccentClass(item.type);
+
     if (simp) {
-      // SIMPLIFIED VIEW: Clean icon + item name + one-line whisper + price tag (zero tier badges or prefix clutter)
-      const displayName = item.cleanName || item.name.replace(/^Card:\s*/i, '');
+      // SIMPLIFIED VIEW: Clean icon + item name + clear Card/Token/Relic/Upgrade badge + one-line whisper + price tag
       const catEntry = (typeof CARD_CATALOG !== 'undefined' && CARD_CATALOG[item.id])
         || (typeof RESERVE_CATALOG !== 'undefined' && RESERVE_CATALOG[item.id])
         || (typeof GAMBIT_CATALOG !== 'undefined' && GAMBIT_CATALOG[item.id])
@@ -1328,14 +1640,17 @@ function renderBazaarStock() {
         || item.loreDesc
         || item.desc;
       const spanCls = (idx === state.shopItems.length - 1 && state.shopItems.length % 2 === 1) ? "md:col-span-2" : "";
-      row.className = `arcane-card ${spanCls} px-3 py-2.5 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
+      row.className = `arcane-card ${rowAccentCls} ${spanCls} px-3 py-2.5 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
         isUnavailable ? 'opacity-35' : (isInteractive ? 'active:scale-98' : 'opacity-60')
       }`;
       row.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-xl shrink-0">${item.icon}</span>
           <div class="min-w-0">
-            <div class="font-display font-bold text-xs text-white truncate">${displayName}</div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-display font-bold text-xs text-white truncate">${displayName}</span>
+              ${typeBadgeHtml}
+            </div>
             <p class="text-[10px] text-slate-300 leading-tight truncate mt-0.5">${whisper}</p>
           </div>
         </div>
@@ -1350,21 +1665,26 @@ function renderBazaarStock() {
     } else {
       const t = item.tier || 1;
       const tierBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[8px] font-mono-code font-bold uppercase shrink-0 ${
-        t >= 3
-          ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
-          : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
+        t >= 5
+          ? 'bg-fuchsia-500/30 text-fuchsia-200 border border-fuchsia-400/60'
+          : t === 4
+            ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
+            : t === 3
+              ? 'bg-rose-500/30 text-rose-200 border border-rose-400/50'
+              : (t === 2 ? 'bg-teal-500/25 text-teal-200 border border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border border-amber-400/35')
       }">T${t}</span>`;
 
       const spanCls = (idx === state.shopItems.length - 1 && state.shopItems.length % 2 === 1) ? "md:col-span-2" : "";
-      row.className = `arcane-card ${spanCls} p-2.5 md:p-3 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
+      row.className = `arcane-card ${rowAccentCls} ${spanCls} p-2.5 md:p-3 rounded-2xl flex items-center justify-between gap-2.5 text-left transition ${
         isUnavailable ? 'opacity-40' : (isInteractive ? 'active:scale-98' : 'opacity-65')
       }`;
       row.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-xl shrink-0">${item.icon}</span>
           <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <span class="font-display font-bold text-xs text-white truncate">${item.name}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-display font-bold text-xs text-white truncate">${displayName}</span>
+              ${typeBadgeHtml}
               ${tierBadgeHtml}
             </div>
             <p class="text-[10px] text-slate-300 leading-snug mt-0.5">${item.desc}</p>
@@ -1405,17 +1725,17 @@ function generateBazaarStock() {
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  // Slot 1: Primary Arcane Card
+  // Slot 1: Primary Arcane Card (excludes starterOnly cards: pebble & oracle_peek)
   let primaryCardId = pickTieredId(
     CARD_CATALOG,
-    (id, c, t) => t > 0 && !isStackableCurseCard(id) && !playerOwnsCard(id),
+    (id, c, t) => t > 0 && !c.starterOnly && !isStackableCurseCard(id) && !playerOwnsCard(id),
     1,
     0.72
   );
   if (!primaryCardId) {
     primaryCardId = pickTieredId(
       CARD_CATALOG,
-      (id, c, t) => t > 0 && !isStackableCurseCard(id),
+      (id, c, t) => t > 0 && !c.starterOnly && !isStackableCurseCard(id),
       1,
       0.72
     );
@@ -1437,17 +1757,17 @@ function generateBazaarStock() {
     });
   }
 
-  // Slot 2: Secondary Arcane Card
+  // Slot 2: Secondary Arcane Card (excludes starterOnly cards: pebble & oracle_peek)
   let secondaryCardId = pickTieredId(
     CARD_CATALOG,
-    (id, c, t) => t > 0 && !isStackableCurseCard(id) && id !== primaryCardId && !playerOwnsCard(id),
+    (id, c, t) => t > 0 && !c.starterOnly && !isStackableCurseCard(id) && id !== primaryCardId && !playerOwnsCard(id),
     1,
     0.45
   );
   if (!secondaryCardId) {
     secondaryCardId = pickTieredId(
       CARD_CATALOG,
-      (id, c, t) => t > 0 && !isStackableCurseCard(id) && id !== primaryCardId,
+      (id, c, t) => t > 0 && !c.starterOnly && !isStackableCurseCard(id) && id !== primaryCardId,
       1,
       0.45
     );
@@ -1694,6 +2014,11 @@ document.getElementById('bazaar-swap-cancel')?.addEventListener('click', () => {
   document.getElementById('bazaar-swap-prompt')?.classList.add('hidden');
 });
 
+document.getElementById('boss-swap-cancel')?.addEventListener('click', () => {
+  state.pendingBossSwapRelicId = null;
+  document.getElementById('boss-relic-swap-prompt')?.classList.add('hidden');
+});
+
 document.getElementById('next-floor-btn')?.addEventListener('click', () => {
   document.getElementById('bazaar-modal')?.classList.add('hidden');
   clearFloorIntroAndModalLocks();
@@ -1822,15 +2147,30 @@ function syncSettingsUI() {
     }`;
   });
 
-  document.querySelectorAll('.uiscale-mode-btn').forEach((btn) => {
-    const curScale = userSettings.uiScale || 'auto';
-    const active = btn.getAttribute('data-uiscale') === curScale;
-    btn.className = `uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95 ${
-      active
-        ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-md'
-        : 'bg-stone-950/70 text-slate-300 border-white/10'
+  const isAutoScale = userSettings.uiAutoScale !== false;
+  const effPct = typeof getEffectiveUiScalePercent === 'function'
+    ? getEffectiveUiScalePercent()
+    : (Number(userSettings.uiScalePercent) || 100);
+
+  const scaleSlider = document.getElementById('ui-scale-slider');
+  if (scaleSlider) {
+    scaleSlider.value = String(effPct);
+  }
+
+  const scaleLabel = document.getElementById('ui-scale-value-label');
+  if (scaleLabel) {
+    scaleLabel.textContent = isAutoScale ? `Auto (${effPct}%)` : `${effPct}%`;
+  }
+
+  const autoScaleBtn = document.getElementById('toggle-ui-autoscale-btn');
+  if (autoScaleBtn) {
+    autoScaleBtn.textContent = isAutoScale ? 'Auto: ON' : 'Auto: OFF';
+    autoScaleBtn.className = `px-2.5 py-1 rounded-full font-mono-code font-bold text-[10px] uppercase border transition active:scale-95 ${
+      isAutoScale
+        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/50 shadow-sm'
+        : 'bg-stone-800/80 text-slate-400 border-white/10'
     }`;
-  });
+  }
 
   const muteIconEl = document.getElementById('mute-icon');
   if (muteIconEl && typeof lucide !== 'undefined') {
@@ -1955,6 +2295,16 @@ document.getElementById('settings-replay-tutorial-btn')?.addEventListener('click
   }
 });
 
+document.getElementById('settings-title-screen-btn')?.addEventListener('click', () => {
+  sfx.playCardChime();
+  if (typeof triggerHaptic === 'function') triggerHaptic(20);
+  if (typeof returnToTitleScreen === 'function') {
+    returnToTitleScreen();
+  } else {
+    closeSettingsModal();
+  }
+});
+
 document.getElementById('settings-reset-run-btn')?.addEventListener('click', () => {
   sfx.playHoverTick();
   if (typeof runPersistence !== 'undefined' && runPersistence) {
@@ -1981,6 +2331,12 @@ function toggleSimplifiedViewSetting(e) {
   if (typeof renderBazaarStock === 'function') {
     renderBazaarStock();
   }
+  if (typeof renderBossVictoryChest === 'function') {
+    const bossChestModal = document.getElementById('boss-chest-modal');
+    if (bossChestModal && !bossChestModal.classList.contains('hidden')) {
+      renderBossVictoryChest();
+    }
+  }
   if (typeof updateHUD === 'function') updateHUD();
   showToast(
     userSettings.simplifiedViewEnabled
@@ -1994,3 +2350,66 @@ function toggleSimplifiedViewSetting(e) {
 document.getElementById('toggle-simplified-view-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
 document.getElementById('loadout-view-mode-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
 document.getElementById('bazaar-view-mode-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
+document.getElementById('boss-chest-view-mode-btn')?.addEventListener('click', toggleSimplifiedViewSetting);
+
+
+function setCustomUiScalePercent(rawPct, announce = false) {
+  const clamped = Math.max(75, Math.min(150, Math.round((Number(rawPct) || 100) / 5) * 5));
+  userSettings.uiAutoScale = false;
+  userSettings.uiScalePercent = clamped;
+  saveUserSettings();
+  if (typeof applyUiScaleSetting === 'function') applyUiScaleSetting();
+  syncSettingsUI();
+  if (announce && typeof showToast === 'function') {
+    showToast(`Interface scale set to ${clamped}%`, modalHudIcon('sparkle.svg'), 1800);
+  }
+}
+
+const uiScaleSliderEl = document.getElementById('ui-scale-slider');
+if (uiScaleSliderEl) {
+  uiScaleSliderEl.addEventListener('input', (e) => {
+    e.stopPropagation();
+    const val = Number(e.target.value) || 100;
+    setCustomUiScalePercent(val, false);
+  });
+  uiScaleSliderEl.addEventListener('change', (e) => {
+    e.stopPropagation();
+    sfx.playHoverTick();
+    const val = Number(e.target.value) || 100;
+    setCustomUiScalePercent(val, true);
+  });
+}
+
+document.getElementById('ui-scale-dec-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sfx.playHoverTick();
+  const cur = typeof getEffectiveUiScalePercent === 'function' ? getEffectiveUiScalePercent() : (Number(userSettings.uiScalePercent) || 100);
+  setCustomUiScalePercent(cur - 5, true);
+});
+
+document.getElementById('ui-scale-inc-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sfx.playHoverTick();
+  const cur = typeof getEffectiveUiScalePercent === 'function' ? getEffectiveUiScalePercent() : (Number(userSettings.uiScalePercent) || 100);
+  setCustomUiScalePercent(cur + 5, true);
+});
+
+document.getElementById('toggle-ui-autoscale-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sfx.playHoverTick();
+  userSettings.uiAutoScale = !(userSettings.uiAutoScale !== false);
+  if (userSettings.uiAutoScale && typeof computeAutoUiScalePercent === 'function') {
+    userSettings.uiScalePercent = computeAutoUiScalePercent();
+  }
+  saveUserSettings();
+  if (typeof applyUiScaleSetting === 'function') applyUiScaleSetting();
+  syncSettingsUI();
+  const effPct = typeof getEffectiveUiScalePercent === 'function' ? getEffectiveUiScalePercent() : userSettings.uiScalePercent;
+  showToast(
+    userSettings.uiAutoScale
+      ? `Auto-Scale ON (${effPct}% for current display)`
+      : `Manual Scale active (${effPct}%)`,
+    modalHudIcon('sparkle.svg'),
+    2200
+  );
+});

@@ -15,8 +15,11 @@ const boardShakeState = { intensity: 0, decay: 0.88 };
 
 // Dedicated high-contrast Rim Light attached to vfxGroup so sculpted 3D props
 // show crisp metallic bevels, specular highlights, and surface relief.
-const vfxKeyLight = new THREE.PointLight(0xfffbeb, 1.65, 22);
-vfxKeyLight.position.set(0, 2.2, 4.8);
+// Positioned high and wide off-axis so its half-vector with the camera never
+// causes a direct specular mirror reflection on Column 4 (x=0, y=2.12).
+// Kept at intensity 0 when no 3D VFX prop is active.
+const vfxKeyLight = new THREE.PointLight(0xfffbeb, 0.0, 24);
+vfxKeyLight.position.set(-8.5, 11.5, 6.5);
 vfxGroup.add(vfxKeyLight);
 
 const VFX_MIN_VISIBLE_Y = START_Y + 0.15;                             // -2.45
@@ -52,6 +55,9 @@ function getBoardWorldPos(r, c) {
 
 function addTimedVFX(mesh, durationMs, onUpdate) {
   vfxGroup.add(mesh);
+  if (typeof vfxKeyLight !== 'undefined' && vfxKeyLight) {
+    vfxKeyLight.intensity = 0.95;
+  }
   activeVFX.push({
     mesh,
     startTime: performance.now(),

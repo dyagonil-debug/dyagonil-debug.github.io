@@ -49,39 +49,56 @@ function getEffectiveCardCost(cardId) {
 
 function updateTelemetryBadges() {
   const floorData = getFloorConfig(state.floorIdx);
-  const analysis = aiEngine.analyzeBoard(state.board, floorData.depth, state.enchantGrid);
+  const hasDali = hasGambit('dali_clock');
+  const showScores = (hasDali && !state.telemetryMutedByUser) || !!state.showTelemetry;
+  const analysis = showScores
+    ? aiEngine.analyzeBoard(state.board, floorData.depth, state.enchantGrid)
+    : null;
 
-  const evalBadge = document.getElementById('eval-summary-badge');
-  const norm = Math.max(-99, Math.min(99, Math.round(analysis.bestScore / 15)));
-  if (analysis.bestScore > 50000) {
-    evalBadge.textContent = 'AI WIN';
-    evalBadge.className = 'text-[8px] font-mono-code text-rose-400 font-bold leading-none mt-0.5';
-  } else if (analysis.bestScore < -50000) {
-    evalBadge.textContent = 'WIN!';
-    evalBadge.className = 'text-[8px] font-mono-code text-amber-300 font-bold leading-none mt-0.5';
-  } else {
-    const sign = norm > 0 ? '+' : '';
-    evalBadge.textContent = `${sign}${norm}`;
-    evalBadge.className = 'text-[8px] font-mono-code text-teal-300 leading-none mt-0.5';
+  const teleBtn = document.getElementById('telemetry-btn');
+  if (teleBtn) {
+    teleBtn.classList.toggle('hidden', !hasDali && !state.showTelemetry);
   }
 
-  const showScores = state.showTelemetry || hasGambit('dali_clock');
-  const isChronosBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'chronos_dali';
+  const evalBadge = document.getElementById('eval-summary-badge');
+  if (!showScores || !analysis) {
+    evalBadge.textContent = `ACT ${Math.floor(state.floorIdx / 3) + 1}`;
+    evalBadge.className = 'text-[8px] font-mono-code text-amber-200/90 leading-none mt-0.5';
+  } else {
+    const norm = Math.max(-99, Math.min(99, Math.round(analysis.bestScore / 15)));
+    if (analysis.bestScore > 50000) {
+      evalBadge.textContent = 'AI WIN';
+      evalBadge.className = 'text-[8px] font-mono-code text-rose-400 font-bold leading-none mt-0.5';
+    } else if (analysis.bestScore < -50000) {
+      evalBadge.textContent = 'WIN!';
+      evalBadge.className = 'text-[8px] font-mono-code text-amber-300 font-bold leading-none mt-0.5';
+    } else {
+      const sign = norm > 0 ? '+' : '';
+      evalBadge.textContent = `${sign}${norm}`;
+      evalBadge.className = 'text-[8px] font-mono-code text-teal-300 leading-none mt-0.5';
+    }
+  }
+  const archId = floorData.isBoss && floorData.bossArchetype ? floorData.bossArchetype.id : null;
+  const isMarkedColBoss = archId === 'chronos_dali' || archId === 'abyssal_lodestone';
 
   for (let c = 0; c < COLS; c++) {
     const scoreEl = colScoreEls[c];
     const warnEl = colWarnEls[c];
 
     if (warnEl) {
-      warnEl.classList.toggle('hidden', !(isChronosBoss && c === state.bossMarkedCol));
+      const showWarn = isMarkedColBoss && c === state.bossMarkedCol;
+      warnEl.classList.toggle('hidden', !showWarn);
+      if (showWarn) {
+        warnEl.textContent = archId === 'abyssal_lodestone' ? '🧲PULL' : '⚠️FLIP';
+      }
     }
 
     if (!scoreEl) continue;
-    const s = analysis.colScores[c];
-    if (!showScores) {
+    if (!showScores || !analysis) {
       scoreEl.style.display = 'none';
       continue;
     }
+    const s = analysis.colScores[c];
     scoreEl.style.display = 'inline-block';
 
     if (s === null) {
@@ -153,9 +170,16 @@ function updateHUD() {
     const arch = floorData.bossArchetype;
     const interval = getEffectiveBossInterval(arch);
     const rem = interval - ((state.turnNumber - 1) % interval);
-    teleEl.textContent = arch.id === 'chronos_dali'
-      ? `⚡ Inverts Col ${state.bossMarkedCol + 1} in ${rem}T`
-      : `⚡ ${arch.shortTelegraph} (${rem}T)`;
+    if (arch.id === 'chronos_dali') {
+      teleEl.textContent = `⚡ Inverts Col ${state.bossMarkedCol + 1} in ${rem}T`;
+    } else if (arch.id === 'abyssal_lodestone') {
+      teleEl.textContent = `🧲 Pulls into Col ${state.bossMarkedCol + 1} in ${rem}T • Flush at 2/4❤️`;
+    } else if (arch.id === 'sovereign_tesseract') {
+      const bNum = (state.activeTesseractBoardIdx || 0) + 1;
+      teleEl.textContent = `🌌 Board ${bNum}/4 Active • Carousel Rotates in ${rem}T`;
+    } else {
+      teleEl.textContent = `⚡ ${arch.shortTelegraph} (${rem}T)`;
+    }
     teleEl.className = 'text-[10px] font-mono-code text-rose-300 font-bold truncate animate-pulse';
   }
 
@@ -183,13 +207,16 @@ function updateHUD() {
 
   const mileBtn = document.getElementById('milestone-info-btn');
   if (mileBtn) {
-    const curTier = getMaxAllowedShopTier();
-    if (state.floorIdx < 2 && curTier < 2) {
+    if (state.floorIdx < 3) {
       mileBtn.textContent = 'Boss F3: Unlock Tier 2 Shop';
-    } else if (state.floorIdx < 5 && curTier < 3) {
+    } else if (state.floorIdx < 6) {
       mileBtn.textContent = 'Boss F6: Unlock Tier 3 Shop';
+    } else if (state.floorIdx < 9) {
+      mileBtn.textContent = 'Boss F9: Unlock Tier 4 Shop';
+    } else if (state.floorIdx < 12) {
+      mileBtn.textContent = 'Boss F12: Unlock Tier 5 Shop';
     } else {
-      mileBtn.textContent = 'Boss F9: Ascension Mastery';
+      mileBtn.textContent = 'Boss F15: Sovereign Mastery';
     }
   }
 
@@ -293,9 +320,13 @@ function updateHUD() {
       const affordable = state.mana >= effCost && meetsTokenMinimum && state.turn === PLAYER && !state.busy;
       const selected = state.selectedCardIdx === idx;
       const t = c.tier || 1;
-      const tierBadgeClass = t >= 3
-        ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
-        : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
+      const tierBadgeClass = t >= 5
+        ? 'bg-fuchsia-500/30 text-fuchsia-200 border-fuchsia-400/60'
+        : t === 4
+          ? 'bg-cyan-500/30 text-cyan-200 border-cyan-400/50'
+          : t === 3
+            ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
+            : (t === 2 ? 'bg-teal-500/25 text-teal-200 border-teal-400/40' : 'bg-amber-500/20 text-amber-200 border-amber-400/35');
 
       const cardBtn = document.createElement('div');
       cardBtn.className = `arcane-card w-32 sm:w-36 md:w-44 lg:w-48 p-2 md:p-2.5 lg:p-3 rounded-xl md:rounded-2xl shrink-0 cursor-pointer flex flex-col justify-between ${

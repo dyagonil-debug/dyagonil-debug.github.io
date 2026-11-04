@@ -72,9 +72,19 @@ document.getElementById('confirm-drop-btn').addEventListener('click', () => {
 document.getElementById('cancel-action-btn').addEventListener('click', clearActionSelection);
 
 document.getElementById('telemetry-btn').addEventListener('click', () => {
-  state.showTelemetry = !state.showTelemetry;
-  updateTelemetryBadges();
-  showToast(state.showTelemetry ? 'AI Column Telemetry: ON' : 'AI Column Telemetry: OFF', '👁️');
+  if (!hasGambit('dali_clock') && !state.showTelemetry) {
+    showToast('Requires 🕰️ Surrealist Dalí Clock Relic to read AI column scores!', '🕰️');
+    return;
+  }
+  if (hasGambit('dali_clock')) {
+    state.telemetryMutedByUser = !state.telemetryMutedByUser;
+    updateTelemetryBadges();
+    showToast(!state.telemetryMutedByUser ? 'Dalí Clock AI Telemetry: ON' : 'Dalí Clock AI Telemetry: OFF', '🕰️');
+  } else {
+    state.showTelemetry = !state.showTelemetry;
+    updateTelemetryBadges();
+    showToast(state.showTelemetry ? 'AI Column Telemetry: ON' : 'AI Column Telemetry: OFF', '👁️');
+  }
 });
 
 document.getElementById('mute-btn').addEventListener('click', () => {

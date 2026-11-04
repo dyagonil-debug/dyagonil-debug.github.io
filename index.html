@@ -33,6 +33,9 @@
   <!-- 3D WebGL Cavern & Carved Board Container -->
   <div id="webgl-container"></div>
 
+  <!-- Dynamic Ominous Cavern Progression Vignette -->
+  <div id="cavern-vignette-overlay" aria-hidden="true"></div>
+
   <!-- Projected 3D Column Evaluation & Boss Warning Overlay -->
   <div id="telemetry-layer" class="fixed inset-0 pointer-events-none z-10 overflow-hidden"></div>
 
@@ -167,13 +170,13 @@
 
         <!-- Off-Board Tactical Reserve Token Pouch -->
         <div id="reserve-pouch-container" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1">
-          <!-- Populated dynamically with Heavy Anvil, Wild Prismatic, Jalapeño Bomb, Cave Bat -->
+          <!-- Populated dynamically with Tactical Reserve Tokens -->
         </div>
 
-        <!-- Deck Count & Telemetry Eye -->
+        <!-- Deck Count & Telemetry Eye (Unlocked by Surrealist Dalí Clock) -->
         <div class="flex items-center gap-1 shrink-0">
           <span class="text-[10px] font-mono-code text-slate-400">Deck:<strong id="draw-count" class="text-amber-200 ml-0.5">2</strong></span>
-          <button id="telemetry-btn" class="p-1.5 rounded-lg bg-teal-950/80 border border-teal-500/30 text-teal-300 active:scale-95" title="Toggle AI Evaluation Scores">
+          <button id="telemetry-btn" class="hidden p-1.5 rounded-lg bg-teal-950/80 border border-teal-500/30 text-teal-300 active:scale-95" title="Toggle Dalí Clock AI Evaluation Scores">
             <i data-lucide="eye" class="w-3.5 h-3.5"></i>
           </button>
         </div>
@@ -289,8 +292,14 @@
           <div id="bazaar-swap-options" class="flex flex-col gap-1.5"></div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-mono-code uppercase tracking-wider text-slate-400">Curated Wares (Tap to Buy)</span>
+        <div class="flex flex-wrap items-center justify-between gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-mono-code uppercase tracking-wider text-slate-400">Curated Wares</span>
+            <span class="px-1.5 py-0.5 rounded bg-sky-500/20 border border-sky-400/40 text-[8px] font-mono-code font-bold text-sky-200">🃏 Card</span>
+            <span class="px-1.5 py-0.5 rounded bg-teal-500/20 border border-teal-400/40 text-[8px] font-mono-code font-bold text-teal-200">🪙 Token</span>
+            <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[8px] font-mono-code font-bold text-amber-200">🏺 Relic</span>
+            <span class="px-1.5 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-[8px] font-mono-code font-bold text-purple-200">⚡ Upgrade</span>
+          </div>
           <div class="flex items-center gap-1.5">
             <button id="reroll-shop-btn" class="px-2.5 py-1 rounded-lg bg-teal-500/20 border border-teal-400/40 text-teal-200 font-mono-code text-[10px] font-bold active:scale-95">
               🎲 Reroll ($2)
@@ -308,21 +317,66 @@
 
   <!-- BOSS VICTORY CHEST & MILESTONE UNLOCK MODAL -->
   <div id="boss-chest-modal" class="hidden fixed inset-0 z-[54] bg-black/90 backdrop-blur-lg flex items-center justify-center p-3 overflow-y-auto">
-    <div class="cavern-panel w-full max-w-md md:max-w-xl lg:max-w-2xl rounded-3xl p-5 md:p-6 border border-rose-500/50 space-y-4 my-auto text-center shadow-[0_0_50px_rgba(244,63,94,0.25)]">
-      <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center bg-gradient-to-br from-amber-500/30 to-rose-600/30 border border-amber-400/50 text-3xl shadow-inner">
-        🎁
+    <div class="cavern-panel w-full max-w-md md:max-w-xl lg:max-w-2xl rounded-3xl p-4 sm:p-5 md:p-6 border border-rose-500/50 space-y-3.5 my-auto max-h-[92dvh] overflow-y-auto no-scrollbar text-center shadow-[0_0_50px_rgba(244,63,94,0.25)]">
+      <!-- Top Bar with Boss Reward Badge & Simple Mode (Lore/Math) Toggle -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-2.5 text-left">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-amber-500/30 to-rose-600/30 border border-amber-400/50 text-2xl shadow-inner shrink-0">
+            🎁
+          </div>
+          <div>
+            <span id="boss-chest-subtitle" class="text-[10px] font-mono-code uppercase tracking-widest text-rose-400">Boss Vanquished • Ascension Milestone!</span>
+            <h2 id="boss-chest-title" class="font-display font-bold text-base sm:text-lg text-white leading-tight">Ascension Power Spike Unlocked</h2>
+          </div>
+        </div>
+        <button type="button" id="boss-chest-view-mode-btn" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[9px] font-mono-code font-bold text-emerald-200 active:scale-95 transition shrink-0" title="Toggle Simplified Lore View">
+          🕯️ Lore
+        </button>
       </div>
-      <div>
-        <span id="boss-chest-subtitle" class="text-[10px] font-mono-code uppercase tracking-widest text-rose-400">Boss Vanquished • Ascension Milestone!</span>
-        <h2 id="boss-chest-title" class="font-display font-bold text-lg text-white mt-0.5">Ascension Power Spike Unlocked</h2>
-        <div id="boss-milestone-box" class="mt-2 p-2.5 rounded-2xl bg-emerald-950/60 border border-emerald-400/40 text-[11px] text-emerald-200 font-medium leading-relaxed">
-          <!-- Populated dynamically with Max Mana / Hand Size / Pouch unlocks -->
+
+      <!-- Milestone Unlocks Box -->
+      <div id="boss-milestone-box" class="p-2.5 rounded-2xl bg-emerald-950/60 border border-emerald-400/40 text-[11px] text-emerald-200 font-medium leading-relaxed text-left">
+        <!-- Populated dynamically with Max Mana / Hand Size / Pouch Token unlocks -->
+      </div>
+
+      <!-- Equipped Relics Socket Bar inside Boss Chest -->
+      <div id="boss-chest-equipped-box" class="p-2.5 rounded-2xl bg-stone-900/90 border border-white/10 space-y-1.5 text-left">
+        <div class="flex items-center justify-between">
+          <span id="boss-chest-sockets-label" class="text-[10px] font-mono-code uppercase tracking-wider text-amber-300">
+            Relic Sockets (0/2)
+          </span>
+          <span id="boss-chest-sockets-hint" class="text-[9px] font-mono-code text-slate-400">
+            Open Socket Available
+          </span>
+        </div>
+        <div id="boss-chest-equipped-gambits" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <!-- Dynamically populated with current equipped Relics & sockets -->
         </div>
       </div>
 
+      <!-- Inline Trade-Out Prompt when claiming a Boss Relic with Full Relic Sockets -->
+      <div id="boss-relic-swap-prompt" class="hidden p-3 rounded-2xl bg-rose-950/90 border-2 border-amber-400/70 space-y-2 text-left shadow-xl">
+        <div class="flex items-center justify-between gap-2">
+          <span id="boss-swap-title" class="font-display font-bold text-xs text-amber-200">
+            Relic Sockets Full — Trade Out a Current Relic!
+          </span>
+          <button type="button" id="boss-swap-cancel" class="text-[10px] font-mono-code text-slate-200 px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 shrink-0 active:scale-95">
+            Cancel
+          </button>
+        </div>
+        <p id="boss-swap-desc" class="text-[10px] text-slate-200 leading-snug">
+          Choose one of your currently equipped Relics below to replace with this Boss Relic:
+        </p>
+        <div id="boss-swap-options" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- 3 Boss Reward Relic Choices -->
       <div class="text-left space-y-2">
-        <div class="text-[10px] font-mono-code uppercase tracking-wider text-amber-300 text-center">
-          Draft 1 Free Boss Gambit Relic (Or Claim +$8 Gold)
+        <div class="flex items-center justify-between">
+          <span id="boss-relic-draft-label" class="text-[10px] font-mono-code uppercase tracking-wider text-amber-300">
+            Draft 1 Free Boss Relic (Or Claim +$8 Gold)
+          </span>
+          <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/45 text-[8px] font-mono-code font-bold text-amber-200">🏺 Boss Relics</span>
         </div>
         <div id="boss-relic-choices" class="flex flex-col gap-2">
           <!-- 3 Gambit choices populated dynamically -->
@@ -330,7 +384,7 @@
       </div>
 
       <button id="skip-boss-relic-btn" class="w-full py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-xs font-mono-code font-semibold text-amber-300 border border-amber-400/30 active:scale-95 transition">
-        Salvage Chest for +$8 Gold & Enter Bazaar →
+        Salvage Chest for +$8 Gold &amp; Enter Bazaar →
       </button>
     </div>
   </div>
@@ -483,30 +537,51 @@
           </button>
         </div>
 
-        <!-- 0C. Desktop & Interface UI Scaling -->
-        <div class="p-3 rounded-2xl bg-stone-900/90 border border-amber-500/30 space-y-2">
-          <div>
-            <div class="font-display font-bold text-white flex items-center gap-1.5">
-              <span>🔍</span>
-              <span>Interface &amp; Desktop UI Scale</span>
+        <!-- 0C. Desktop & Interface UI Scaling (Slider + Auto-Scale Toggle) -->
+        <div class="p-3 rounded-2xl bg-stone-900/90 border border-amber-500/35 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-display font-bold text-white flex items-center gap-1.5">
+                <span>🔍</span>
+                <span>Interface UI Scale</span>
+                <span id="ui-scale-value-label" class="px-1.5 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400/40 font-mono-code font-bold text-[10px] text-amber-200">
+                  Auto (115%)
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-snug mt-0.5">
+                Drag the slider to adjust HUD, card, and modal scaling (75%–150%), or keep Auto-Scale enabled.
+              </p>
             </div>
-            <p class="text-[10px] text-slate-400 leading-snug mt-0.5">
-              Scale HUD panels, cards, text, and modals for desktop monitors or high-DPI displays.
-            </p>
+            <button type="button" id="toggle-ui-autoscale-btn" class="px-2.5 py-1.5 rounded-xl font-mono-code font-bold text-[10px] shrink-0 active:scale-95 transition">
+              Auto: ON
+            </button>
           </div>
-          <div class="grid grid-cols-4 gap-1.5 pt-0.5">
-            <button type="button" data-uiscale="auto" class="uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95">
-              Auto
-            </button>
-            <button type="button" data-uiscale="100" class="uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95">
-              100%
-            </button>
-            <button type="button" data-uiscale="115" class="uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95">
-              115%
-            </button>
-            <button type="button" data-uiscale="130" class="uiscale-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95">
-              130%
-            </button>
+
+          <div class="space-y-1 pt-0.5">
+            <div class="flex items-center gap-2">
+              <button type="button" id="ui-scale-dec-btn" class="w-7 h-7 rounded-lg bg-stone-800 hover:bg-stone-700 border border-white/15 font-mono-code font-bold text-xs text-amber-200 flex items-center justify-center shrink-0 active:scale-90 transition" title="Decrease UI Scale (-5%)">
+                −
+              </button>
+              <input
+                id="ui-scale-slider"
+                type="range"
+                min="75"
+                max="150"
+                step="5"
+                value="115"
+                class="c4-scale-slider flex-1"
+                aria-label="Interface UI Scale Percentage"
+              />
+              <button type="button" id="ui-scale-inc-btn" class="w-7 h-7 rounded-lg bg-stone-800 hover:bg-stone-700 border border-white/15 font-mono-code font-bold text-xs text-amber-200 flex items-center justify-center shrink-0 active:scale-90 transition" title="Increase UI Scale (+5%)">
+                +
+              </button>
+            </div>
+            <div class="flex items-center justify-between text-[9px] font-mono-code text-slate-400 px-8">
+              <span>75%</span>
+              <span>100%</span>
+              <span>125%</span>
+              <span>150%</span>
+            </div>
           </div>
         </div>
 
@@ -635,12 +710,18 @@
         </button>
       </div>
 
-      <!-- Footer Actions: Reset Run & Done -->
-      <div class="flex items-center gap-2 pt-2 border-t border-white/10">
+      <!-- Footer Actions: Tutorial, Title Screen, Reset Run & Done -->
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 pt-2 border-t border-white/10">
+        <button id="settings-replay-tutorial-btn" class="px-3 py-2.5 rounded-2xl bg-teal-500/20 border border-teal-400/40 text-teal-200 font-display font-bold text-xs active:scale-95 transition">
+          🎓 Tutorial
+        </button>
+        <button id="settings-title-screen-btn" class="px-3 py-2.5 rounded-2xl bg-purple-500/20 border border-purple-400/45 text-purple-200 font-display font-bold text-xs active:scale-95 transition">
+          🏰 Title Screen
+        </button>
         <button id="settings-reset-run-btn" class="px-3.5 py-2.5 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-200 font-display font-bold text-xs active:scale-95 transition">
           🔄 Reset Run (Floor 1)
         </button>
-        <button id="done-settings-btn" class="flex-1 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-stone-950 font-display font-bold text-xs shadow-lg shadow-amber-500/25 active:scale-95 transition">
+        <button id="done-settings-btn" class="sm:flex-1 py-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-stone-950 font-display font-bold text-xs shadow-lg shadow-amber-500/25 active:scale-95 transition">
           Save & Resume
         </button>
       </div>
@@ -711,12 +792,32 @@
     </div>
   </div>
 
-  <!-- LEVEL / FLOOR FADE-IN & FADE-OUT TRANSITION INTRO OVERLAY -->
+  <!-- LEVEL / FLOOR & ACT CURTAIN FADE-IN / FADE-OUT TRANSITION INTRO OVERLAY -->
   <div id="floor-intro-overlay" class="hidden p-4 select-none">
+    <!-- STAGE 1: AUTO FADE-IN / FADE-OUT DARK ACT TITLE CURTAIN (Displays before Floors 1, 4, 7, 10, 13) -->
+    <div id="act-intro-curtain" class="hidden flex-col items-center justify-center text-center max-w-lg w-full px-6 py-10 relative">
+      <div id="act-curtain-aura" class="act-curtain-aura pointer-events-none"></div>
+      <div id="act-curtain-overline" class="act-curtain-overline font-mono-code text-[11px] sm:text-xs uppercase tracking-[0.34em] font-bold mb-3">
+        ACT I OF V • DEPTH 100M
+      </div>
+      <h1 id="act-curtain-title" class="act-curtain-title font-display font-bold text-3xl sm:text-4xl md:text-5xl uppercase tracking-[0.14em] leading-tight">
+        THE GLOWWORM GROTTO
+      </h1>
+      <div class="act-curtain-divider-wrap my-5 flex items-center justify-center w-full">
+        <div id="act-curtain-divider" class="act-curtain-divider"></div>
+        <span id="act-curtain-diamond" class="act-curtain-diamond mx-3">◆</span>
+        <div id="act-curtain-divider-r" class="act-curtain-divider"></div>
+      </div>
+      <p id="act-curtain-epigraph" class="act-curtain-epigraph font-sans italic text-xs sm:text-sm md:text-base text-slate-300/95 max-w-md leading-relaxed">
+        “Where bioluminescent spores drift through waking stone.”
+      </p>
+    </div>
+
+    <!-- STAGE 2: FLOOR INTRO DISPLAY CARD -->
     <div id="floor-intro-card" class="cavern-panel w-full max-w-sm rounded-3xl p-6 border border-amber-400/50 text-center space-y-3.5 shadow-[0_0_60px_rgba(245,158,11,0.25)] relative overflow-hidden">
       <!-- Top Act & Depth Pill -->
       <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-[10px] font-mono-code uppercase tracking-[0.2em] text-amber-300 font-bold" id="floor-intro-act-badge">
-        ACT I • SHALLOW GROTTO
+        ACT I • THE GLOWWORM GROTTO
       </div>
 
       <!-- Floor Number & Guardian Icon -->
@@ -725,7 +826,7 @@
           🛡️
         </div>
         <div id="floor-intro-floor-title" class="font-mono-code font-bold text-xs uppercase tracking-[0.25em] text-teal-300">
-          DESCENDING TO FLOOR 1 OF 9
+          DESCENDING TO FLOOR 1 OF 15
         </div>
         <h2 id="floor-intro-boss-name" class="font-display font-bold text-2xl text-white mt-0.5 tracking-tight">
           Cavern Pebble Scout
@@ -968,8 +1069,8 @@
             <span id="dbg-floor-summary" class="text-[9px] text-amber-300">Floor 1 • Standard Sentinel</span>
           </div>
 
-          <!-- 9-Floor Selector Grid -->
-          <div id="dbg-floor-grid" class="grid grid-cols-9 gap-1"></div>
+          <!-- 15-Floor Selector Grid (5 Acts x 3 Floors) -->
+          <div id="dbg-floor-grid" class="grid grid-cols-5 gap-1.5"></div>
 
           <!-- Difficulty Tier Selector -->
           <div id="dbg-diff-grid" class="grid grid-cols-3 gap-1.5 pt-0.5"></div>

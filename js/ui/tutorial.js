@@ -117,7 +117,7 @@ function setupPlayableTutorialBoard() {
   state.maxGambitSlots = 2;
   state.gambits = ['obsidian_cat', 'butter_crust'];
   state.reservePouchUnlocked = true;
-  state.reservePouch = ['anvil', 'wild'];
+  state.reservePouch = ['anvil', 'loaded_die'];
   state.masterDeck = ['pickaxe', 'pebble'];
 
   startFloorMatch(false);
@@ -589,13 +589,17 @@ function finishTutorialSequence(returnToTitle = false) {
   startFloorMatch(false);
 
   if (returnToTitle) {
-    const introOverlay = document.getElementById('intro-sequence-overlay');
-    if (introOverlay) {
-      introOverlay.classList.remove('hidden');
-      requestAnimationFrame(() => {
-        introOverlay.style.opacity = '1';
-        introOverlay.style.pointerEvents = 'auto';
-      });
+    if (typeof returnToTitleScreen === 'function') {
+      returnToTitleScreen();
+    } else {
+      const introOverlay = document.getElementById('intro-sequence-overlay');
+      if (introOverlay) {
+        introOverlay.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          introOverlay.style.opacity = '1';
+          introOverlay.style.pointerEvents = 'auto';
+        });
+      }
     }
   } else {
     openDifficultyModal(false);

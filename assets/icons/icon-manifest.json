@@ -24,7 +24,6 @@
     "wax_effigy": "./assets/icons/cards/wax_effigy.svg",
     "transmute": "./assets/icons/cards/transmute.svg",
     "echo_drop": "./assets/icons/cards/echo_drop.svg",
-    "mirror_shard": "./assets/icons/cards/mirror_shard.svg",
     "hydraulic_piston": "./assets/icons/cards/hydraulic_piston.svg",
     "abyssal_upheaval": "./assets/icons/cards/abyssal_upheaval.svg",
     "ouroboros_fang": "./assets/icons/cards/ouroboros_fang.svg",
@@ -39,7 +38,6 @@
     "loaded_die": "./assets/icons/reserves/loaded_die.svg",
     "anvil": "./assets/icons/reserves/anvil.svg",
     "cave_bat": "./assets/icons/reserves/cave_bat.svg",
-    "wild": "./assets/icons/reserves/wild.svg",
     "jalapeno_bomb": "./assets/icons/reserves/jalapeno_bomb.svg",
     "acid_slug": "./assets/icons/reserves/acid_slug.svg",
     "parasite_egg": "./assets/icons/reserves/parasite_egg.svg",
@@ -73,7 +71,10 @@
     "petrifier_archon": "./assets/icons/bosses/petrifier_archon.svg",
     "mirror_virtuoso": "./assets/icons/bosses/mirror_virtuoso.svg",
     "magma_leviathan": "./assets/icons/bosses/magma_leviathan.svg",
-    "tectonic_behemoth": "./assets/icons/bosses/tectonic_behemoth.svg"
+    "tectonic_behemoth": "./assets/icons/bosses/tectonic_behemoth.svg",
+    "abyssal_lodestone": "./assets/icons/bosses/abyssal_lodestone.svg",
+    "void_weaver": "./assets/icons/bosses/void_weaver.svg",
+    "sovereign_tesseract": "./assets/icons/bosses/sovereign_tesseract.svg"
   },
   "topologies": {
     "classic_grid": "./assets/icons/topologies/classic_grid.svg",
@@ -82,7 +83,15 @@
     "stalactite_arch": "./assets/icons/topologies/stalactite_arch.svg",
     "surrealist_chalice": "./assets/icons/topologies/surrealist_chalice.svg",
     "sunken_caldera": "./assets/icons/topologies/sunken_caldera.svg",
-    "obsidian_citadel": "./assets/icons/topologies/obsidian_citadel.svg"
+    "obsidian_citadel": "./assets/icons/topologies/obsidian_citadel.svg",
+    "basalt_colonnade": "./assets/icons/topologies/basalt_colonnade.svg",
+    "crystalline_gorge": "./assets/icons/topologies/crystalline_gorge.svg",
+    "dwarven_anvil": "./assets/icons/topologies/dwarven_anvil.svg",
+    "catacomb_nave": "./assets/icons/topologies/catacomb_nave.svg",
+    "tectonic_mesa": "./assets/icons/topologies/tectonic_mesa.svg",
+    "wyrm_fang_maw": "./assets/icons/topologies/wyrm_fang_maw.svg",
+    "sheared_escarpment": "./assets/icons/topologies/sheared_escarpment.svg",
+    "cyclops_monolith": "./assets/icons/topologies/cyclops_monolith.svg"
   },
   "slots": {
     "gilded": "./assets/icons/slots/gilded.svg",

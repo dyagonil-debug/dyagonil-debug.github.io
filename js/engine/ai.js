@@ -352,11 +352,12 @@ class GrandmasterConnect4AI {
 
     const diff = typeof getActiveDifficulty === 'function' ? getActiveDifficulty() : null;
     const curFloorIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
+    const floorCfg = typeof getFloorConfig === 'function' ? getFloorConfig(curFloorIdx) : null;
 
-    // 1. Check immediate AI 1-move wins (gated by missWinRate on Easy mode)
-    const missWinRate = (applyDifficultyVariance && diff && typeof diff.missWinRate === 'number')
-      ? diff.missWinRate
-      : 0;
+    // 1. Check immediate AI 1-move wins (scaled across all 5 Acts via floorMissWinRate on Easy mode)
+    const missWinRate = (applyDifficultyVariance && floorCfg && typeof floorCfg.floorMissWinRate === 'number')
+      ? floorCfg.floorMissWinRate
+      : ((applyDifficultyVariance && diff && typeof diff.missWinRate === 'number') ? diff.missWinRate : 0);
     const ignoreImmediateWin = missWinRate > 0 && Math.random() < missWinRate;
     const aiWinningCols = [];
 
@@ -377,10 +378,10 @@ class GrandmasterConnect4AI {
       board[r][c] = EMPTY;
     }
 
-    // 2. Check immediate 1-move Player threats to block (now allowed on ALL Easy floors, including Bosses!)
-    const missBlockArr = (diff && diff.missBlockByFloor) || [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    const effMissBlock = missBlockArr[Math.min(curFloorIdx, missBlockArr.length - 1)] ?? (diff ? diff.missBlockChance : 0);
-    const bossBlockPenalty = (isBossFloor && diff && diff.id !== 'EASY') ? 0 : effMissBlock;
+    // 2. Check immediate 1-move Player threats to block (scaled across all 15 floors / 5 Acts)
+    const bossBlockPenalty = (floorCfg && typeof floorCfg.floorMissBlockRate === 'number')
+      ? floorCfg.floorMissBlockRate
+      : 0;
     const didMissBlock = applyDifficultyVariance && bossBlockPenalty > 0 && Math.random() < bossBlockPenalty;
 
     const playerWinningCols = [];
@@ -400,6 +401,9 @@ class GrandmasterConnect4AI {
     }
 
     // 3. Full negamax evaluation per column
+    const effEvalNoise = (floorCfg && typeof floorCfg.floorEvalNoise === 'number')
+      ? floorCfg.floorEvalNoise
+      : (diff ? (diff.evalNoiseRange || 0) : 0);
     const rankedCols = [];
     for (const c of this.colOrder) {
       const r = this.getAvailableRow(board, c);
@@ -426,9 +430,9 @@ class GrandmasterConnect4AI {
       ) + webPenalty;
       board[r][c] = EMPTY;
 
-      // Add heuristic evaluation jitter on Easy/Medium so the AI doesn't play robotically
-      if (applyDifficultyVariance && diff && diff.evalNoiseRange > 0) {
-        score += Math.round((Math.random() * 2 - 1) * diff.evalNoiseRange);
+      // Add per-floor heuristic evaluation jitter on Easy/Medium/early-Hard so AI scales smoothly across Acts I–V
+      if (applyDifficultyVariance && effEvalNoise > 0) {
+        score += Math.round((Math.random() * 2 - 1) * effEvalNoise);
       }
 
       colScores[c] = score;
@@ -439,11 +443,11 @@ class GrandmasterConnect4AI {
       }
     }
 
-    // 4. Resolve move selection with true missed blocks & softer blunders
+    // 4. Resolve move selection with true missed blocks & floor-scaled blunders
     if (bestScore < 90000 && forcedBlockCol !== -1) {
       bestCol = forcedBlockCol;
     } else if (applyDifficultyVariance && didMissBlock && playerWinningCols.length > 0) {
-      // CRITICAL FIX: When Easy AI rolls to miss a block, Negamax would otherwise still score the
+      // CRITICAL FIX: When Easy/early-Medium AI rolls to miss a block, Negamax would otherwise still score the
       // non-blocking columns at -90000 and pick the block anyway. Pick a non-blocking column here!
       const nonBlocking = rankedCols.filter((item) => !playerWinningCols.includes(item.col));
       if (nonBlocking.length > 0) {
@@ -463,11 +467,10 @@ class GrandmasterConnect4AI {
       bestCol = poolCols[0].col;
       bestScore = poolCols[0].score;
 
-      const blunderArr = (diff && diff.blunderByFloor) || [diff ? diff.blunderChance : 0];
-      const baseFloorBlunder = blunderArr[Math.min(curFloorIdx, blunderArr.length - 1)] ?? (diff ? diff.blunderChance : 0);
       const isEasy = diff && diff.id === 'EASY';
-      const enrageMult = (!isEasy && isBossFloor && typeof state !== 'undefined' && state.bossMaxHp > 1 && state.bossHp === 1) ? 0.35 : 1.0;
-      const blunderRate = (isBossFloor && !isEasy ? baseFloorBlunder * 0.5 : baseFloorBlunder) * enrageMult;
+      const blunderRate = (floorCfg && typeof floorCfg.floorBlunderRate === 'number')
+        ? floorCfg.floorBlunderRate
+        : 0;
 
       if (blunderRate > 0 && Math.random() < blunderRate && poolCols.length > 1) {
         if (isEasy) {

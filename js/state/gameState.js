@@ -41,6 +41,8 @@ const state = {
   bossHp: 1,
   bossMaxHp: 1,
   bossMarkedCol: 3,
+  tesseractBoards: [],
+  activeTesseractBoardIdx: 0,
 
   // Progression & Boss-Gated Shop Tier Unlocks
   //   • unlockedShopTier = 1 on Floors 1–3 (Act I before defeating Boss 1)
@@ -69,7 +71,8 @@ const state = {
   gambits: [],
   catNineLivesUsed: false,
 
-  showTelemetry: true,
+  showTelemetry: false,
+  telemetryMutedByUser: false,
   rouletteSpinsThisFloor: 0,
   nextFloorModifiers: {
     bonusMana: 0,
@@ -121,6 +124,8 @@ function initNewRun() {
 
   state.masterDeck = kit ? [...kit.deck] : [...STARTER_DECK_IDS];
   state.freeRerollsRemaining = state.loadoutId === 'spelunker' ? 1 : 0;
+  state.showTelemetry = false;
+  state.telemetryMutedByUser = false;
   state.firstCol4DropDoneThisFloor = false;
   state.firstCardCastDoneThisFloor = false;
   state.bloodletterHealCountThisTurn = 0;
@@ -128,10 +133,17 @@ function initNewRun() {
   const easyPick = shuffle(BOSS_POOLS_BY_ACT.EASY)[0];
   const mediumPick = shuffle(BOSS_POOLS_BY_ACT.MEDIUM)[0];
   const hardPick = shuffle(BOSS_POOLS_BY_ACT.HARD)[0];
-  state.shuffledBossPool = [easyPick, mediumPick, hardPick];
+  const act4Pick = shuffle(BOSS_POOLS_BY_ACT.ACT4)[0];
+  const finalPick = shuffle(BOSS_POOLS_BY_ACT.FINAL)[0];
+  state.shuffledBossPool = [easyPick, mediumPick, hardPick, act4Pick, finalPick];
+  state.tesseractBoards = [];
+  state.activeTesseractBoardIdx = 0;
   state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
 
   state.nextFloorModifiers = createDefaultFloorModifiers();
+  if (typeof bgm !== 'undefined' && bgm && typeof bgm.setMode === 'function') {
+    bgm.setMode('cavern');
+  }
   if (typeof updateDifficultyUI === 'function') {
     updateDifficultyUI();
   }
@@ -174,12 +186,15 @@ function getExplicitItemTier(entry, fallback = 1) {
 }
 
 function getMaxAllowedShopTier() {
-  // Floor-based floor minimum for mid-run checkpoints or debug jumps:
-  // Floors 1-3 (idx 0..2) start at Tier 1; Floors 4-6 (idx 3..5) are post-Boss 1 (Tier 2); Floors 7-9 (idx 6..8) are post-Boss 2 (Tier 3)
-  const floorMinTier = state.floorIdx >= 6 ? 3 : (state.floorIdx >= 3 ? 2 : 1);
+  // 5-Act Shop Tier Gating:
+  // Act I (Floors 1-3, idx 0..2) -> Tier 1
+  // Act II (Floors 4-6, idx 3..5, Post-Boss 1) -> Tier 2
+  // Act III (Floors 7-9, idx 6..8, Post-Boss 2) -> Tier 3
+  // Act IV (Floors 10-12, idx 9..11, Post-Boss 3) -> Tier 4
+  // Act V (Floors 13-15, idx 12..14, Post-Boss 4) -> Tier 5
+  const floorMinTier = Math.min(5, Math.floor((state.floorIdx || 0) / 3) + 1);
   const explicitTier = typeof state.unlockedShopTier === 'number' ? state.unlockedShopTier : 1;
-  const highTierFlag = state.highTierCardsUnlocked ? 3 : 1;
-  return Math.min(3, Math.max(1, floorMinTier, explicitTier, highTierFlag));
+  return Math.min(5, Math.max(1, floorMinTier, explicitTier));
 }
 
 function addCardToStockpile(cardId) {

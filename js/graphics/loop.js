@@ -68,12 +68,16 @@ function animate() {
       activeVFX.splice(i, 1);
     }
   }
+  if (typeof vfxKeyLight !== 'undefined' && vfxKeyLight) {
+    vfxKeyLight.intensity = activeVFX.length > 0 ? 0.95 : 0.0;
+  }
 
   tokensGroup.children.forEach((mesh) => {
     const d = mesh.userData;
     if (mesh.position.y > d.targetY) {
       d.velY -= 0.035;
       mesh.position.y += d.velY;
+      if (d.rotSpeedX) mesh.rotation.x += d.rotSpeedX;
       if (mesh.position.y <= d.targetY) {
         mesh.position.y = d.targetY;
         if (Math.abs(d.velY) > 0.12) {
@@ -96,12 +100,9 @@ function animate() {
     ghostMat.opacity = 0.48 + Math.sin(elapsed * 5.5) * 0.18;
   }
 
-  const sArr = sporeGeo.attributes.position.array;
-  for (let i = 0; i < sporeCount; i++) {
-    sArr[i * 3 + 1] += 0.008;
-    if (sArr[i * 3 + 1] > 8) sArr[i * 3 + 1] = -8;
+  if (typeof updateCavernAnimation === 'function') {
+    updateCavernAnimation(elapsed);
   }
-  sporeGeo.attributes.position.needsUpdate = true;
 
   const winW = window.innerWidth;
   const winH = window.innerHeight;

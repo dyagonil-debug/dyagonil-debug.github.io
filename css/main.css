@@ -148,32 +148,70 @@ body.modal-occluded footer .cavern-panel {
 
 
 /* ============================================================================
-   DESKTOP UI SCALING & ERGONOMICS SYSTEM (md / lg / xl + manual UI Scale)
-   Eliminates tiny mobile pixel fonts on desktop monitors and scales HUD/modals
+   DESKTOP UI SCALING & ERGONOMICS SYSTEM (Continuous Slider 75%-150% + Auto-Scale)
+   Converts fixed-px utility classes to `rem` so root font-size scales the entire UI
    ============================================================================ */
-@media (min-width: 768px) {
-  html[data-ui-scale="auto"],
-  html:not([data-ui-scale]) {
-    font-size: 17px;
-  }
-  .text-\[7px\]  { font-size: 0.64rem !important; line-height: 1.25 !important; }
-  .text-\[8px\]  { font-size: 0.68rem !important; line-height: 1.3 !important; }
-  .text-\[9px\]  { font-size: 0.74rem !important; line-height: 1.35 !important; }
-  .text-\[10px\] { font-size: 0.80rem !important; line-height: 1.4 !important; }
-  .text-\[11px\] { font-size: 0.86rem !important; line-height: 1.42 !important; }
+:root {
+  --c4-ui-scale: 1;
+}
+
+/* Convert arbitrary fixed-pixel Tailwind utilities to proportional `rem` units
+   so changing `document.documentElement.style.fontSize` scales every element! */
+.text-\[7px\]  { font-size: 0.48rem !important; line-height: 1.25 !important; }
+.text-\[8px\]  { font-size: 0.54rem !important; line-height: 1.3 !important; }
+.text-\[9px\]  { font-size: 0.60rem !important; line-height: 1.35 !important; }
+.text-\[10px\] { font-size: 0.66rem !important; line-height: 1.4 !important; }
+.text-\[11px\] { font-size: 0.72rem !important; line-height: 1.42 !important; }
+
+.min-h-\[72px\]  { min-height: 4.5rem !important; }
+.min-h-\[90px\]  { min-height: 5.625rem !important; }
+.min-h-\[98px\]  { min-height: 6.125rem !important; }
+.max-w-\[125px\] { max-width: 7.8rem !important; }
+
+/* Ensure range inputs in modals are always draggable despite body touch-action: none */
+input[type="range"].c4-scale-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: rgba(28, 25, 23, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  outline: none;
+  touch-action: pan-x !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+input[type="range"].c4-scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%);
+  border: 2px solid #1c1917;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.65);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+input[type="range"].c4-scale-slider::-webkit-slider-thumb:hover,
+input[type="range"].c4-scale-slider::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+
+input[type="range"].c4-scale-slider::-moz-range-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%);
+  border: 2px solid #1c1917;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.65);
+  cursor: pointer;
 }
 
 @media (min-width: 1024px) {
-  html[data-ui-scale="auto"],
-  html:not([data-ui-scale]) {
-    font-size: 18px;
-  }
-  .text-\[7px\]  { font-size: 0.68rem !important; line-height: 1.3 !important; }
-  .text-\[8px\]  { font-size: 0.72rem !important; line-height: 1.35 !important; }
-  .text-\[9px\]  { font-size: 0.78rem !important; line-height: 1.38 !important; }
-  .text-\[10px\] { font-size: 0.84rem !important; line-height: 1.42 !important; }
-  .text-\[11px\] { font-size: 0.90rem !important; line-height: 1.45 !important; }
-
   .safe-top {
     padding-top: 0.75rem;
   }
@@ -181,32 +219,6 @@ body.modal-occluded footer .cavern-panel {
     padding-bottom: 0.85rem;
   }
 }
-
-@media (min-width: 1440px) {
-  html[data-ui-scale="auto"],
-  html:not([data-ui-scale]) {
-    font-size: 19px;
-  }
-}
-
-/* Explicit User UI Scale Overrides in Settings */
-html[data-ui-scale="100"] {
-  font-size: 16px !important;
-}
-html[data-ui-scale="115"] {
-  font-size: 18.4px !important;
-}
-html[data-ui-scale="130"] {
-  font-size: 20.8px !important;
-}
-html[data-ui-scale="115"] .text-\[8px\],
-html[data-ui-scale="130"] .text-\[8px\]  { font-size: 0.72rem !important; }
-html[data-ui-scale="115"] .text-\[9px\],
-html[data-ui-scale="130"] .text-\[9px\]  { font-size: 0.78rem !important; }
-html[data-ui-scale="115"] .text-\[10px\],
-html[data-ui-scale="130"] .text-\[10px\] { font-size: 0.84rem !important; }
-html[data-ui-scale="115"] .text-\[11px\],
-html[data-ui-scale="130"] .text-\[11px\] { font-size: 0.90rem !important; }
 
 /* Desktop Pointer Hover Ergonomics */
 @media (hover: hover) and (pointer: fine) {
@@ -219,4 +231,62 @@ html[data-ui-scale="130"] .text-\[11px\] { font-size: 0.90rem !important; }
     transform: translateY(-3px);
     border-color: rgba(251, 191, 36, 0.75);
   }
+}
+
+/* ============================================================================
+   OMINOUS BOSS-PROGRESSION CAVERN VIGNETTE & HUD ATMOSPHERE SYNC
+   ============================================================================ */
+#cavern-vignette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition: background 0.9s ease, box-shadow 0.9s ease;
+  background: radial-gradient(circle at 50% 52%, transparent 48%, rgba(7, 10, 18, 0.58) 84%, rgba(4, 6, 12, 0.86) 100%);
+  box-shadow: inset 0 0 90px rgba(20, 184, 166, 0.08);
+}
+
+body[data-cavern-tier="1"] #cavern-vignette-overlay {
+  background: radial-gradient(circle at 50% 52%, transparent 44%, rgba(28, 7, 12, 0.64) 82%, rgba(12, 3, 6, 0.9) 100%);
+  box-shadow: inset 0 0 110px rgba(225, 29, 72, 0.18), inset 0 -40px 80px rgba(249, 115, 22, 0.12);
+}
+
+body[data-cavern-tier="2"] #cavern-vignette-overlay {
+  background: radial-gradient(circle at 50% 52%, transparent 40%, rgba(22, 5, 34, 0.68) 80%, rgba(8, 2, 15, 0.92) 100%);
+  box-shadow: inset 0 0 130px rgba(147, 51, 234, 0.24), inset 0 -50px 95px rgba(225, 29, 72, 0.18);
+}
+
+body[data-cavern-tier="3"] #cavern-vignette-overlay {
+  background: radial-gradient(circle at 50% 52%, transparent 38%, rgba(36, 4, 22, 0.72) 78%, rgba(10, 1, 10, 0.95) 100%);
+  box-shadow: inset 0 0 150px rgba(244, 63, 94, 0.32), inset 0 -60px 110px rgba(192, 38, 211, 0.25);
+}
+
+body[data-cavern-tier="1"] .cavern-panel {
+  border-color: rgba(249, 115, 22, 0.28);
+}
+
+body[data-cavern-tier="2"] .cavern-panel {
+  border-color: rgba(168, 85, 247, 0.32);
+}
+
+body[data-cavern-tier="3"] .cavern-panel {
+  border-color: rgba(244, 63, 94, 0.42);
+}
+
+body[data-cavern-tier="3"] #cavern-vignette-overlay {
+  background: radial-gradient(circle at 50% 52%, transparent 38%, rgba(6, 18, 42, 0.72) 78%, rgba(2, 6, 18, 0.94) 100%);
+  box-shadow: inset 0 0 145px rgba(56, 189, 248, 0.28), inset 0 -55px 105px rgba(129, 140, 248, 0.24);
+}
+
+body[data-cavern-tier="4"] #cavern-vignette-overlay {
+  background: radial-gradient(circle at 50% 52%, transparent 36%, rgba(38, 4, 22, 0.74) 78%, rgba(10, 1, 10, 0.96) 100%);
+  box-shadow: inset 0 0 160px rgba(244, 63, 94, 0.34), inset 0 -65px 115px rgba(251, 191, 36, 0.26);
+}
+
+body[data-cavern-tier="3"] .cavern-panel {
+  border-color: rgba(56, 189, 248, 0.36);
+}
+
+body[data-cavern-tier="4"] .cavern-panel {
+  border-color: rgba(244, 63, 94, 0.45);
 }

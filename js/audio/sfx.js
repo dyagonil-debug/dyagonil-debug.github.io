@@ -622,11 +622,70 @@ class TactileSFX {
         this.playNoiseBurst(0.26, 1050, 0.18, 'bandpass');
     }
 
+    // 40A. Atmospheric Act Title Curtain Swell (Subterranean to Cosmic Progression)
+    playActCurtainChord(actIdx = 0) {
+        if (this.muted) return;
+        const chordsByAct = [
+            // Act I: The Glowworm Grotto (Warm D Dorian Bioluminescent Chimes)
+            [
+                { freq: 146.83, dur: 0.22, gain: 0.14 }, // D3
+                { freq: 220.00, dur: 0.22, gain: 0.14 }, // A3
+                { freq: 293.66, dur: 0.24, gain: 0.14 }, // D4
+                { freq: 349.23, dur: 0.26, gain: 0.15 }, // F4
+                { freq: 440.00, dur: 0.32, gain: 0.15 }, // A4
+                { freq: 493.88, dur: 0.55, gain: 0.15 }  // B4
+            ],
+            // Act II: The Vitreous Catacombs (Crystalline E Phrygian Glass Reflections)
+            [
+                { freq: 164.81, dur: 0.20, gain: 0.14 }, // E3
+                { freq: 246.94, dur: 0.20, gain: 0.14 }, // B3
+                { freq: 329.63, dur: 0.24, gain: 0.15 }, // E4
+                { freq: 349.23, dur: 0.26, gain: 0.15 }, // F4
+                { freq: 493.88, dur: 0.30, gain: 0.15 }, // B4
+                { freq: 659.25, dur: 0.58, gain: 0.15 }  // E5
+            ],
+            // Act III: The Brimstone Caldera (Molten C Harmonic Minor Brass & Low Rumble)
+            [
+                { freq: 130.81, dur: 0.22, gain: 0.15 }, // C3
+                { freq: 196.00, dur: 0.22, gain: 0.15 }, // G3
+                { freq: 261.63, dur: 0.24, gain: 0.15 }, // C4
+                { freq: 311.13, dur: 0.26, gain: 0.15 }, // Eb4
+                { freq: 392.00, dur: 0.30, gain: 0.16 }, // G4
+                { freq: 493.88, dur: 0.60, gain: 0.16 }  // B4
+            ],
+            // Act IV: The Horizon Fault (Warped Lydian-Augmented Singularity Arpeggio)
+            [
+                { freq: 146.83, dur: 0.20, gain: 0.14 }, // D3
+                { freq: 233.08, dur: 0.22, gain: 0.14 }, // Bb3
+                { freq: 293.66, dur: 0.24, gain: 0.15 }, // D4
+                { freq: 369.99, dur: 0.26, gain: 0.15 }, // F#4
+                { freq: 466.16, dur: 0.30, gain: 0.15 }, // Bb4
+                { freq: 587.33, dur: 0.62, gain: 0.16 }  // D5
+            ],
+            // Act V: The Fourfold Sanctum (Grand Sovereign Tesseract Fourth-Interval Resonance)
+            [
+                { freq: 130.81, dur: 0.20, gain: 0.15 }, // C3
+                { freq: 196.00, dur: 0.20, gain: 0.15 }, // G3
+                { freq: 293.66, dur: 0.22, gain: 0.15 }, // D4
+                { freq: 392.00, dur: 0.24, gain: 0.16 }, // G4
+                { freq: 587.33, dur: 0.28, gain: 0.16 }, // D5
+                { freq: 783.99, dur: 0.68, gain: 0.17 }  // G5
+            ]
+        ];
+        const seq = chordsByAct[Math.max(0, Math.min(4, actIdx))];
+        this.playSteppedSequence(seq, 'triangle', 0.16, 2600);
+        this.playSteppedSequence([
+            { freq: seq[0].freq * 0.5, dur: 0.65, gain: 0.16 },
+            { freq: seq[1].freq * 0.5, dur: 0.85, gain: 0.15 }
+        ], 'sawtooth', 0.14, 1100);
+        this.playNoiseBurst(0.28, 780 + actIdx * 180, 0.10, 'bandpass');
+    }
+
     // 40. In-Theme Subterranean Level Transition Sound
     playLevelTransitionJingle(floorIdx = 0, isBoss = false, isPreBoss = false) {
         if (this.muted) return;
         if (isBoss) {
-            const bossTier = floorIdx >= 8 ? 3 : (floorIdx >= 5 ? 2 : 1);
+            const bossTier = Math.min(5, Math.floor(floorIdx / 3) + 1);
             const tritoneOrb2 = bossTier === 3 ? 311.13 : (bossTier === 2 ? 415.30 : 311.13);
             this.playSteppedSequence([
                 { freq: 293.66,      dur: 0.09, gain: 0.15 },

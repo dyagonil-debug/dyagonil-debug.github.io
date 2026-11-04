@@ -287,12 +287,13 @@ function rollParadoxLoadoutSeed() {
 
   // Pick 5 random Arcane Cards (at least 2 from Tier 1 so low-mana turns are always playable)
   const tier1Cards = cardKeys.filter((k) => !CARD_CATALOG[k] || (CARD_CATALOG[k].tier || 1) === 1);
+  const shopPoolCards = cardKeys.filter((k) => CARD_CATALOG[k] && !CARD_CATALOG[k].starterOnly);
   const starterDeck = [
     pickRandomFromArray(tier1Cards) || 'pebble',
     pickRandomFromArray(tier1Cards) || 'oracle_peek',
-    pickRandomFromArray(cardKeys) || 'petrified',
-    pickRandomFromArray(cardKeys) || 'pickaxe',
-    pickRandomFromArray(cardKeys) || 'loaded_knucklebones'
+    pickRandomFromArray(shopPoolCards) || 'petrified',
+    pickRandomFromArray(shopPoolCards) || 'pickaxe',
+    pickRandomFromArray(shopPoolCards) || 'loaded_knucklebones'
   ];
 
   activeParadoxRoll = {

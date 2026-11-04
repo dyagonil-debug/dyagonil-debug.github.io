@@ -1,17 +1,19 @@
 // ============================================================================
 // CARDS, ROULETTE WEDGES, RESERVES, GAMBITS, ENCHANTS & BOSS POOLS (js/config/catalogs.js)
-//   • 32 Playable Arcane Cards (11 Tier 1, 11 Tier 2, 10 Tier 3) + 1 Curse Card
-//   • 12 Tactical Reserve Tokens (4 Tier 1, 4 Tier 2, 4 Tier 3)
-//   • 16 Synergistic Gambit Relics (5 Tier 1, 6 Tier 2, 5 Tier 3)
-//   • Shop Tier Gating:
+//   • 31 Playable Arcane Cards across Tiers 1–5 (2 Starter-Only + 29 Shop Cards) + 1 Curse Card
+//   • 11 Tactical Reserve Tokens across Tiers 1–5
+//   • 16 Synergistic Gambit Relics across Tiers 1–5
+//   • 5-Act Shop Tier Gating:
 //       - Tier 1: Available from Floor 1 (Act I)
 //       - Tier 2: Unlocks after defeating Boss Fight 1 (Floor 3)
 //       - Tier 3: Unlocks after defeating Boss Fight 2 (Floor 6)
+//       - Tier 4: Unlocks after defeating Boss Fight 3 (Floor 9)
+//       - Tier 5: Unlocks after defeating Boss Fight 4 (Floor 12)
 // ============================================================================
 
 const CARD_CATALOG = {
   // --------------------------------------------------------------------------
-  // TIER 1 ARCANE CARDS (Act I — Available from Floor 1, 11 Cards)
+  // TIER 1 ARCANE CARDS (Act I — Available from Floor 1; 2 Starter-Only + 5 Shop)
   // --------------------------------------------------------------------------
   pebble: {
     id: 'pebble',
@@ -19,9 +21,10 @@ const CARD_CATALOG = {
     cost: 1,
     price: 4,
     tier: 1,
+    starterOnly: true,
     icon: '🪨',
-    shortDesc: 'T1 Starter: +1 Stability & +$1 Gold.',
-    desc: "Humble Starter Technique: Reinforce a column's footing to gain +1 Seismic Stability and +$1 Gold."
+    shortDesc: 'Starter Only: +1 Stability & +$2 Gold.',
+    desc: "Humble Starter Technique (Not sold in Bazaar): Reinforce a column's footing to gain +1 Seismic Stability and +$2 Gold."
   },
   oracle_peek: {
     id: 'oracle_peek',
@@ -29,9 +32,10 @@ const CARD_CATALOG = {
     cost: 0,
     price: 4,
     tier: 1,
+    starterOnly: true,
     icon: '🏮',
-    shortDesc: '0M Starter: Draw 1 card & +1 Stability.',
-    desc: 'Illuminate the cavern: costs 0 Mana! Draw 1 card from your deck and restore +1 Seismic Stability.'
+    shortDesc: '0M Starter Only: Draw 1 card & +1 Stability.',
+    desc: 'Guiding Starter Flame (Not sold in Bazaar): costs 0 Mana! Draw 1 card from your deck and restore +1 Seismic Stability.'
   },
   loaded_knucklebones: {
     id: 'loaded_knucklebones',
@@ -43,16 +47,6 @@ const CARD_CATALOG = {
     shortDesc: '0M Dice Roll (2d6): Gold/Stab or Free Drop!',
     desc: 'Roll 2 carved bone dice above a column for 0 Mana! Roll 2–6: gain +$2 Gold & +1 Stability. Roll 7–10: drop 1 Player token into the column! Roll 11–12: drop 1 Player token AND mint +$3 Gold!'
   },
-  leech_lancet: {
-    id: 'leech_lancet',
-    name: "Bloodletter's Lancet",
-    cost: 0,
-    price: 5,
-    tier: 1,
-    icon: '💉',
-    shortDesc: '0M Pact: -2 Stability -> +1 Mana, Draw 1 & +$1!',
-    desc: 'Forbidden surgical bloodletting: costs 0 Mana! Sacrifice -2 Seismic Stability (down to min 1) to immediately gain +1 Mana Crystal, draw 1 Arcane Card, and pocket +$1 Gold!'
-  },
   petrified: {
     id: 'petrified',
     name: 'Petrified Wood Block',
@@ -60,8 +54,8 @@ const CARD_CATALOG = {
     price: 5,
     tier: 1,
     icon: '🪵',
-    shortDesc: 'Drop neutral carved stone blocker.',
-    desc: 'Drop a neutral carved stone blocker into a column that blocks 4-in-a-row lines.'
+    shortDesc: 'Drop neutral carved stone stepping-stone blocker.',
+    desc: 'Drop a neutral carved stone blocker into a column that blocks 4-in-a-row lines and elevates the column by 1 slot during your turn.'
   },
   jar_of_flies: {
     id: 'jar_of_flies',
@@ -70,7 +64,7 @@ const CARD_CATALOG = {
     price: 5,
     tier: 1,
     icon: '🪰',
-    shortDesc: 'RNG: 50% eat AI piece / 50% drop Stone!',
+    shortDesc: 'RNG: 50% eat AI piece +$2 / 50% drop Stone!',
     desc: 'Uncork a buzzing jar of blind cave flies! 50% chance they devour a random AI token and cough up +$2 Gold; 50% chance they get confused and drop a neutral Petrified Stone into your chosen column!'
   },
   pickaxe: {
@@ -83,26 +77,6 @@ const CARD_CATALOG = {
     shortDesc: 'Shatter ALL Petrified Stone in a col!',
     desc: 'Swing a heavy iron mining pickaxe down a target column! Shatters EVERY neutral Petrified Stone token in that column, compacting remaining tokens downward.'
   },
-  guano_fertilizer: {
-    id: 'guano_fertilizer',
-    name: 'Volatile Guano Poultice',
-    cost: 1,
-    price: 6,
-    tier: 1,
-    icon: '🧪',
-    shortDesc: 'Purge Spores & plant Volatile Spice Slot +1 Stab!',
-    desc: 'Smear pungent alchemical guano inside a target column: purges any Cursed Spore hazards in that column, enchants the next open slot into a Volatile Spice Slot (+1 Mana & shatters adjacent AI), and restores +1 Seismic Stability!'
-  },
-  rusty_bear_trap: {
-    id: 'rusty_bear_trap',
-    name: 'Rusted Bear Trap',
-    cost: 1,
-    price: 6,
-    tier: 1,
-    icon: '🪤',
-    shortDesc: 'Amputate top AI token +$2 OR rig Web Slot!',
-    desc: 'Clamp serrated iron jaws onto a column! If the top token belongs to the AI, it is amputated (shattered) for +$2 Bounty Gold; otherwise, rigs the next empty cell with a Spider Web Slot and grants +1 Stability!'
-  },
   divining_wishbone: {
     id: 'divining_wishbone',
     name: 'Split Wishbone',
@@ -113,20 +87,50 @@ const CARD_CATALOG = {
     shortDesc: 'Compare col height vs Col 4 -> Free Drop or +$3!',
     desc: 'Snap a dried wishbone between your chosen column and the center column (Col 4): if their stack heights differ, gain +$3 Gold & +2 Stability; if they match, drop 1 free Player token into your chosen column & gain +$2 Gold!'
   },
+
+  // --------------------------------------------------------------------------
+  // TIER 2 ARCANE CARDS (Act II — Unlocks after Boss Fight 1, 7 Cards)
+  // --------------------------------------------------------------------------
+  leech_lancet: {
+    id: 'leech_lancet',
+    name: "Bloodletter's Lancet",
+    cost: 0,
+    price: 7,
+    tier: 2,
+    icon: '💉',
+    shortDesc: '0M Pact: -2 Stability -> +1 Mana, Draw 1 & +$2!',
+    desc: 'Forbidden surgical bloodletting: costs 0 Mana! Sacrifice -2 Seismic Stability (down to min 1) to immediately gain +1 Mana Crystal, draw 1 Arcane Card, and pocket +$2 Gold!'
+  },
+  guano_fertilizer: {
+    id: 'guano_fertilizer',
+    name: 'Volatile Guano Poultice',
+    cost: 1,
+    price: 7,
+    tier: 2,
+    icon: '🧪',
+    shortDesc: 'Purge Spores & plant Volatile Spice Slot +1 Stab!',
+    desc: 'Smear pungent alchemical guano inside a target column: purges any Cursed Spore hazards in that column, enchants the next open slot into a Volatile Spice Slot (+1 Mana & shatters adjacent AI), and restores +1 Seismic Stability!'
+  },
+  rusty_bear_trap: {
+    id: 'rusty_bear_trap',
+    name: 'Rusted Bear Trap',
+    cost: 1,
+    price: 7,
+    tier: 2,
+    icon: '🪤',
+    shortDesc: 'Amputate top AI token +$2 OR rig Web Slot!',
+    desc: 'Clamp serrated iron jaws onto a column! If the top token belongs to the AI, it is amputated (shattered) for +$2 Bounty Gold; otherwise, rigs the next empty cell with a Spider Web Slot and grants +1 Stability!'
+  },
   tar_bubble: {
     id: 'tar_bubble',
     name: 'Boiling Tar Pitch',
     cost: 1,
-    price: 6,
-    tier: 1,
+    price: 8,
+    tier: 2,
     icon: '🛢️',
-    shortDesc: 'Drag top AI token to bottom of col & +1 Stab!',
-    desc: 'Bubble viscous black tar beneath a column: drags the highest AI token in that column all the way to the bottom-most row (floating your tokens above it upward by 1 row) and restores +1 Seismic Stability!'
+    shortDesc: 'Drag buried AI token to bottom (or drop Stone +$2) & +1 Stab!',
+    desc: 'Bubble viscous black tar beneath a column: drags the highest AI token in that column down to the bottom-most row to float your tokens upward (or coagulates into a Stone Blocker +$2 Gold if no AI token can be sunk) and restores +1 Seismic Stability!'
   },
-
-  // --------------------------------------------------------------------------
-  // TIER 2 ARCANE CARDS (Act II — Unlocks after Boss Fight 1, 11 Cards)
-  // --------------------------------------------------------------------------
   tectonic_anchor: {
     id: 'tectonic_anchor',
     name: 'Tectonic Anchor',
@@ -135,7 +139,7 @@ const CARD_CATALOG = {
     tier: 2,
     icon: '⏳',
     shortDesc: '+3 Stability & Gild/Amplify next slot!',
-    desc: 'Reinforce the cavern ceiling for +3 Seismic Stability turns and enchant the next open slot in the target column into a Gilded Slot (or upgrade an existing Gilded Slot into a Wild Amplifier)!'
+    desc: 'Reinforce the cavern ceiling for +3 Seismic Stability turns and enchant the next open slot in the target column into a Gilded Slot (or upgrade an existing Gilded Slot into a Wild Amplifier trap)!'
   },
   sinkhole_chute: {
     id: 'sinkhole_chute',
@@ -147,32 +151,36 @@ const CARD_CATALOG = {
     shortDesc: 'Drop 3 bottom tokens out of board! (Min 3)',
     desc: 'Unbolt a subterranean trapdoor beneath the board! Shakes the cavern and causes 3 random tokens in the bottom rows to fall out of the board, shifting their columns down.'
   },
-  lodestone: {
-    id: 'lodestone',
-    name: 'Lodestone Polarity',
-    cost: 1,
-    price: 8,
-    tier: 2,
-    icon: '🧲',
-    shortDesc: 'Float your tokens to top of column stack!',
-    desc: 'Magnetically pull all of your Amber and Wild tokens in a column to the top of its stack while sinking AI and Petrified Stone pieces to the bottom!'
-  },
   hibachi: {
     id: 'hibachi',
     name: 'Spicy Miso Hibachi Flare',
     cost: 1,
-    price: 9,
+    price: 8,
     tier: 2,
     icon: '🍜',
     shortDesc: 'Shatter top AI token & +2 Stability.',
     desc: 'Sear a column with hibachi fire: shatters the top token if it belongs to the AI and restores +2 Seismic Stability.'
+  },
+
+  // --------------------------------------------------------------------------
+  // TIER 3 ARCANE CARDS (Act III — Unlocks after Boss Fight 2, 6 Cards)
+  // --------------------------------------------------------------------------
+  lodestone: {
+    id: 'lodestone',
+    name: 'Lodestone Polarity',
+    cost: 1,
+    price: 9,
+    tier: 3,
+    icon: '🧲',
+    shortDesc: 'Float your tokens to top of column stack!',
+    desc: 'Magnetically pull all of your Amber and Wild tokens in a column to the top of its stack while sinking AI and Petrified Stone pieces to the bottom!'
   },
   alchemy_crucible: {
     id: 'alchemy_crucible',
     name: 'Alchemical Crucible',
     cost: 1,
     price: 9,
-    tier: 2,
+    tier: 3,
     icon: '⚗️',
     shortDesc: 'Shatter top AI/Stone -> +$2 & Wild Slot!',
     desc: 'Dissolve the topmost AI or Petrified Stone blocker in a column! Awards +$2 Gold, triggers shatter synergies, and leaves a glowing Wild Amplifier Slot in its place.'
@@ -181,28 +189,28 @@ const CARD_CATALOG = {
     id: 'guillotine_blade',
     name: 'Weighted Guillotine',
     cost: 1,
-    price: 9,
-    tier: 2,
+    price: 10,
+    tier: 3,
     icon: '🪓',
-    shortDesc: 'Decapitate tallest col in 3-col span & +$2!',
-    desc: 'Drop a weighted executioner blade across the target column and its immediate left/right neighbors: shatters the topmost token in whichever of those 3 columns is tallest (prioritizing AI/Stone) and mints +$2 Gold!'
+    shortDesc: 'Decapitate tallest AI/Stone col in 3-col span & +$2!',
+    desc: 'Drop a weighted executioner blade across the target column and its immediate left/right neighbors: shatters the topmost AI or Stone token in whichever enemy-topped column of those 3 is tallest and mints +$2 Gold!'
   },
   mercury_siphon: {
     id: 'mercury_siphon',
     name: 'Quicksilver Siphon',
     cost: 1,
-    price: 9,
-    tier: 2,
+    price: 10,
+    tier: 3,
     icon: '🌡️',
-    shortDesc: 'Slide top token into neighbor col & +1 Stab!',
-    desc: 'Siphon the topmost token of the target column through a liquid mercury tube into an adjacent column with open space (converting Petrified Stone into your Player token in the process) and restore +1 Seismic Stability!'
+    shortDesc: 'Purify & slide top token into neighbor col +1 Stab!',
+    desc: 'Siphon the topmost token of the target column through a liquid mercury tube into the best adjacent open column—purifying any AI or Petrified Stone piece into your Amber Player token—and restore +1 Seismic Stability!'
   },
   mimic_tooth: {
     id: 'mimic_tooth',
     name: 'Ravenous Mimic Tooth',
     cost: 1,
-    price: 9,
-    tier: 2,
+    price: 10,
+    tier: 3,
     icon: '🦷',
     shortDesc: 'Devour all Stone in col for +$3 each (or AI + Gild)!',
     desc: 'Unleash a ravenous treasure-mimic fang on a column: devours every Petrified Stone in that column for +$3 Gold each! If no Stone is in the column, chomps the top AI token and spawns a Gilded Slot above it!'
@@ -211,18 +219,22 @@ const CARD_CATALOG = {
     id: 'inversion',
     name: 'Gravity Inversion',
     cost: 2,
-    price: 9,
-    tier: 2,
+    price: 10,
+    tier: 3,
     icon: '🌀',
     shortDesc: 'Flip all tokens in a column upside down.',
     desc: 'Invert gravity in a target column, flipping the entire vertical stack of tokens upside down.'
   },
+
+  // --------------------------------------------------------------------------
+  // TIER 4 ARCANE CARDS (Act IV — Unlocks after Boss Fight 3, 5 Cards)
+  // --------------------------------------------------------------------------
   pendulum_scythe: {
     id: 'pendulum_scythe',
     name: 'Swinging Pendulum Scythe',
     cost: 2,
-    price: 10,
-    tier: 2,
+    price: 12,
+    tier: 4,
     icon: '⚔️',
     shortDesc: 'Sweep row horizontally -> Shatter 2 AI/Stone!',
     desc: 'Release a dungeon pendulum across the horizontal row of the target column’s top token! Slices across all 7 columns at that row height, shattering up to 2 AI or Stone tokens and compacting their stacks downward!'
@@ -231,22 +243,18 @@ const CARD_CATALOG = {
     id: 'wax_effigy',
     name: 'Pins & Wax Effigy',
     cost: 2,
-    price: 10,
-    tier: 2,
+    price: 12,
+    tier: 4,
     icon: '🪡',
     shortDesc: 'Steal top AI token in col & hex neighbor Web!',
     desc: 'Pierce a sympathetic wax effigy: corrupts the highest AI token in the target column into your Amber Player Token, and hexes the next open slot of an adjacent column into a Spider Web Slot (+1 Stability)!'
   },
-
-  // --------------------------------------------------------------------------
-  // TIER 3 ARCANE CARDS (Act III — Unlocks after Boss Fight 2, 10 Cards)
-  // --------------------------------------------------------------------------
   transmute: {
     id: 'transmute',
     name: 'Surrealist Transmute',
     cost: 2,
     price: 12,
-    tier: 3,
+    tier: 4,
     icon: '✨',
     shortDesc: 'Convert top AI/Stone into your color +$2!',
     desc: 'Warp reality to convert the topmost AI or Stone token of a chosen column into your warm amber token and mint +$2 Gold.'
@@ -255,38 +263,32 @@ const CARD_CATALOG = {
     id: 'echo_drop',
     name: 'Subterranean Echo Drop',
     cost: 2,
-    price: 12,
-    tier: 3,
+    price: 13,
+    tier: 4,
     icon: '♊',
     shortDesc: 'Mastery: Drop 2 Player tokens in 1 col!',
     desc: 'High-Tier Mastery: Instantly drop TWO of your amber tokens stacked into the target column!'
-  },
-  mirror_shard: {
-    id: 'mirror_shard',
-    name: 'Prismatic Mirror Shard',
-    cost: 2,
-    price: 12,
-    tier: 3,
-    icon: '🪞',
-    shortDesc: 'Clone top Player token upward as WILD!',
-    desc: 'Reflect your topmost Player or Wild token in a column into the empty space directly above it as a Wild Prismatic Token!'
   },
   hydraulic_piston: {
     id: 'hydraulic_piston',
     name: 'Steam Hydraulic Piston',
     cost: 2,
-    price: 12,
-    tier: 3,
+    price: 13,
+    tier: 4,
     icon: '🔩',
     shortDesc: 'Swap entire col stack with neighbor & +2 Stab!',
     desc: 'Fire a dwarven steam-ram that swaps the entire vertical stack of tokens in the target column with its adjacent neighbor column and reinforces the cavern for +2 Seismic Stability!'
   },
+
+  // --------------------------------------------------------------------------
+  // TIER 5 ARCANE CARDS (Act V — Unlocks after Boss Fight 4, 6 Cards)
+  // --------------------------------------------------------------------------
   abyssal_upheaval: {
     id: 'abyssal_upheaval',
     name: 'Abyssal Upheaval',
     cost: 2,
-    price: 13,
-    tier: 3,
+    price: 15,
+    tier: 5,
     icon: '🔄',
     shortDesc: 'Flip ENTIRE board 180° & invert all cols!',
     desc: 'Physically flip the entire 3D cavern board 180° upside down! Inverts procedural board geometry, Enchanted Slots, and all token stacks.'
@@ -295,8 +297,8 @@ const CARD_CATALOG = {
     id: 'ouroboros_fang',
     name: 'Ouroboros World-Eater',
     cost: 2,
-    price: 13,
-    tier: 3,
+    price: 15,
+    tier: 5,
     icon: '🐍',
     shortDesc: 'Cycle bottom of 3 cols: digest AI/Stone +$2, loop yours to top!',
     desc: 'The eternal serpent devours the base of the target column and its two neighbors! Bottom AI/Stone tokens are digested for +$2 Gold each, while bottom Player/Wild tokens are regurgitated onto the very top of their columns!'
@@ -305,18 +307,18 @@ const CARD_CATALOG = {
     id: 'croupier_jackpot',
     name: "Croupier's Rigged Jackpot",
     cost: 2,
-    price: 13,
-    tier: 3,
+    price: 15,
+    tier: 5,
     icon: '🎰',
-    shortDesc: 'Drop WILD, Gild 2 slots & +$1 per Enchanted Slot!',
-    desc: 'Rig the house table: drops 1 Wild Prismatic Token into the target column, gilds up to 2 open slots above it, and pays out +$1 Gold for EVERY Enchanted Slot currently active across the entire board!'
+    shortDesc: 'Drop Token, Gild 2 slots & +$1 per Enchanted Slot!',
+    desc: 'Rig the house table: drops 1 Amber Player Token into the target column, gilds up to 2 open slots above it, and pays out +$1 Gold for EVERY Enchanted Slot currently active across the entire board (min +$3)!'
   },
   brimstone_beam: {
     id: 'brimstone_beam',
     name: 'Sulfuric Brimstone Laser',
     cost: 3,
-    price: 14,
-    tier: 3,
+    price: 16,
+    tier: 5,
     icon: '🩸',
     shortDesc: 'Vaporize ALL AI & Stone in a col!',
     desc: 'Fire a subterranean blood-sulfur laser down an entire column! Vaporizes EVERY AI and Petrified Stone token in that column while leaving your Player & Wild tokens untouched!'
@@ -325,8 +327,8 @@ const CARD_CATALOG = {
     id: 'basilisk_gaze',
     name: 'Petrifying Basilisk Gaze',
     cost: 3,
-    price: 14,
-    tier: 3,
+    price: 16,
+    tier: 5,
     icon: '🦎',
     shortDesc: 'Calcify 2 top AI tokens, shatter 1 for +$4 & +3 Stab!',
     desc: 'Sweep the board with a lethal reptilian gaze: calcifies up to 2 topmost AI tokens into Petrified Stone, immediately shatters 1 of them into +$4 Gold, and restores +3 Seismic Stability!'
@@ -335,11 +337,11 @@ const CARD_CATALOG = {
     id: 'seraphim_halo',
     name: 'Six-Winged Seraphim Halo',
     cost: 3,
-    price: 15,
-    tier: 3,
+    price: 17,
+    tier: 5,
     icon: '🪽',
-    shortDesc: 'Upgrade col token to WILD, drop Player token & +3 Stab!',
-    desc: 'Blinding Abyssal Benediction: sanctifies your highest token in the target column into a Wild Prismatic Token, drops 1 additional Amber Player Token on top of the column, and restores +3 Seismic Stability!'
+    shortDesc: 'Convert col AI/Stone to yours, drop Player token & +3 Stab!',
+    desc: 'Blinding Abyssal Benediction: sanctifies the highest AI or Stone blocker in the target column into your Amber Player Token, drops 1 additional Amber Player Token on top of the column, and restores +3 Seismic Stability!'
   },
 
   // --------------------------------------------------------------------------
@@ -362,12 +364,12 @@ const ROULETTE_WEDGES = [
   {
     id: 'jackpot_hoard',
     name: 'Jackpot Hoard',
-    shortLabel: '+$15 & Wild',
+    shortLabel: '+$15 & Midas Eye',
     icon: '👑',
     isCurse: false,
     color: '#d97706',
     accent: '#fde047',
-    desc: 'JACKPOT BLESSING! Grants +$15 Gold Coins and +1 Wild Prismatic Reserve Token!'
+    desc: 'JACKPOT BLESSING! Grants +$15 Gold Coins and +1 Golden Midas Eye Reserve Token!'
   },
   {
     id: 'pickpocket_gremlin',
@@ -452,17 +454,17 @@ const ROULETTE_WEDGES = [
 ];
 
 // ============================================================================
-// OFF-BOARD TACTICAL RESERVE POUCH TOKENS (12 Total: 4× T1, 4× T2, 4× T3)
+// OFF-BOARD TACTICAL RESERVE POUCH TOKENS (11 Total across Tiers 1–5)
 // ============================================================================
 const RESERVE_CATALOG = {
-  // TIER 1 (Act I — 4 Reserve Tokens)
+  // TIER 1 (Act I — 3 Reserve Tokens)
   fools_penny: {
     id: 'fools_penny',
     name: "Fool's Counterfeit Penny",
     icon: '💩',
-    price: 5,
+    price: 4,
     tier: 1,
-    desc: 'Tier 1 Gamble: Drops your token and flips a crooked coin! 65% chance to mint +$4 Gold & +1 Mana; 35% chance it calcifies into neutral Petrified Stone (+$1 consolation Gold)!'
+    desc: 'Tier 1 Gamble: Drops your token and flips a crooked coin! 65% chance to mint +$5 Gold & +1 Mana; 35% chance it calcifies into neutral Petrified Stone (+$2 consolation Gold)!'
   },
   loaded_die: {
     id: 'loaded_die',
@@ -470,33 +472,25 @@ const RESERVE_CATALOG = {
     icon: '🎲',
     price: 6,
     tier: 1,
-    desc: 'Tier 1 High-Roller: Drops your token and rolls a 1d6 on impact! Roll 1–3: +$2 Gold & +1 Stability; Roll 4–5: +$3 Gold & Draw 1 Card; Roll 6: upgrades into a Wild Prismatic Token!'
+    desc: 'Tier 1 High-Roller: Drops your token and rolls a 1d6 on impact! Roll 1–3: +$2 Gold & +1 Stability; Roll 4–5: +$3 Gold & Draw 1 Card; Roll 6 Jackpot: +$4 Gold, +1 Mana, +1 Stability & Draw 1 Card!'
   },
   anvil: {
     id: 'anvil',
     name: 'Heavy Anvil Token',
     icon: '⚓',
-    price: 7,
+    price: 6,
     tier: 1,
-    desc: 'Tier 1 Utility: Drops your token and CRUSHES (shatters) the token directly beneath where it lands!'
+    desc: 'Tier 1 Demolition: Drops onto a column topped by an AI or Stone blocker, CRUSHING (shattering) the blocker beneath it and minting +$2 Bounty Gold!'
   },
+
+  // TIER 2 (Act II — Unlocks after Boss Fight 1, 3 Reserve Tokens)
   cave_bat: {
     id: 'cave_bat',
     name: 'Vampire Bat Token',
     icon: '🦇',
     price: 7,
-    tier: 1,
-    desc: 'Tier 1 Utility: Drops your token and latches onto the token directly below, converting it to your color!'
-  },
-
-  // TIER 2 (Act II — Unlocks after Boss Fight 1, 4 Reserve Tokens)
-  wild: {
-    id: 'wild',
-    name: 'Wild Prismatic Token',
-    icon: '💎',
-    price: 9,
     tier: 2,
-    desc: 'Tier 2 Synergy: Counts as BOTH your color and the AI color for completing 4-in-a-row lines!'
+    desc: 'Tier 2 Utility: Drops your token and latches onto the AI or Stone blocker directly below, converting it to your color!'
   },
   jalapeno_bomb: {
     id: 'jalapeno_bomb',
@@ -514,55 +508,59 @@ const RESERVE_CATALOG = {
     tier: 2,
     desc: 'Tier 2 Dissolver: Drops your token and secretes acidic brine down the column—dissolving ALL Petrified Stone blockers in that column for +$2 Gold each (plus +2 Stability)!'
   },
+
+  // TIER 3 (Act III — Unlocks after Boss Fight 2, 1 Reserve Token)
   parasite_egg: {
     id: 'parasite_egg',
     name: 'Brood Spider Egg Token',
     icon: '🥚',
     price: 10,
-    tier: 2,
-    desc: 'Tier 2 Trap-Layer: Drops your token and hatches on impact—spinning Spider Web Enchanted Slots into the next open cells of both adjacent columns and restoring +2 Seismic Stability!'
+    tier: 3,
+    desc: 'Tier 3 Trap-Layer: Drops your token and hatches on impact—spinning Spider Web Enchanted Slots into the next open cells of both adjacent columns and restoring +2 Seismic Stability!'
   },
 
-  // TIER 3 (Act III — Unlocks after Boss Fight 2, 4 Reserve Tokens)
+  // TIER 4 (Act IV — Unlocks after Boss Fight 3, 2 Reserve Tokens)
   powder_keg: {
     id: 'powder_keg',
     name: 'Dwarven Nitro Cask Token',
     icon: '🧨',
     price: 12,
-    tier: 3,
-    desc: 'Tier 3 Demolition: Drops your token and blasts downward—shattering up to 2 AI or Stone tokens beneath it in the column and minting +$2 Gold per token blasted!'
+    tier: 4,
+    desc: 'Tier 4 Demolition: Drops your token and blasts downward—shattering up to 2 AI or Stone tokens beneath it in the column and minting +$2 Gold per token blasted!'
   },
   quicksilver_glob: {
     id: 'quicksilver_glob',
     name: 'Living Quicksilver Token',
     icon: '💧',
     price: 13,
-    tier: 3,
-    desc: 'Tier 3 Alchemical Fluid: Drops a Wild Prismatic Token that slips underneath any AI token directly below to swap places with it, plus restores +1 Mana & +2 Seismic Stability!'
+    tier: 4,
+    desc: 'Tier 4 Alchemical Fluid: Drops your Amber Token and slips underneath any AI or Stone blocker directly below to convert it to your color, plus restores +1 Mana & +2 Seismic Stability!'
   },
+
+  // TIER 5 (Act V — Unlocks after Boss Fight 4, 2 Reserve Tokens)
   midas_eye: {
     id: 'midas_eye',
     name: 'Golden Midas Eye Token',
     icon: '👁️‍🗨️',
-    price: 13,
-    tier: 3,
-    desc: 'Tier 3 Powerhouse: Drops a Wild Prismatic Token, transmutes up to 2 orthogonally adjacent AI/Stone tokens into your color, and enchants the cell above into a Gilded Slot!'
+    price: 15,
+    tier: 5,
+    desc: 'Tier 5 Powerhouse: Drops your Amber Token, transmutes up to 2 orthogonally adjacent AI/Stone tokens into your color, and enchants the cell above into a Gilded Slot!'
   },
   eclipse_idol: {
     id: 'eclipse_idol',
     name: 'Black Sun Idol Token',
     icon: '🌑',
-    price: 14,
-    tier: 3,
-    desc: 'Tier 3 Totem: Drops a Wild Prismatic Token, draws 1 Arcane Card, enchants the empty slot above into a Wild Amplifier Slot, and grants +1 Mana & +3 Seismic Stability!'
+    price: 16,
+    tier: 5,
+    desc: 'Tier 5 Totem: Drops your Amber Token, draws 1 Arcane Card, enchants the empty slot above into a Wild Amplifier Slot to bait the AI, and grants +1 Mana & +3 Seismic Stability!'
   }
 };
 
 // ============================================================================
-// SYNERGISTIC GAMBITS (16 Total: 5× Tier 1, 6× Tier 2, 5× Tier 3)
+// SYNERGISTIC GAMBITS (16 Total across Tiers 1–5)
 // ============================================================================
 const GAMBIT_CATALOG = {
-  // TIER 1 (Act I — 5 Gambits)
+  // TIER 1 (Act I — 4 Gambits)
   shrinking_shroom: {
     id: 'shrinking_shroom',
     name: 'Oddly Shrinking Cave Shroom',
@@ -587,14 +585,6 @@ const GAMBIT_CATALOG = {
     tier: 1,
     desc: 'Tier 1 Edge Artisan: Dropping a token into outer columns (Col 1 or Col 7) awards +$1 Gold and +1 Seismic Stability.'
   },
-  amber_flea: {
-    id: 'amber_flea',
-    name: 'Prehistoric Amber Flea',
-    icon: '🪲',
-    price: 8,
-    tier: 1,
-    desc: 'Tier 1 Resin Specimen: Start every floor with +1 extra Gilded Slot on the board, and claiming a Gilded Slot pays out +$4 Gold instead of +$3!'
-  },
   plumb_bob: {
     id: 'plumb_bob',
     name: "Geomancer's Brass Plumb",
@@ -604,22 +594,14 @@ const GAMBIT_CATALOG = {
     desc: 'Tier 1 Center Axis: Dropping a token into the center column (Col 4) awards +$1 Gold and restores +1 Seismic Stability!'
   },
 
-  // TIER 2 (Act II — Unlocks after Boss Fight 1, 6 Gambits)
-  dali_clock: {
-    id: 'dali_clock',
-    name: 'Surrealist Dalí Clock',
-    icon: '🕰️',
-    price: 9,
+  // TIER 2 (Act II — Unlocks after Boss Fight 1, 3 Gambits)
+  amber_flea: {
+    id: 'amber_flea',
+    name: 'Prehistoric Amber Flea',
+    icon: '🪲',
+    price: 8,
     tier: 2,
-    desc: 'Tier 2 Melting Time: Gravity Inversion, Lodestone Polarity, Transmute, Steam Piston & Abyssal Upheaval cost -1 Mana. Reveals exact AI scores above all 7 columns.'
-  },
-  echo_bell: {
-    id: 'echo_bell',
-    name: 'Subterranean Echo Bell',
-    icon: '🔔',
-    price: 9,
-    tier: 2,
-    desc: 'Tier 2 Resonance: Deploying a Special Reserve Token triggers its landing effect a second time & grants +$1 Gold!'
+    desc: 'Tier 2 Resin Specimen: Start every floor with +1 extra Gilded Slot on the board, and claiming a Gilded Slot pays out +$4 Gold instead of +$3!'
   },
   coaster_apex: {
     id: 'coaster_apex',
@@ -633,67 +615,87 @@ const GAMBIT_CATALOG = {
     id: 'copper_retort',
     name: 'Copper Retort Flask',
     icon: '🏺',
-    price: 10,
+    price: 9,
     tier: 2,
     desc: 'Tier 2 Distillation: Casting 2 Arcane Cards in the same turn distills +1 Mana Crystal and +$1 Gold (once per turn)!'
   },
-  obsidian_cat: {
-    id: 'obsidian_cat',
-    name: 'Obsidian Cat Figurine',
-    icon: '🐈‍⬛',
+
+  // TIER 3 (Act III — Unlocks after Boss Fight 2, 3 Gambits)
+  dali_clock: {
+    id: 'dali_clock',
+    name: 'Surrealist Dalí Clock',
+    icon: '🕰️',
+    price: 10,
+    tier: 3,
+    desc: 'Tier 3 Melting Time: Exclusively unlocks live Grandmaster AI evaluation scores above all 7 columns, and Gravity Inversion, Lodestone Polarity, Transmute, Steam Piston & Abyssal Upheaval cost -1 Mana!'
+  },
+  echo_bell: {
+    id: 'echo_bell',
+    name: 'Subterranean Echo Bell',
+    icon: '🔔',
     price: 11,
-    tier: 2,
-    desc: "Tier 2 Nine Lives: Shatters the AI's winning 4th token once per floor + grants +$2 Gold whenever ANY token is shattered!"
+    tier: 3,
+    desc: 'Tier 3 Resonance: Deploying a Special Reserve Token triggers its landing effect a second time & grants +$1 Gold!'
   },
   jalapeno_overdrive: {
     id: 'jalapeno_overdrive',
     name: 'Jalapeño Pepperoni Overdrive',
     icon: '🌶️',
     price: 11,
-    tier: 2,
-    desc: 'Tier 2 Spicy Ignition: Start each floor with +1 Mana. Every 2 tokens shattered converts 1 random AI token into your color!'
+    tier: 3,
+    desc: 'Tier 3 Spicy Ignition: Start each floor with +1 Mana. Every 2 tokens shattered converts 1 random AI token into your color!'
   },
 
-  // TIER 3 (Act III — Unlocks after Boss Fight 2, 5 Gambits)
+  // TIER 4 (Act IV — Unlocks after Boss Fight 3, 3 Gambits)
+  obsidian_cat: {
+    id: 'obsidian_cat',
+    name: 'Obsidian Cat Figurine',
+    icon: '🐈‍⬛',
+    price: 12,
+    tier: 4,
+    desc: "Tier 4 Nine Lives: Shatters the AI's winning 4th token once per floor + grants +$2 Gold whenever ANY token is shattered!"
+  },
   jeweler_loupe: {
     id: 'jeweler_loupe',
     name: "Master Jeweler's Loupe",
     icon: '🔍',
     price: 13,
-    tier: 3,
-    desc: 'Tier 3 Appraiser: Draw +1 extra Arcane Card at the start of every floor, and casting any Tier 3 Arcane Card awards +$2 Gold!'
+    tier: 4,
+    desc: 'Tier 4 Appraiser: Draw +1 extra Arcane Card at the start of every floor, and casting any Tier 3+ Arcane Card awards +$2 Gold!'
   },
   crimson_chalice: {
     id: 'crimson_chalice',
     name: 'Crimson Blood Chalice',
     icon: '🍷',
     price: 14,
-    tier: 3,
-    desc: 'Tier 3 Sanguine Harvest: Whenever ANY token is shattered on the board, restore +1 Seismic Stability and gain +$1 Gold per token shattered!'
+    tier: 4,
+    desc: 'Tier 4 Sanguine Harvest: Whenever ANY token is shattered on the board, restore +1 Seismic Stability and gain +$1 Gold per token shattered!'
   },
+
+  // TIER 5 (Act V — Unlocks after Boss Fight 4, 3 Gambits)
   flywheel_coil: {
     id: 'flywheel_coil',
     name: 'Perpetual Flywheel Coil',
     icon: '⚙️',
-    price: 14,
-    tier: 3,
-    desc: 'Tier 3 Kinetic Overcharge: Every 3rd token you drop onto the board generates +1 Mana Crystal and +$2 Gold!'
+    price: 15,
+    tier: 5,
+    desc: 'Tier 5 Kinetic Overcharge: Every 3rd token you drop onto the board generates +1 Mana Crystal and +$2 Gold!'
   },
   sacred_heart_prism: {
     id: 'sacred_heart_prism',
     name: 'Sacred Prismatic Heart',
     icon: '❤️‍🔥',
-    price: 15,
-    tier: 3,
-    desc: 'Tier 3 Divinity: Start every floor with +1 extra Amplifier Slot on the board and +1 Mana. Landing on ANY Enchanted Slot also draws 1 card and restores +1 Mana!'
+    price: 16,
+    tier: 5,
+    desc: 'Tier 5 Divinity: Start every floor with +1 extra Amplifier Slot on the board and +1 Mana. Landing on ANY Enchanted Slot also draws 1 card and restores +1 Mana!'
   },
   alkahest_vial: {
     id: 'alkahest_vial',
     name: 'Universal Alkahest Vial',
     icon: '🧪',
-    price: 15,
-    tier: 3,
-    desc: 'Tier 3 Universal Solvent: Start every floor with +1 Mana, and clearing a floor dissolves all Petrified Stone on the board for +$2 bonus Gold each (minimum +$3 Gold)!'
+    price: 16,
+    tier: 5,
+    desc: 'Tier 5 Universal Solvent: Start every floor with +1 Mana, and clearing a floor dissolves all Petrified Stone on the board for +$2 bonus Gold each (minimum +$3 Gold)!'
   }
 };
 
@@ -707,25 +709,29 @@ const ENCHANT_TYPES = {
   CURSED_SPORE: 5 // Boss Spore Queen hazard: drains 1 Mana or turns Player token into Stone!
 };
 
-// Non-Boss Standard Cavern Guardians (Floors 1, 2, 4, 5, 7, 8)
+// Non-Boss Standard Cavern Guardians (Floors 1, 2, 4, 5, 7, 8, 10, 11, 13, 14)
 const SENTINEL_NAMES = [
   'Cavern Pebble Scout',
   'Deep Slate Sentinel',
   'Basalt Gatekeeper',
   'Obsidian Patrolman',
   'Subterranean Watcher',
-  'Abyssal Vanguard'
+  'Abyssal Vanguard',
+  'Astral Rift Warden',
+  'Singularity Stalker',
+  'Tesseract Prelate',
+  'Sovereign Herald'
 ];
 
 // ============================================================================
-// TIERED BOSS ABILITY POOLS BY ACT DIFFICULTY (Easy -> Medium -> Hard)
+// TIERED BOSS ABILITY POOLS BY ACT (Act I -> Act II -> Act III -> Act IV -> Act V)
 // ============================================================================
 const BOSS_POOLS_BY_ACT = {
   EASY: [
     {
       id: 'spore_queen',
       poolTier: 'EASY',
-      poolLabel: 'Act I Easy Boss Pool',
+      poolLabel: 'Act I Boss Pool',
       maxHp: 2,
       name: 'Mycelial Spore Queen',
       icon: '🍄',
@@ -736,7 +742,7 @@ const BOSS_POOLS_BY_ACT = {
     {
       id: 'chronos_dali',
       poolTier: 'EASY',
-      poolLabel: 'Act I Easy Boss Pool',
+      poolLabel: 'Act I Boss Pool',
       maxHp: 2,
       name: 'Chronos Dalí Warden',
       icon: '🕰️',
@@ -749,7 +755,7 @@ const BOSS_POOLS_BY_ACT = {
     {
       id: 'petrifier_archon',
       poolTier: 'MEDIUM',
-      poolLabel: 'Act II Medium Boss Pool',
+      poolLabel: 'Act II Boss Pool',
       maxHp: 3,
       name: 'The Petrifier Archon',
       icon: '🗿',
@@ -760,7 +766,7 @@ const BOSS_POOLS_BY_ACT = {
     {
       id: 'mirror_virtuoso',
       poolTier: 'MEDIUM',
-      poolLabel: 'Act II Medium Boss Pool',
+      poolLabel: 'Act II Boss Pool',
       maxHp: 3,
       name: 'The Mirror Virtuoso',
       icon: '🎭',
@@ -773,7 +779,7 @@ const BOSS_POOLS_BY_ACT = {
     {
       id: 'magma_leviathan',
       poolTier: 'HARD',
-      poolLabel: 'Act III Hard Boss Pool',
+      poolLabel: 'Act III Boss Pool',
       maxHp: 3,
       name: 'The Magma Leviathan',
       icon: '🌋',
@@ -784,7 +790,7 @@ const BOSS_POOLS_BY_ACT = {
     {
       id: 'tectonic_behemoth',
       poolTier: 'HARD',
-      poolLabel: 'Act III Hard Boss Pool',
+      poolLabel: 'Act III Boss Pool',
       maxHp: 3,
       interval: 2,
       name: 'Tectonic Behemoth',
@@ -792,13 +798,52 @@ const BOSS_POOLS_BY_ACT = {
       shortTelegraph: 'Quakes -1 Stability & drops Blocker Stone',
       fullRule: 'Every 2 turns, slams the cavern floor—draining -1 extra Seismic Stability and dropping a heavy Petrified Stone blocker!'
     }
+  ],
+  ACT4: [
+    {
+      id: 'abyssal_lodestone',
+      poolTier: 'ACT4',
+      poolLabel: 'Act IV Singularity Boss Pool',
+      maxHp: 4,
+      name: 'The Abyssal Lodestone',
+      icon: '🧲',
+      interval: 3,
+      shortTelegraph: 'Pulls neighbor tokens into Singularity Col (Flushes board at 2/4 ❤️)',
+      fullRule: 'Every 3 turns, triggers a Magnetic Pulse—pulling the top tokens from adjacent columns horizontally into the marked Singularity Column! MIDPOINT CATACLYSM: After taking 2 hearts of damage (at 2/4 ❤️), violently shakes ALL pieces out of the board for a clean arena!'
+    },
+    {
+      id: 'void_weaver',
+      poolTier: 'ACT4',
+      poolLabel: 'Act IV Singularity Boss Pool',
+      maxHp: 4,
+      name: 'The Void Weaver',
+      icon: '🕸️',
+      interval: 3,
+      shortTelegraph: 'Spins Cursed Silk snares & drags top Player token (Flushes at 2/4 ❤️)',
+      fullRule: 'Every 3 turns, weaves Cursed Spore & Spider Web snares across open slots and drags your highest token laterally into a silk-bound column! MIDPOINT CATACLYSM: After taking 2 hearts of damage (at 2/4 ❤️), violently shakes ALL pieces out of the board for a clean arena!'
+    }
+  ],
+  FINAL: [
+    {
+      id: 'sovereign_tesseract',
+      poolTier: 'FINAL',
+      poolLabel: 'Act V Sovereign Final Boss',
+      maxHp: 5,
+      name: 'The Sovereign Tesseract',
+      icon: '🌌',
+      interval: 3,
+      shortTelegraph: 'Rotates between 4 Parallel Boards in play!',
+      fullRule: 'THE FOUR-BOARD CONVERGENCE (5 HP Phases): Commands 4 Parallel Connect-4 Boards in play simultaneously! Every 3 turns (and whenever a Boss HP heart is shattered), rotates the 3D Tesseract Carousel—saving the current board state and sliding the next parallel board into play!'
+    }
   ]
 };
 
 const BOSS_ARCHETYPES = [
   ...BOSS_POOLS_BY_ACT.EASY,
   ...BOSS_POOLS_BY_ACT.MEDIUM,
-  ...BOSS_POOLS_BY_ACT.HARD
+  ...BOSS_POOLS_BY_ACT.HARD,
+  ...BOSS_POOLS_BY_ACT.ACT4,
+  ...BOSS_POOLS_BY_ACT.FINAL
 ];
 
 
@@ -821,12 +866,12 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“Shaved ivory dice.” Cast for free above a column—low rolls steady the earth, high rolls drop a piece and mint gold.'
     },
     leech_lancet: {
-      loreShortDesc: 'Blood price • Mana & card',
-      loreDesc: '“Forbidden surgical pact.” Trades cavern stability for an immediate surge of mana, card draw, and coin.'
+      loreShortDesc: 'Blood price • Mana, card & coin',
+      loreDesc: '“Forbidden surgical pact.” Trades cavern stability for an immediate surge of mana, card draw, and two gold coins.'
     },
     petrified: {
       loreShortDesc: 'Drop dead-stone blocker',
-      loreDesc: '“Calcified ancient timber.” Seals a slot with neutral stone that blocks lines for both sides.'
+      loreDesc: '“Calcified ancient timber.” Seals a slot with neutral stone that blocks lines and elevates the column in one turn.'
     },
     jar_of_flies: {
       loreShortDesc: 'Fickle swarm • Feast or stone',
@@ -854,7 +899,7 @@ const C4_LORE_TOOLTIPS = {
     },
     tectonic_anchor: {
       loreShortDesc: 'Bolster roof • Gild slot',
-      loreDesc: '“Dwarven keystone press.” Heavily reinforces the cavern ceiling and gilds the next open slot below.'
+      loreDesc: '“Dwarven keystone press.” Heavily reinforces the cavern ceiling and gilds or amplifies the next open slot below.'
     },
     sinkhole_chute: {
       loreShortDesc: 'Flush bottom-row pieces',
@@ -873,12 +918,12 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“Transmuting acid.” Dissolves a column’s top rival or stone blocker into gold and leaves a Wild Amplifier ring behind.'
     },
     guillotine_blade: {
-      loreShortDesc: 'Behead tallest of 3 columns',
-      loreDesc: '“Weighted executioner.” Sweeps a 3-column span and severs the topmost piece of whichever stack stands tallest.'
+      loreShortDesc: 'Behead tallest foe of 3 cols',
+      loreDesc: '“Weighted executioner.” Sweeps a 3-column span and severs the topmost piece of the tallest rival or stone stack.'
     },
     mercury_siphon: {
-      loreShortDesc: 'Slide top piece to neighbor',
-      loreDesc: '“Alembic tube.” Siphons a column’s top token into an adjacent column, purifying stone into your color.'
+      loreShortDesc: 'Purify & slide top piece',
+      loreDesc: '“Alembic tube.” Siphons a column’s top token into the best adjacent column, purifying rival or stone into your color.'
     },
     mimic_tooth: {
       loreShortDesc: 'Chew column stone into gold',
@@ -904,10 +949,6 @@ const C4_LORE_TOOLTIPS = {
       loreShortDesc: 'Drop 2 tokens at once',
       loreDesc: '“Twin tuning forks.” Resonant acoustic waves drop two of your amber tokens stacked into one column.'
     },
-    mirror_shard: {
-      loreShortDesc: 'Reflect top piece as Wild',
-      loreDesc: '“Looking-glass fragment.” Clones your highest piece in the column upward into the empty slot above as a Wild token.'
-    },
     hydraulic_piston: {
       loreShortDesc: 'Swap two neighboring columns',
       loreDesc: '“Dwarven steam-ram.” Pushes the entire vertical stack of a column across to trade places with its neighbor.'
@@ -921,8 +962,8 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“The eternal serpent.” Swallows the bottom of three columns—digesting foes into gold and regurgitating your pieces on top.'
     },
     croupier_jackpot: {
-      loreShortDesc: 'Wild drop • Gild • Ring payout',
-      loreDesc: '“The house always wins.” Drops a Wild token, gilds the column above, and pays out coin for every active board ring.'
+      loreShortDesc: 'Drop piece • Gild • Ring payout',
+      loreDesc: '“The house always wins.” Drops your token, gilds the column above, and pays out coin for every active board ring.'
     },
     brimstone_beam: {
       loreShortDesc: 'Vaporize all foes in column',
@@ -933,8 +974,8 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“Lethal reptilian stare.” Turns exposed rival tokens into stone and shatters one into a shower of gold.'
     },
     seraphim_halo: {
-      loreShortDesc: 'Sanctify to Wild + bonus drop',
-      loreDesc: '“Six-winged benediction.” Ascends your highest piece in the column into a Wild token and drops another piece on top.'
+      loreShortDesc: 'Sanctify foe to yours + drop',
+      loreDesc: '“Six-winged benediction.” Converts the highest rival or stone piece in the column to your side and drops another piece on top.'
     },
     dead_weight: {
       loreShortDesc: 'Curse • Spend mana to banish',
@@ -944,19 +985,16 @@ const C4_LORE_TOOLTIPS = {
 
   reserves: {
     fools_penny: {
-      loreDesc: '“Heads you win.” Drops your piece and flips a crooked coin—usually minting gold and mana, unless it turns to stone.'
+      loreDesc: '“Heads you win.” Drops your piece and flips a crooked coin—usually minting rich gold and mana, unless it turns to stone.'
     },
     loaded_die: {
-      loreDesc: '“High roller’s bone.” Drops your piece and rolls for bonus gold, card draw, or a prismatic Wild upgrade.'
+      loreDesc: '“High roller’s bone.” Drops your piece and rolls for bonus gold, stability, card draw, or a natural-6 full jackpot.'
     },
     anvil: {
-      loreDesc: '“Crushing weight.” Drops your piece and pulverizes whatever token sits directly underneath.'
+      loreDesc: '“Crushing weight.” Drops onto an exposed rival or stone piece, pulverizing it for bounty gold.'
     },
     cave_bat: {
-      loreDesc: '“Vampiric bite.” Drops your piece and latches onto the token below, converting it to your color.'
-    },
-    wild: {
-      loreDesc: '“Prismatic harmony.” A shimmering gem token that counts for both sides in any four-in-a-row line.'
+      loreDesc: '“Vampiric bite.” Drops your piece and latches onto the blocker below, converting it to your color.'
     },
     jalapeno_bomb: {
       loreDesc: '“Spicy demolition.” Drops your piece and detonates in a fiery cross, shattering nearby rival tokens.'
@@ -971,13 +1009,13 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“Downward blast.” Drops your piece and blows away blockers underneath it for demolition gold.'
     },
     quicksilver_glob: {
-      loreDesc: '“Slippery mercury.” Drops a Wild token that sinks underneath a rival piece below to trade places.'
+      loreDesc: '“Slippery mercury.” Drops your piece and sinks underneath a rival or stone blocker below to convert it.'
     },
     midas_eye: {
-      loreDesc: '“Golden touch.” Drops a Wild token, converts adjacent blockers to your side, and gilds the slot above.'
+      loreDesc: '“Golden touch.” Drops your piece, converts adjacent blockers to your side, and gilds the slot above.'
     },
     eclipse_idol: {
-      loreDesc: '“Black sun totem.” Drops a Wild token, draws a spell, restores mana, and crowns the column with an Amplifier ring.'
+      loreDesc: '“Black sun totem.” Drops your piece, draws a spell, restores mana, and crowns the column with an Amplifier trap.'
     }
   },
 
@@ -998,7 +1036,7 @@ const C4_LORE_TOOLTIPS = {
       loreDesc: '“True center.” Dropping tokens down the middle spire mints a gold coin and steadies the ceiling.'
     },
     dali_clock: {
-      loreDesc: '“Persistence of memory.” Discounts gravity-warping spells and reveals the AI’s inner column thoughts.'
+      loreDesc: '“Persistence of memory.” Unlocks the AI’s inner column evaluation scores and discounts gravity-warping spells.'
     },
     echo_bell: {
       loreDesc: '“Ringing resonance.” Reserve tokens echo on impact, triggering their landing power a second time.'
@@ -1033,7 +1071,7 @@ const C4_LORE_TOOLTIPS = {
   },
 
   wheel: {
-    jackpot_hoard: 'A royal windfall of gold coins and a Wild Prismatic token!',
+    jackpot_hoard: 'A royal windfall of gold coins and a Golden Midas Eye token!',
     pickpocket_gremlin: 'A cave gremlin ambushes your pouch and runs off with half your gold!',
     relic_vault: 'Cracks open an ancient vault containing a free Gambit Relic!',
     cave_in_hazard: 'Starts the next floor with falling stone blockers and a weakened ceiling!',
@@ -1050,7 +1088,10 @@ const C4_LORE_TOOLTIPS = {
     petrifier_archon: 'Periodically calcifies your highest token in the fullest column into neutral stone.',
     mirror_virtuoso: 'Periodically swaps the colors of two exposed surface tokens across the board.',
     magma_leviathan: 'Periodically melts the bottom-most token of a column, shifting the stack downward.',
-    tectonic_behemoth: 'Rapidly quakes the cavern ceiling and drops heavy stone blockers.'
+    tectonic_behemoth: 'Rapidly quakes the cavern ceiling and drops heavy stone blockers.',
+    abyssal_lodestone: '“Living magnetic singularity.” Warps adjacent pieces toward its marked core—and shakes the entire board clean at half health!',
+    void_weaver: '“Arachnid of the astral fault.” Spins cursed silk snares across the grid—and shakes the entire board clean at half health!',
+    sovereign_tesseract: '“Architect of the fourfold nexus.” Rotates between four parallel Connect-4 boards in play, preserving each board as the carousel turns!'
   }
 };
 
@@ -1117,7 +1158,6 @@ const C4_SHOP_WHISPERS = {
     wax_effigy: '“Sympathetic voodoo.”',
     transmute: '“Philosopher’s touch.”',
     echo_drop: '“Twin tuning forks.”',
-    mirror_shard: '“Looking-glass fragment.”',
     hydraulic_piston: '“Dwarven steam-ram.”',
     abyssal_upheaval: '“Cataclysmic table-turn.”',
     ouroboros_fang: '“The eternal serpent.”',
@@ -1132,7 +1172,6 @@ const C4_SHOP_WHISPERS = {
     loaded_die: '“High roller’s bone.”',
     anvil: '“Crushing deadweight.”',
     cave_bat: '“Vampiric night-fang.”',
-    wild: '“Prismatic harmony.”',
     jalapeno_bomb: '“Spicy core demolition.”',
     acid_slug: '“Corrosive brine trail.”',
     parasite_egg: '“Silken spider clutch.”',

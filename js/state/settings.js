@@ -4,9 +4,9 @@
 const SETTINGS_STORAGE_KEY = 'c4_subterranean_settings';
 const VALID_NOTIFICATION_SPEEDS = new Set(['fast', 'normal', 'extended']);
 const VALID_TOUCH_DROP_MODES = new Set(['confirm', 'instant']);
-const VALID_UI_SCALES = new Set(['auto', '100', '115', '130']);
 const BOOLEAN_SETTING_KEYS = [
   'simplifiedViewEnabled',
+  'uiAutoScale',
   'slotCalloutsEnabled',
   'floatingPopsEnabled',
   'musicEnabled',
@@ -16,14 +16,15 @@ const BOOLEAN_SETTING_KEYS = [
 
 const userSettings = {
   simplifiedViewEnabled: true, // ON by default: Binding of Isaac-style lore hints & low visual clutter
+  uiAutoScale: true,           // ON by default: Automatically scales UI based on viewport width
+  uiScalePercent: 115,         // Manual UI scale percentage (75% to 150%) when uiAutoScale is OFF
   slotCalloutsEnabled: true,
   floatingPopsEnabled: true,
   notificationSpeed: 'normal', // 'fast' (2500ms) | 'normal' (4800ms) | 'extended' (7000ms)
   musicEnabled: true,
   sfxEnabled: true,
   hapticsEnabled: true,
-  touchDropMode: 'confirm', // 'confirm' (Two-Tap Safe) | 'instant' (Single-Tap Fast)
-  uiScale: 'auto' // 'auto' (Responsive Desktop Boost) | '100' | '115' | '130'
+  touchDropMode: 'confirm'     // 'confirm' (Two-Tap Safe) | 'instant' (Single-Tap Fast)
 };
 
 function isSimplifiedView() {
@@ -40,6 +41,44 @@ function getCardShortDesc(entry) {
   if (!entry) return '';
   if (isSimplifiedView() && entry.loreShortDesc) return entry.loreShortDesc;
   return entry.shortDesc || entry.desc || '';
+}
+
+function computeAutoUiScalePercent() {
+  const w = (typeof window !== 'undefined' && window.innerWidth)
+    ? window.innerWidth
+    : ((typeof document !== 'undefined' && document.documentElement && document.documentElement.clientWidth) || 1024);
+  if (w >= 1600) return 130;
+  if (w >= 1280) return 120;
+  if (w >= 1024) return 115;
+  if (w >= 768) return 108;
+  return 100;
+}
+
+function getEffectiveUiScalePercent() {
+  if (typeof userSettings === 'undefined' || !userSettings) return 100;
+  if (userSettings.uiAutoScale !== false) {
+    return computeAutoUiScalePercent();
+  }
+  const raw = Number(userSettings.uiScalePercent);
+  if (!Number.isFinite(raw)) return 100;
+  return Math.max(75, Math.min(150, Math.round(raw)));
+}
+
+function applyUiScaleSetting() {
+  if (typeof document === 'undefined' || !document.documentElement) return;
+  const pct = getEffectiveUiScalePercent();
+  const factor = pct / 100;
+  const rootEl = document.documentElement;
+  if (rootEl.style) {
+    rootEl.style.fontSize = `${(16 * factor).toFixed(2)}px`;
+    if (typeof rootEl.style.setProperty === 'function') {
+      rootEl.style.setProperty('--c4-ui-scale', String(factor));
+    }
+  }
+  if (typeof rootEl.setAttribute === 'function') {
+    rootEl.setAttribute('data-ui-scale-mode', userSettings.uiAutoScale !== false ? 'auto' : 'manual');
+    rootEl.setAttribute('data-ui-scale-pct', String(pct));
+  }
 }
 
 function loadUserSettings() {
@@ -60,8 +99,19 @@ function loadUserSettings() {
     if (VALID_TOUCH_DROP_MODES.has(parsed.touchDropMode)) {
       userSettings.touchDropMode = parsed.touchDropMode;
     }
-    if (VALID_UI_SCALES.has(parsed.uiScale)) {
-      userSettings.uiScale = parsed.uiScale;
+    if (typeof parsed.uiScalePercent === 'number' && Number.isFinite(parsed.uiScalePercent)) {
+      userSettings.uiScalePercent = Math.max(75, Math.min(150, Math.round(parsed.uiScalePercent)));
+    } else if (typeof parsed.uiScale === 'string') {
+      // Backward compatibility with earlier preset values
+      if (parsed.uiScale === 'auto') {
+        userSettings.uiAutoScale = true;
+      } else {
+        const n = parseInt(parsed.uiScale, 10);
+        if (Number.isFinite(n)) {
+          userSettings.uiAutoScale = false;
+          userSettings.uiScalePercent = Math.max(75, Math.min(150, n));
+        }
+      }
     }
   } catch (_) {}
 }
@@ -82,25 +132,26 @@ function getConfiguredHoldDuration(baseMs = 4800) {
   return baseMs;
 }
 
-
-function applyUiScaleSetting() {
-  if (typeof document === 'undefined' || !document.documentElement || typeof document.documentElement.setAttribute !== 'function') return;
-  const scale = (typeof userSettings !== 'undefined' && userSettings && userSettings.uiScale) ? userSettings.uiScale : 'auto';
-  document.documentElement.setAttribute('data-ui-scale', scale);
-}
-
 loadUserSettings();
 applyUiScaleSetting();
 
 if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    if (userSettings.uiAutoScale !== false) {
+      applyUiScaleSetting();
+      if (typeof syncSettingsUI === 'function') syncSettingsUI();
+    }
+  });
   Object.assign(window, {
     userSettings,
     isSimplifiedView,
     getItemDesc,
     getCardShortDesc,
+    computeAutoUiScalePercent,
+    getEffectiveUiScalePercent,
+    applyUiScaleSetting,
     loadUserSettings,
     saveUserSettings,
-    applyUiScaleSetting,
     getConfiguredHoldDuration
   });
 }

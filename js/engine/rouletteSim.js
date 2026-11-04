@@ -330,8 +330,9 @@ class SubterraneanRouletteSimulator {
     switch (wedge.id) {
       case 'jackpot_hoard':
         state.gold += 15;
-        state.reservePouch.push('wild');
-        showToast('👑 JACKPOT! +$15 Gold & +1 Wild Prismatic Token!', '👑');
+        state.reservePouchUnlocked = true;
+        state.reservePouch.push('midas_eye');
+        showToast('👑 JACKPOT! +$15 Gold & +1 Golden Midas Eye Token!', '👑');
         break;
 
       case 'relic_vault': {

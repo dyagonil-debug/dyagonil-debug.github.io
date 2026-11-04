@@ -66,266 +66,318 @@ class SubterraneanChiptuneEngine {
       ]
     };
 
-    // 2. BOSS 1 (Floor 3 — Act I Warden): Extended 128-Step (8-Bar) Suite (D Phrygian Dominant, 148 BPM)
+    // 2. BOSS 1 (Floor 3 — Act I Bioluminescent Guardian: "Mycelial Pendulum", D Dorian/Phrygian Groove, 138 BPM)
     this.boss1Track = {
-      bpm: 148,
-      cutoff: 2850,
-      bassGain: 0.085,
+      bpm: 138,
+      cutoff: 2750,
+      bassGain: 0.088,
       leadGain: 0.048,
-      arpGain: 0.023,
-      arpWave: 'sawtooth',
-      vibratoDepth: 1.008,
+      arpGain: 0.024,
+      leadWave: 'square',
+      arpWave: 'triangle',
+      detuneCents: 6,
+      vibratoDepth: 1.007,
       bass: [
-        38, 38, 50, 38, 39, 39, 51, 39,
-        38, 38, 50, 38, 37, 37, 49, 37,
-        38, 38, 50, 38, 41, 41, 53, 41,
-        39, 39, 38, 38, 37, 37, 33, 37,
-        43, 43, 55, 43, 41, 41, 53, 41,
-        39, 39, 51, 39, 38, 38, 50, 38,
-        40, 40, 52, 40, 41, 41, 53, 41,
-        45, 45, 57, 45, 49, 45, 37, 33,
-        38, null, null, 38, 50, null, 39, null,
-        38, null, null, 38, 49, null, 37, null,
-        43, null, null, 43, 55, null, 41, null,
-        39, null, 38, null, 37, 37, 45, 37,
-        38, 50, 38, 50, 46, 58, 46, 58,
-        43, 55, 43, 55, 45, 57, 45, 57,
-        39, 51, 38, 50, 37, 49, 36, 48,
-        35, 47, 34, 46, 33, 45, 37, 49
+        38, null, 38, 50, 41, null, 43, 45,
+        38, null, 38, 50, 39, null, 36, 38,
+        38, null, 41, 50, 43, null, 45, 52,
+        46, 45, 43, 41, 39, null, 33, 37,
+        43, null, 43, 55, 41, null, 41, 53,
+        39, null, 39, 51, 38, null, 45, 50,
+        40, null, 43, 52, 41, null, 45, 53,
+        45, 43, 41, 39, 38, null, 50, null
       ],
       lead: [
-        74, null, 74, 75, 74, 70, 69, 70,
-        69, null, 65, null, 62, null, 69, null,
-        74, null, 77, 75, 74, 70, 69, 67,
-        70, 69, 67, 63, 62, null, 74, null,
-        79, null, 77, 75, 74, null, 77, null,
-        75, null, 74, 70, 69, null, 74, null,
-        76, 74, 73, 74, 77, 75, 74, 70,
-        69, null, 73, 76, 81, null, 79, 75,
-        74, null, null, 69, 70, null, null, 66,
-        67, null, null, 62, 61, null, 69, null,
-        79, null, null, 74, 75, null, null, 70,
-        69, 70, 69, 66, 69, null, null, null,
-        86, 82, 81, 79, 77, 75, 74, 70,
-        79, 77, 75, 74, 73, 69, 73, 76,
-        77, 75, 74, 70, 75, 74, 70, 67,
-        69, 73, 76, 79, 81, null, 73, null
+        62, null, 65, 69, 74, null, 72, 69,
+        70, 69, 65, null, 62, null, 64, 65,
+        62, null, 69, 72, 74, null, 77, 76,
+        74, 72, 70, 69, 67, null, 69, null,
+        79, null, 77, 74, 76, null, 72, 69,
+        75, null, 74, 70, 69, null, 65, 69,
+        72, 70, 69, 72, 74, 77, 76, 72,
+        74, null, 69, 65, 62, null, null, null
       ],
       arp: [
-        62, 69, 74, 75, 62, 69, 74, 75,
-        62, 68, 74, 76, 61, 69, 73, 76,
-        62, 69, 74, 77, 65, 72, 77, 80,
-        63, 70, 75, 79, 61, 67, 73, 76,
-        67, 70, 74, 79, 65, 69, 74, 77,
-        63, 67, 70, 75, 62, 66, 69, 74,
-        64, 67, 70, 76, 65, 69, 74, 77,
-        69, 73, 76, 81, 67, 73, 76, 79,
-        62, 66, 69, 74, 63, 67, 70, 75,
-        62, 66, 69, 74, 61, 64, 67, 73,
+        62, 65, 69, 74, 65, 69, 72, 76,
+        62, 65, 69, 74, 63, 67, 70, 75,
+        62, 65, 69, 74, 67, 70, 74, 79,
+        70, 67, 63, 62, 61, 64, 69, 73,
         67, 70, 74, 79, 65, 69, 72, 77,
-        63, 67, 70, 75, 61, 67, 69, 73,
-        62, 69, 74, 81, 70, 74, 77, 82,
-        67, 70, 74, 79, 69, 73, 76, 81,
-        63, 67, 70, 75, 61, 64, 69, 73,
-        62, 68, 71, 74, 61, 67, 73, 81
+        63, 67, 70, 75, 62, 65, 69, 74,
+        64, 67, 72, 76, 65, 69, 74, 77,
+        69, 73, 76, 81, 74, 69, 65, 62
       ],
       stab: [
-        null, null, null, null, 63, null, null, null,
-        null, null, null, null, 61, null, null, null,
-        null, null, null, null, 65, null, null, null,
-        63, null, 62, null, 61, null, 57, null,
-        67, null, null, 67, 65, null, null, 65,
-        63, null, null, 63, 62, null, null, 62,
-        64, null, 64, null, 65, null, 65, null,
-        69, null, 67, null, 65, 64, 61, null,
-        62, null, null, 62, 66, null, 63, null,
-        62, null, null, 62, 61, null, 57, null,
-        67, null, null, 67, 65, null, 62, null,
-        63, null, 62, null, 61, null, 69, null,
-        62, null, 66, null, 70, null, 67, null,
-        67, null, 70, null, 69, null, 73, null,
-        63, null, 62, null, 61, null, 60, null,
-        59, null, 58, null, 57, 61, 64, 69
+        null, null, 57, null, null, null, 60, null,
+        null, null, 57, null, 58, null, 55, null,
+        null, null, 57, null, null, null, 62, null,
+        63, null, 60, null, 57, null, 52, null,
+        62, null, null, 62, 60, null, null, 60,
+        58, null, null, 58, 57, null, null, 57,
+        59, null, 60, null, 62, null, 64, null,
+        61, null, 57, null, 62, null, null, null
       ],
       drums: [
-        'K', 'H', 'K', 'H', 'S', 'H', 'K', 'H',
-        'K', 'K', 'H', 'K', 'S', 'H', 'S', 'H',
-        'K', 'H', 'K', 'H', 'S', 'H', 'K', 'H',
-        'K', 'S', 'K', 'S', 'S', 'S', 'K', 'S',
-        'K', 'H', 'K', 'K', 'S', 'H', 'K', 'S',
-        'K', 'H', 'K', 'H', 'S', 'K', 'S', 'H',
-        'K', 'K', 'H', 'K', 'S', 'H', 'K', 'H',
-        'K', 'S', 'K', 'S', 'K', 'S', 'S', 'S',
-        'K', 'H', null, 'K', 'H', 'H', 'S', 'H',
-        'K', 'H', null, 'K', 'S', 'H', 'K', 'S',
-        'K', 'H', null, 'K', 'H', 'H', 'S', 'H',
-        'K', 'S', 'K', 'H', 'S', 'S', 'K', 'S',
-        'K', 'K', 'H', 'K', 'S', 'H', 'K', 'S',
-        'K', 'K', 'H', 'K', 'S', 'K', 'S', 'H',
-        'K', 'S', 'K', 'H', 'K', 'S', 'K', 'H',
-        'S', 'S', 'K', 'S', 'K', 'S', 'S', 'S'
+        'K', 'H', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'H', 'S', 'H', 'K', 'S', 'K', 'O',
+        'K', 'H', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'S', 'K', 'H', 'S', 'S', 'K', 'O',
+        'K', 'H', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'H', 'S', 'K', 'S', 'H', 'K', 'O',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'S', 'K', 'S', 'S', 'S', 'K', 'O'
       ]
     };
 
-    // 3. BOSS 2 (Floor 6 — Act II Abyssal Overlord): Extended 128-Step (8-Bar) Suite (D Hungarian Minor, 164 BPM)
+    // 3. BOSS 2 (Floor 6 — Act II Molten Obsidian Overlord: "Basalt & Brimstone", E Harmonic Minor, 152 BPM)
     this.boss2Track = {
-      bpm: 164,
-      cutoff: 3250,
+      bpm: 152,
+      cutoff: 3200,
       bassGain: 0.092,
       leadGain: 0.052,
       arpGain: 0.025,
-      arpWave: 'sawtooth',
-      vibratoDepth: 1.012,
+      leadWave: 'sawtooth',
+      arpWave: 'square',
+      detuneCents: 9,
+      vibratoDepth: 1.009,
       bass: [
-        38, 50, 38, 50, 44, 56, 44, 56,
-        46, 58, 45, 57, 37, 49, 38, 50,
-        38, 50, 38, 50, 41, 53, 44, 56,
-        46, 45, 44, 41, 39, 38, 37, 33,
-        46, 46, 58, 46, 44, 44, 56, 44,
-        45, 45, 57, 45, 38, 38, 50, 38,
-        43, 43, 55, 43, 44, 44, 56, 44,
-        45, 57, 46, 58, 49, 45, 37, 33,
-        38, null, 50, 38, null, 50, 44, 56,
-        46, null, 58, 45, null, 57, 37, 49,
-        41, null, 53, 44, null, 56, 45, 57,
-        38, 41, 44, 45, 46, 44, 37, 33,
-        38, 41, 44, 47, 50, 47, 44, 41,
-        46, 45, 41, 38, 45, 44, 41, 37,
-        38, 44, 50, 56, 58, 57, 56, 53,
-        50, 49, 46, 45, 44, 41, 37, 33
+        40, 52, 40, 52, 43, 55, 47, 59,
+        45, 57, 43, 55, 42, 54, 35, 47,
+        40, 52, 40, 52, 45, 57, 48, 60,
+        47, 59, 46, 58, 47, 42, 39, 35,
+        48, 60, 48, 60, 47, 59, 43, 55,
+        45, 57, 45, 57, 40, 52, 43, 55,
+        42, 54, 45, 57, 47, 59, 51, 63,
+        52, 51, 48, 47, 45, 43, 42, 39
       ],
       lead: [
-        74, 77, 80, null, 81, 80, 77, 74,
-        73, null, 70, 69, 68, 69, 74, null,
-        74, 77, 80, 82, 85, 86, 85, 82,
-        81, 80, 77, 76, 74, null, 86, null,
-        82, null, 80, 77, 81, null, 77, 74,
-        80, 77, 74, 73, 74, null, 81, null,
-        79, 80, 82, 80, 77, 80, 74, 77,
-        73, 76, 81, 85, 86, null, 85, null,
-        74, null, 80, null, 81, null, 77, null,
-        70, 73, 74, 77, 73, null, 69, null,
-        77, null, 80, null, 82, null, 81, null,
-        80, 77, 74, 73, 74, null, null, null,
-        86, 85, 82, 81, 80, 77, 74, 73,
-        82, 81, 80, 77, 81, 80, 77, 73,
-        74, 77, 80, 81, 82, 85, 86, 89,
-        88, 86, 85, 82, 81, 80, 77, 73
+        64, null, 67, 71, 76, null, 75, 71,
+        72, null, 69, 64, 66, null, 71, null,
+        64, 67, 71, 76, 79, null, 78, 76,
+        75, null, 71, 75, 76, null, null, null,
+        84, null, 81, 76, 79, null, 76, 71,
+        76, 74, 72, 69, 71, null, 76, null,
+        78, 76, 75, 78, 79, 78, 76, 75,
+        76, null, 71, 67, 64, null, null, null
       ],
       arp: [
-        62, 65, 68, 74, 68, 74, 77, 80,
-        62, 68, 71, 77, 61, 67, 70, 73,
-        62, 65, 68, 74, 65, 68, 74, 80,
-        67, 70, 73, 79, 69, 73, 76, 81,
-        70, 74, 77, 82, 68, 74, 77, 80,
-        69, 73, 76, 81, 62, 65, 69, 74,
-        67, 70, 74, 79, 68, 71, 74, 80,
-        69, 73, 76, 81, 73, 76, 81, 85,
-        62, 68, 74, 80, 62, 69, 74, 81,
-        70, 74, 77, 82, 69, 73, 76, 81,
-        65, 68, 74, 80, 68, 74, 77, 82,
-        69, 73, 76, 81, 61, 67, 73, 79,
-        62, 65, 68, 71, 74, 77, 80, 83,
-        70, 74, 77, 82, 69, 73, 76, 81,
-        62, 68, 74, 80, 82, 80, 77, 74,
-        73, 69, 67, 61, 62, 68, 73, 81
+        64, 67, 71, 76, 67, 71, 76, 79,
+        69, 72, 76, 81, 66, 71, 75, 78,
+        64, 67, 71, 76, 69, 72, 76, 81,
+        71, 75, 78, 83, 66, 71, 75, 78,
+        72, 76, 79, 84, 71, 76, 79, 83,
+        69, 72, 76, 81, 64, 67, 71, 76,
+        66, 69, 72, 78, 71, 75, 78, 83,
+        76, 71, 67, 64, 71, 75, 78, 83
       ],
       stab: [
-        57, null, null, 62, 62, null, null, 68,
-        67, null, 65, null, 57, null, 62, null,
-        57, null, null, 62, 65, null, 68, null,
-        70, null, 68, null, 69, 67, 65, 61,
-        70, null, 68, null, 69, null, 62, null,
-        67, null, 68, null, 69, 70, 69, 61,
-        62, null, 68, null, 70, null, 69, null,
-        65, null, 68, null, 69, 68, 65, 61,
-        57, 62, null, 68, 70, 69, null, 61,
-        62, 65, 68, 70, 69, 68, 65, 61,
-        57, null, 62, null, 68, null, 69, null,
-        70, null, 68, null, 69, null, 61, null,
-        62, 65, 68, 71, 74, 71, 68, 65,
-        70, 69, 65, 62, 69, 68, 65, 61,
-        62, null, 68, null, 70, null, 73, null,
-        74, 73, 70, 69, 68, 65, 61, 57
+        64, null, null, 67, 71, null, null, 74,
+        72, null, 69, null, 66, null, 71, null,
+        64, null, null, 67, 69, null, 72, null,
+        71, null, 75, null, 71, 66, 63, 59,
+        72, null, 76, null, 71, null, 74, null,
+        69, null, 72, null, 67, null, 71, null,
+        66, null, 69, null, 71, null, 75, null,
+        76, null, 71, 67, 64, null, null, null
       ],
       drums: [
-        'K', 'K', 'H', 'K', 'S', 'H', 'K', 'S',
-        'K', 'H', 'K', 'K', 'S', 'K', 'S', 'H',
-        'K', 'K', 'H', 'K', 'S', 'H', 'K', 'S',
-        'K', 'S', 'K', 'S', 'K', 'S', 'S', 'S',
-        'K', 'H', 'K', 'S', 'K', 'K', 'S', 'H',
-        'K', 'K', 'S', 'H', 'K', 'S', 'K', 'S',
-        'K', 'H', 'K', 'K', 'S', 'H', 'K', 'S',
-        'S', 'K', 'S', 'K', 'S', 'S', 'K', 'S',
-        'K', 'H', null, 'K', 'S', 'H', 'K', 'H',
-        'K', 'K', null, 'K', 'S', 'H', 'S', 'H',
-        'K', 'H', null, 'K', 'S', 'H', 'K', 'S',
-        'K', 'S', 'K', 'S', 'S', 'S', 'K', 'S',
-        'K', 'K', 'S', 'K', 'K', 'S', 'K', 'S',
-        'K', 'K', 'S', 'K', 'S', 'K', 'S', 'S',
-        'K', 'S', 'K', 'S', 'K', 'S', 'K', 'S',
-        'S', 'S', 'S', 'S', 'K', 'S', 'K', 'S'
+        'K', 'H', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'K', 'S', 'H', 'K', 'S', 'S', 'O',
+        'K', 'H', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'S', 'K', 'S', 'K', 'S', 'S', 'O',
+        'K', 'K', 'S', 'H', 'K', 'H', 'S', 'H',
+        'K', 'K', 'S', 'H', 'K', 'S', 'K', 'O',
+        'K', 'S', 'K', 'H', 'K', 'S', 'K', 'H',
+        'S', 'S', 'K', 'S', 'K', 'S', 'S', 'O'
       ]
     };
 
-    // 4. BOSS 3 (Floor 9 — Final Subterranean Cataclysm): 128-Step Suite (D Locrian / Diminished, 180 BPM)
+    // 4. BOSS 3 (Floor 9 — Act III Eldritch Abyssal Sanctum: "Ophanim Blood-Pulse", C Hungarian Minor, 162 BPM)
     this.boss3Track = {
-      bpm: 180,
-      cutoff: 3900,
-      bassGain: 0.098,
-      leadGain: 0.056,
-      arpGain: 0.027,
+      bpm: 162,
+      cutoff: 3500,
+      bassGain: 0.095,
+      leadGain: 0.054,
+      arpGain: 0.026,
+      leadWave: 'sawtooth',
       arpWave: 'sawtooth',
-      vibratoDepth: 1.016,
+      detuneCents: 11,
+      vibratoDepth: 1.011,
       bass: [
-        26, 38, 50, 38, 39, 51, 44, 56,
-        26, 38, 50, 38, 43, 55, 37, 49,
-        26, 38, 50, 38, 41, 53, 44, 56,
-        46, 44, 43, 39, 38, 37, 33, 26,
-        26, 26, 38, 50, 44, 44, 56, 44,
-        43, 43, 55, 43, 39, 39, 51, 39,
-        41, 41, 53, 41, 37, 37, 49, 37,
-        38, 50, 44, 56, 49, 44, 37, 26
+        36, 48, 36, 48, 39, 51, 42, 54,
+        43, 55, 44, 56, 35, 47, 36, 48,
+        36, 48, 39, 51, 42, 54, 43, 55,
+        44, 43, 42, 39, 38, 36, 35, 31,
+        44, 56, 44, 56, 43, 55, 39, 51,
+        42, 54, 42, 54, 43, 55, 35, 47,
+        36, 48, 39, 51, 42, 54, 44, 56,
+        47, 44, 43, 42, 39, 36, 35, 36
       ],
       lead: [
-        86, 85, 82, 80, 81, 77, 74, 75,
-        74, 73, 74, 80, 81, null, 86, 87,
-        86, 89, 88, 86, 85, 82, 80, 77,
-        80, 79, 77, 75, 74, 81, 86, null,
-        87, 86, 83, 80, 84, 83, 80, 77,
-        81, 80, 77, 74, 78, 77, 74, 71,
-        75, 74, 71, 68, 73, 76, 79, 82,
-        86, 85, 81, 80, 74, null, 86, null
+        72, 75, 78, null, 79, 78, 75, 72,
+        71, null, 74, 75, 72, null, 67, null,
+        72, 75, 78, 79, 80, null, 83, 80,
+        79, 78, 75, 74, 72, null, 84, null,
+        80, null, 79, 75, 78, null, 75, 72,
+        79, 78, 75, 71, 72, null, 79, null,
+        75, 78, 79, 80, 83, 84, 83, 79,
+        80, 79, 75, 71, 72, null, null, null
       ],
       arp: [
-        62, 68, 74, 80, 86, 80, 74, 68,
-        63, 69, 75, 81, 87, 81, 75, 69,
-        62, 68, 74, 80, 89, 86, 80, 74,
-        67, 73, 79, 85, 88, 85, 79, 73,
-        63, 66, 69, 72, 75, 78, 81, 84,
-        62, 65, 68, 71, 74, 77, 80, 83,
-        61, 64, 67, 70, 73, 76, 79, 82,
-        62, 68, 74, 80, 86, 81, 74, 62
+        60, 63, 66, 72, 63, 66, 72, 75,
+        67, 71, 74, 79, 59, 63, 67, 71,
+        60, 63, 66, 72, 66, 72, 75, 78,
+        68, 72, 75, 80, 67, 71, 74, 79,
+        68, 72, 75, 80, 67, 70, 75, 79,
+        66, 69, 72, 78, 67, 71, 74, 79,
+        60, 63, 66, 72, 68, 72, 75, 80,
+        71, 74, 79, 83, 84, 79, 75, 72
       ],
       stab: [
-        62, 62, null, 68, 63, 63, null, 68,
-        62, 62, null, 67, 61, null, 69, null,
-        62, 62, null, 68, 65, 65, null, 68,
-        70, 68, 67, 63, 62, 61, 57, 62,
-        63, null, 66, null, 69, null, 72, null,
-        62, null, 65, null, 68, null, 71, null,
-        61, null, 64, null, 67, null, 70, null,
-        74, 73, 70, 68, 62, null, 74, null
+        60, null, 63, null, 66, null, 67, null,
+        68, null, 67, null, 59, null, 60, null,
+        60, null, 63, null, 66, null, 72, null,
+        68, 67, 66, 63, 62, 60, 59, 55,
+        68, null, 72, null, 67, null, 70, null,
+        66, null, 69, null, 67, null, 71, null,
+        60, 63, 66, 68, 71, 74, 75, 79,
+        72, null, 67, 63, 60, null, null, null
       ],
       drums: [
-        'K', 'K', 'S', 'K', 'K', 'S', 'K', 'K',
-        'S', 'K', 'K', 'S', 'K', 'S', 'S', 'S',
-        'K', 'K', 'S', 'K', 'K', 'S', 'K', 'K',
-        'S', 'S', 'K', 'S', 'K', 'S', 'S', 'S',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'H', 'S', 'K', 'S', 'K', 'S', 'O',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'S', 'K', 'S', 'S', 'S', 'K', 'O',
+        'K', 'H', 'S', 'K', 'K', 'H', 'S', 'H',
+        'K', 'K', 'S', 'H', 'K', 'S', 'S', 'O',
         'K', 'S', 'K', 'S', 'K', 'S', 'K', 'S',
-        'K', 'K', 'S', 'K', 'K', 'S', 'S', 'S',
+        'S', 'S', 'K', 'S', 'K', 'S', 'S', 'O'
+      ]
+    };
+
+    // 4B. BOSS 4 (Floor 12 — Act IV Astral Singularity Rift: "Magnetic Horizon", F# Phrygian Dominant, 170 BPM)
+    this.boss4Track = {
+      bpm: 170,
+      cutoff: 3800,
+      bassGain: 0.096,
+      leadGain: 0.055,
+      arpGain: 0.028,
+      leadWave: 'square',
+      arpWave: 'sawtooth',
+      detuneCents: 12,
+      vibratoDepth: 1.012,
+      bass: [
+        42, 54, 42, 54, 43, 55, 46, 58,
+        47, 59, 45, 57, 43, 55, 42, 54,
+        42, 54, 46, 58, 49, 61, 47, 59,
+        45, 57, 43, 55, 42, 49, 46, 42,
+        50, 62, 50, 62, 49, 61, 45, 57,
+        47, 59, 47, 59, 46, 58, 42, 54,
+        43, 55, 45, 57, 47, 59, 49, 61,
+        54, 52, 50, 49, 47, 46, 43, 42
+      ],
+      lead: [
+        66, 70, 73, 74, 73, 70, 66, 67,
+        70, 73, 76, 74, 73, null, 78, null,
+        82, 81, 78, 76, 74, 73, 70, 73,
+        74, 76, 74, 73, 70, null, 66, null,
+        83, null, 81, 78, 82, null, 78, 73,
+        79, 78, 76, 74, 73, null, 78, 81,
+        82, 81, 78, 76, 78, 81, 82, 85,
+        86, 85, 82, 81, 78, null, null, null
+      ],
+      arp: [
+        66, 70, 73, 78, 70, 73, 78, 82,
+        67, 71, 74, 79, 66, 70, 73, 78,
+        66, 70, 73, 78, 73, 76, 81, 85,
+        71, 74, 78, 83, 70, 73, 78, 82,
+        74, 78, 81, 86, 73, 76, 81, 85,
+        71, 74, 79, 83, 70, 73, 78, 82,
+        67, 71, 74, 79, 69, 73, 76, 81,
+        70, 73, 78, 82, 85, 82, 78, 73
+      ],
+      stab: [
+        66, null, 70, null, 67, null, 70, null,
+        71, null, 69, null, 67, null, 66, null,
+        66, null, 70, null, 73, null, 71, null,
+        69, null, 67, null, 66, 70, 73, 78,
+        74, null, 78, null, 73, null, 76, null,
+        71, null, 74, null, 70, null, 73, null,
+        67, 69, 71, 73, 74, 76, 78, 81,
+        78, null, 73, 70, 66, null, null, null
+      ],
+      drums: [
+        'K', 'H', 'S', 'K', 'K', 'H', 'S', 'H',
+        'K', 'K', 'S', 'H', 'K', 'S', 'K', 'O',
+        'K', 'H', 'S', 'K', 'K', 'H', 'S', 'H',
+        'K', 'S', 'K', 'S', 'S', 'K', 'S', 'O',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'H',
+        'K', 'H', 'S', 'K', 'S', 'S', 'K', 'O',
         'K', 'S', 'K', 'S', 'K', 'S', 'K', 'S',
-        'S', 'S', 'S', 'S', 'K', 'S', 'K', 'S'
+        'S', 'S', 'S', 'K', 'S', 'K', 'S', 'O'
+      ]
+    };
+
+    // 4C. BOSS 5 (Floor 15 — Act V The Sovereign Tesseract: "Fourfold Convergence", D Symphonic Minor, 180 BPM)
+    this.boss5Track = {
+      bpm: 180,
+      cutoff: 4200,
+      bassGain: 0.102,
+      leadGain: 0.058,
+      arpGain: 0.030,
+      leadWave: 'sawtooth',
+      arpWave: 'square',
+      detuneCents: 14,
+      vibratoDepth: 1.014,
+      bass: [
+        38, 50, 38, 50, 41, 53, 45, 57,
+        46, 58, 43, 55, 45, 57, 37, 49,
+        38, 50, 41, 53, 43, 55, 46, 58,
+        45, 57, 49, 61, 50, 45, 41, 38,
+        46, 58, 46, 58, 43, 55, 43, 55,
+        48, 60, 48, 60, 41, 53, 41, 53,
+        46, 58, 44, 56, 45, 57, 49, 61,
+        50, 49, 46, 45, 43, 41, 37, 38
+      ],
+      lead: [
+        74, null, 77, 81, 86, null, 85, 81,
+        82, 81, 79, 77, 81, null, 73, null,
+        74, 77, 81, 82, 85, 86, 88, 86,
+        85, 81, 79, 76, 74, null, 86, null,
+        89, null, 86, 82, 86, null, 82, 79,
+        88, null, 84, 79, 81, null, 77, 72,
+        82, 81, 79, 82, 85, 86, 88, 89,
+        90, 89, 86, 85, 81, 77, 74, null
+      ],
+      arp: [
+        62, 65, 69, 74, 77, 81, 86, 81,
+        70, 74, 79, 82, 69, 73, 76, 81,
+        62, 65, 69, 74, 67, 70, 74, 79,
+        69, 73, 76, 81, 74, 77, 81, 86,
+        70, 74, 77, 82, 67, 70, 74, 79,
+        72, 76, 79, 84, 65, 69, 72, 77,
+        70, 74, 77, 82, 69, 73, 76, 81,
+        74, 77, 81, 86, 90, 86, 81, 74
+      ],
+      stab: [
+        62, 65, 69, 74, 65, 69, 74, 77,
+        70, null, 67, null, 69, null, 61, null,
+        62, null, 65, null, 67, null, 70, null,
+        69, null, 73, null, 74, 69, 65, 62,
+        70, null, 74, null, 67, null, 70, null,
+        72, null, 76, null, 65, null, 69, null,
+        70, 68, 69, 73, 74, 77, 81, 85,
+        86, null, 81, 77, 74, null, null, null
+      ],
+      drums: [
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'O',
+        'K', 'H', 'S', 'K', 'S', 'K', 'S', 'O',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'O',
+        'K', 'S', 'K', 'S', 'S', 'S', 'K', 'O',
+        'K', 'K', 'S', 'K', 'K', 'H', 'S', 'O',
+        'K', 'K', 'S', 'K', 'S', 'S', 'K', 'O',
+        'K', 'S', 'K', 'S', 'K', 'S', 'K', 'S',
+        'S', 'S', 'S', 'S', 'K', 'S', 'K', 'O'
       ]
     };
 
@@ -457,6 +509,8 @@ class SubterraneanChiptuneEngine {
       boss1: this.boss1Track,
       boss2: this.boss2Track,
       boss3: this.boss3Track,
+      boss4: this.boss4Track,
+      boss5: this.boss5Track,
       bazaar: this.bazaarTrack,
       roulette: this.rouletteTrack
     };
@@ -472,7 +526,7 @@ class SubterraneanChiptuneEngine {
   }
 
   isBossMode() {
-    return this.currentMode === 'boss1' || this.currentMode === 'boss2' || this.currentMode === 'boss3';
+    return this.currentMode.startsWith('boss');
   }
 
   getActiveTrack() {
@@ -506,6 +560,8 @@ class SubterraneanChiptuneEngine {
     }
     if (modeOrFloor === 'boss' || modeOrFloor === true) {
       const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 2;
+      if (fIdx >= 14) return 'boss5';
+      if (fIdx >= 11) return 'boss4';
       if (fIdx >= 8) return 'boss3';
       if (fIdx >= 5) return 'boss2';
       return 'boss1';
@@ -668,12 +724,14 @@ class SubterraneanChiptuneEngine {
       }
     }
 
-    // 2. Square Wave Lead Channel
+    // 2. Lead Channel (with detuned dual-oscillator unison on Boss tracks for rich synth presence)
     const leadNote = track.lead[idx];
     if (leadNote) {
+      const lFreq = this.midiToFreq(leadNote + pitchShift);
+      const lWave = track.leadWave || 'square';
       this.playChipTone(
-        this.midiToFreq(leadNote + pitchShift),
-        'square',
+        lFreq,
+        lWave,
         now,
         stepDur * 1.65,
         track.leadGain || 0.045,
@@ -681,6 +739,18 @@ class SubterraneanChiptuneEngine {
         effectiveCutoff,
         track.vibratoDepth || 1.008
       );
+      if (isBoss && track.detuneCents) {
+        const detuneRatio = Math.pow(2, track.detuneCents / 1200);
+        this.playChipTone(
+          lFreq * detuneRatio,
+          'square',
+          now,
+          stepDur * 1.45,
+          (track.leadGain || 0.045) * 0.48,
+          false,
+          effectiveCutoff * 0.9
+        );
+      }
     }
 
     // 3. Arpeggio Channel
@@ -769,7 +839,7 @@ class SubterraneanChiptuneEngine {
       gain.connect(ctx.destination);
       osc.start(startTime);
       osc.stop(startTime + 0.09);
-    } else if (kind === 'S' || kind === 'H') {
+    } else if (kind === 'S' || kind === 'H' || kind === 'O') {
       this.ensureNoiseBuffer();
       if (!this.noiseBuffer) return;
       const noise = ctx.createBufferSource();
@@ -779,8 +849,8 @@ class SubterraneanChiptuneEngine {
       filter.type = kind === 'S' ? 'bandpass' : 'highpass';
       filter.frequency.setValueAtTime(kind === 'S' ? (isFinalBoss ? 1650 : 1400) : 5200, startTime);
 
-      const dur = kind === 'S' ? (isFinalBoss ? 0.11 : 0.095) : 0.032;
-      const vol = kind === 'S' ? (isFinalBoss ? 0.07 : (isMidBoss ? 0.062 : 0.055)) : 0.024;
+      const dur = kind === 'S' ? (isFinalBoss ? 0.11 : 0.095) : (kind === 'O' ? 0.14 : 0.032);
+      const vol = kind === 'S' ? (isFinalBoss ? 0.07 : (isMidBoss ? 0.062 : 0.055)) : (kind === 'O' ? 0.038 : 0.024);
       const gain = this.createGainSafe(ctx, vol, startTime, dur);
 
       noise.connect(filter);
@@ -828,7 +898,7 @@ const bgm = new SubterraneanChiptuneEngine(sfx);
       const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
       const isBoss = typeof isBossFloorIndex === 'function' ? isBossFloorIndex(fIdx) : ((fIdx + 1) % 3 === 0);
       if (isBoss) {
-        bgm.setMode(fIdx >= 8 ? 'boss3' : (fIdx >= 5 ? 'boss2' : 'boss1'));
+        bgm.setMode(fIdx >= 14 ? 'boss5' : (fIdx >= 11 ? 'boss4' : (fIdx >= 8 ? 'boss3' : (fIdx >= 5 ? 'boss2' : 'boss1'))));
       } else {
         bgm.setMode('cavern');
       }

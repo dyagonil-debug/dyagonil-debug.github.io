@@ -104,10 +104,7 @@ const C4_MEDALLION_SPECS = {
       '#fde047', '#fbbf24', '#d97706',
       '<circle cx="32" cy="23" r="9.5" fill="url(#grad)" stroke="#fef3c7" stroke-width="2"/><circle cx="32" cy="42" r="9.5" fill="url(#grad)" stroke="#fef3c7" stroke-width="2"/><circle cx="32" cy="23" r="4.5" stroke="#78350f" stroke-width="1.5" fill="none"/><circle cx="32" cy="42" r="4.5" stroke="#78350f" stroke-width="1.5" fill="none"/>'
     ],
-    mirror_shard: [
-      '#f0abfc', '#38bdf8', '#e879f9',
-      '<polygon points="27,11 47,19 39,51 17,43" fill="url(#grad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/><line x1="23" y1="39" x2="41" y2="21" stroke="#fef08a" stroke-width="1.8" stroke-dasharray="3 2"/><circle cx="27" cy="40" r="4.2" fill="#fbbf24" stroke="#fef3c7" stroke-width="1.3"/><polygon points="35,17 41,23 35,29 29,23" fill="#fef08a" stroke="#ffffff" stroke-width="1.3"/>'
-    ],
+
     hydraulic_piston: [
       '#fb923c', '#f59e0b', '#475569',
       '<rect x="12" y="22" width="14" height="20" rx="3" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8"/><rect x="38" y="22" width="14" height="20" rx="3" fill="url(#grad)" stroke="#fef3c7" stroke-width="1.8"/><line x1="26" y1="28" x2="38" y2="28" stroke="#38bdf8" stroke-width="3"/><line x1="26" y1="36" x2="38" y2="36" stroke="#fde047" stroke-width="3"/>'
@@ -159,10 +156,7 @@ const C4_MEDALLION_SPECS = {
       '#e879f9', '#c084fc', '#581c87',
       '<path d="M10 26 C16 20, 23 23, 27 28 L32 22 L37 28 C41 23, 48 20, 54 26 C49 33, 44 33, 41 38 C37 35, 34 37, 32 43 C30 37, 27 35, 23 38 C20 33, 15 33, 10 26 Z" fill="url(#grad)" stroke="#f5d0fe" stroke-width="1.8" stroke-linejoin="round"/><circle cx="29" cy="29" r="1.5" fill="#fde047"/><circle cx="35" cy="29" r="1.5" fill="#fde047"/>'
     ],
-    wild: [
-      '#f0abfc', '#e879f9', '#38bdf8',
-      '<polygon points="32,11 49,26 42,49 22,49 15,26" fill="url(#grad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/><polygon points="32,19 41,28 37,42 27,42 23,28" fill="#fef08a" fill-opacity="0.35" stroke="#ffffff" stroke-width="1.2"/><circle cx="32" cy="32" r="4" fill="#ffffff"/>'
-    ],
+
     jalapeno_bomb: [
       '#f97316', '#ef4444', '#b91c1c',
       '<path d="M24 22 C20 30, 23 44, 34 49 C42 52, 46 45, 43 38 C39 31, 34 22, 24 22 Z" fill="url(#grad)" stroke="#fecaca" stroke-width="1.8"/><path d="M24 22 C22 17, 26 14, 31 15" stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="34" cy="14" r="3" fill="#fde047"/><path d="M34 9 V19 M29 14 H39" stroke="#f97316" stroke-width="1.8" stroke-linecap="round"/>'
@@ -288,6 +282,18 @@ const C4_MEDALLION_SPECS = {
     tectonic_behemoth: [
       '#f59e0b', '#d97706', '#44403c',
       '<polygon points="12,30 22,14 42,14 52,30 44,49 20,49" fill="url(#grad)" stroke="#fed7aa" stroke-width="2" stroke-linejoin="round"/><polyline points="22,14 30,28 24,39 32,49" stroke="#fde047" stroke-width="2.2" fill="none"/><circle cx="24" cy="27" r="2.5" fill="#ef4444"/><circle cx="40" cy="27" r="2.5" fill="#ef4444"/>'
+    ],
+    abyssal_lodestone: [
+      '#38bdf8', '#0284c7', '#4c1d95',
+      '<path d="M18 16 V32 C18 41, 46 41, 46 32 V16 H38 V31 C38 35, 26 35, 26 31 V16 Z" fill="url(#grad)" stroke="#e0f2fe" stroke-width="2" stroke-linejoin="round"/><rect x="18" y="14" width="8" height="5" fill="#f43f5e" stroke="#fecdd3" stroke-width="1.2"/><rect x="38" y="14" width="8" height="5" fill="#38bdf8" stroke="#e0f2fe" stroke-width="1.2"/><circle cx="32" cy="46" r="4" fill="#fde047" stroke="#fef08a" stroke-width="1.4"/>'
+    ],
+    void_weaver: [
+      '#c084fc', '#9333ea', '#1e1b4b',
+      '<line x1="14" y1="14" x2="50" y2="50" stroke="#e9d5ff" stroke-width="1.5"/><line x1="50" y1="14" x2="14" y2="50" stroke="#e9d5ff" stroke-width="1.5"/><polygon points="32,14 48,32 32,50 16,32" fill="none" stroke="#c084fc" stroke-width="1.8"/><circle cx="32" cy="32" r="9" fill="url(#grad)" stroke="#f3e8ff" stroke-width="2"/><circle cx="29" cy="30" r="2" fill="#f43f5e"/><circle cx="35" cy="30" r="2" fill="#f43f5e"/>'
+    ],
+    sovereign_tesseract: [
+      '#fbbf24', '#f43f5e', '#581c87',
+      '<rect x="15" y="15" width="22" height="22" fill="none" stroke="#fde047" stroke-width="2"/><rect x="27" y="27" width="22" height="22" fill="url(#grad)" fill-opacity="0.65" stroke="#f43f5e" stroke-width="2"/><line x1="15" y1="15" x2="27" y2="27" stroke="#e879f9" stroke-width="1.6"/><line x1="37" y1="15" x2="49" y2="27" stroke="#e879f9" stroke-width="1.6"/><line x1="15" y1="37" x2="27" y2="49" stroke="#e879f9" stroke-width="1.6"/><circle cx="32" cy="32" r="4.5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>'
     ]
   },
 
@@ -319,6 +325,38 @@ const C4_MEDALLION_SPECS = {
     obsidian_citadel: [
       '#cbd5e1', '#94a3b8', '#334155',
       '<polygon points="14,48 14,18 21,18 21,26 28,26 28,18 36,18 36,26 43,26 43,18 50,18 50,48" fill="url(#grad)" stroke="#f8fafc" stroke-width="2" stroke-linejoin="round"/>'
+    ],
+    basalt_colonnade: [
+      '#f59e0b', '#fbbf24', '#78350f',
+      '<polygon points="12,48 12,18 20,18 20,40 28,40 28,16 36,16 36,40 44,40 44,18 52,18 52,48" fill="url(#grad)" stroke="#fef3c7" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="24" x2="52" y2="24" stroke="#fde047" stroke-width="1.6"/>'
+    ],
+    crystalline_gorge: [
+      '#38bdf8', '#7dd3fc', '#0369a1',
+      '<polygon points="12,24 22,16 28,36 32,46 36,36 42,16 52,24 46,48 18,48" fill="url(#grad)" stroke="#e0f2fe" stroke-width="2" stroke-linejoin="round"/><polygon points="32,20 37,30 32,40 27,30" fill="#fde047" stroke="#ffffff" stroke-width="1.2"/>'
+    ],
+    dwarven_anvil: [
+      '#94a3b8', '#e2e8f0', '#334155',
+      '<polygon points="10,22 54,22 48,30 40,32 40,42 46,48 18,48 24,42 24,32 16,30" fill="url(#grad)" stroke="#f8fafc" stroke-width="2" stroke-linejoin="round"/><line x1="20" y1="26" x2="44" y2="26" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>'
+    ],
+    catacomb_nave: [
+      '#a855f7', '#d8b4fe', '#581c87',
+      '<polygon points="14,48 14,32 22,22 28,22 32,12 36,22 42,22 50,32 50,48" fill="url(#grad)" stroke="#f3e8ff" stroke-width="2" stroke-linejoin="round"/><path d="M26 48 V34 C26 29, 38 29, 38 34 V48" fill="#110e17" stroke="#fde047" stroke-width="1.6"/>'
+    ],
+    tectonic_mesa: [
+      '#f97316', '#fdba74', '#9a3412',
+      '<polygon points="12,48 12,26 20,26 24,18 40,18 44,26 52,26 52,48 42,48 42,38 22,38 22,48" fill="url(#grad)" stroke="#ffedd5" stroke-width="2" stroke-linejoin="round"/>'
+    ],
+    wyrm_fang_maw: [
+      '#10b981', '#34d399', '#065f46',
+      '<polygon points="12,16 52,16 52,48 12,48" fill="none" stroke="#6ee7b7" stroke-width="1.8"/><polygon points="14,16 22,36 28,16 36,16 42,36 50,16" fill="url(#grad)" stroke="#ecfdf5" stroke-width="1.8" stroke-linejoin="round"/><polygon points="20,48 26,32 32,48 38,32 44,48" fill="url(#grad)" stroke="#fde047" stroke-width="1.8" stroke-linejoin="round"/>'
+    ],
+    sheared_escarpment: [
+      '#f43f5e', '#fb7185', '#881337',
+      '<polygon points="12,34 22,34 22,26 32,26 32,16 52,16 52,36 42,36 42,46 12,46" fill="url(#grad)" stroke="#ffe4e6" stroke-width="2" stroke-linejoin="round"/><line x1="16" y1="44" x2="48" y2="18" stroke="#fde047" stroke-width="2" stroke-dasharray="3 2"/>'
+    ],
+    cyclops_monolith: [
+      '#eab308', '#fde047', '#713f12',
+      '<polygon points="12,48 12,32 22,32 22,24 34,24 34,16 52,16 52,40 44,40 44,30 36,30 36,48" fill="url(#grad)" stroke="#fef9c3" stroke-width="2" stroke-linejoin="round"/><circle cx="40" cy="23" r="3" fill="#f43f5e" stroke="#ffffff" stroke-width="1.2"/>'
     ]
   },
 

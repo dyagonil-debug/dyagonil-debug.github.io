@@ -4,8 +4,61 @@
 
 let activeFloorIntroTimers = [];
 
+// 5-Act Subterranean-to-Cosmic Progression Definitions
+const ACT_DEFINITIONS = [
+  {
+    actNum: 1,
+    roman: 'I',
+    badge: 'ACT I • THE GLOWWORM GROTTO',
+    overline: 'ACT I OF V • DEPTH 100M',
+    title: 'THE GLOWWORM GROTTO',
+    epigraph: '“Where bioluminescent spores drift through waking stone.”',
+    themeClass: 'act-theme-1'
+  },
+  {
+    actNum: 2,
+    roman: 'II',
+    badge: 'ACT II • THE VITREOUS CATACOMBS',
+    overline: 'ACT II OF V • DEPTH 450M',
+    title: 'THE VITREOUS CATACOMBS',
+    epigraph: '“Halls of black glass and fractured reflections.”',
+    themeClass: 'act-theme-2'
+  },
+  {
+    actNum: 3,
+    roman: 'III',
+    badge: 'ACT III • THE BRIMSTONE CALDERA',
+    overline: 'ACT III OF V • DEPTH 1,200M',
+    title: 'THE BRIMSTONE CALDERA',
+    epigraph: '“The molten mantle where tectonic titans stir.”',
+    themeClass: 'act-theme-3'
+  },
+  {
+    actNum: 4,
+    roman: 'IV',
+    badge: 'ACT IV • THE HORIZON FAULT',
+    overline: 'ACT IV OF V • SINGULARITY DEPTH',
+    title: 'THE HORIZON FAULT',
+    epigraph: '“Gravity bends where the subterranean floor gives way to the void.”',
+    themeClass: 'act-theme-4'
+  },
+  {
+    actNum: 5,
+    roman: 'V',
+    badge: 'ACT V • THE FOURFOLD SANCTUM',
+    overline: 'ACT V OF V • BEYOND THE BEDROCK',
+    title: 'THE FOURFOLD SANCTUM',
+    epigraph: '“Four parallel boards converging at the heart of the tesseract.”',
+    themeClass: 'act-theme-5'
+  }
+];
+
 function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   const overlay = document.getElementById('floor-intro-overlay');
+  const actCurtain = document.getElementById('act-intro-curtain');
+  const actOverline = document.getElementById('act-curtain-overline');
+  const actTitle = document.getElementById('act-curtain-title');
+  const actEpigraph = document.getElementById('act-curtain-epigraph');
   const card = document.getElementById('floor-intro-card');
   const actBadge = document.getElementById('floor-intro-act-badge');
   const iconWrap = document.getElementById('floor-intro-icon-wrap');
@@ -29,9 +82,9 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   state.busy = true;
 
   // Populate Act & Depth theme details
-  const actNum = Math.floor(state.floorIdx / 3) + 1;
-  const actNames = ['ACT I • BIOLUMINESCENT SHALLOWS', 'ACT II • OBSIDIAN CHASM', 'ACT III • ABYSSAL CALDERA'];
-  actBadge.textContent = actNames[Math.min(2, actNum - 1)];
+  const actIdx = Math.max(0, Math.min(ACT_DEFINITIONS.length - 1, Math.floor(state.floorIdx / 3)));
+  const actDef = ACT_DEFINITIONS[actIdx];
+  actBadge.textContent = actDef.badge;
 
   if (floorData.isBoss) {
     card.className = 'cavern-panel w-full max-w-sm md:max-w-md lg:max-w-lg rounded-3xl p-6 md:p-7 border-2 border-rose-500/70 text-center space-y-3.5 shadow-[0_0_70px_rgba(244,63,94,0.38)] relative overflow-hidden';
@@ -81,7 +134,20 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   overlay.style.display = '';
   overlay.style.opacity = '';
   overlay.style.pointerEvents = '';
-  overlay.classList.remove('hidden', 'floor-intro-fadeout', 'floor-intro-active');
+  overlay.classList.remove('hidden', 'floor-intro-fadeout', 'floor-intro-active', 'act-curtain-mode');
+  card.classList.remove('hidden', 'floor-card-visible');
+  if (actCurtain) {
+    actCurtain.classList.add('hidden');
+    actCurtain.classList.remove(
+      'act-curtain-visible',
+      'act-curtain-fadeout',
+      'act-theme-1',
+      'act-theme-2',
+      'act-theme-3',
+      'act-theme-4',
+      'act-theme-5'
+    );
+  }
 
   let finished = false;
   const finishIntroAndResumeBGM = () => {
@@ -91,12 +157,18 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
     activeFloorIntroTimers = [];
     overlay.onclick = null;
 
-    overlay.classList.remove('floor-intro-active');
+    overlay.classList.remove('floor-intro-active', 'act-curtain-mode');
     overlay.classList.add('floor-intro-fadeout');
+    card.classList.remove('floor-card-visible');
 
     const hideTimer = setTimeout(() => {
       overlay.classList.add('hidden');
       overlay.classList.remove('floor-intro-fadeout');
+      if (actCurtain) {
+        actCurtain.classList.add('hidden');
+        actCurtain.classList.remove('act-curtain-visible', 'act-curtain-fadeout');
+      }
+      card.classList.remove('hidden');
       if (!state.gameOver && state.turn === PLAYER) {
         state.busy = false;
       }
@@ -106,18 +178,89 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
     activeFloorIntroTimers.push(hideTimer);
   };
 
-  overlay.onclick = () => {
-    sfx.playHoverTick();
-    finishIntroAndResumeBGM();
+  const revealFloorIntroCard = () => {
+    if (finished) return;
+    overlay.classList.remove('act-curtain-mode');
+    if (actCurtain) {
+      actCurtain.classList.add('hidden');
+      actCurtain.classList.remove('act-curtain-visible', 'act-curtain-fadeout');
+    }
+    card.classList.remove('hidden');
+
+    overlay.onclick = () => {
+      sfx.playHoverTick();
+      finishIntroAndResumeBGM();
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        overlay.classList.add('floor-intro-active');
+        card.classList.add('floor-card-visible');
+        sfx.playLevelTransitionJingle(state.floorIdx, floorData.isBoss, floorData.isPreBoss);
+        triggerHaptic(floorData.isBoss ? [35, 30, 60] : [20, 25]);
+      });
+    });
   };
 
-  requestAnimationFrame(() => {
+  // Show the auto fade-in / fade-out dark Act Title Curtain before the first floor of each Act (Floors 1, 4, 7, 10, 13)
+  const isActStartFloor = (state.floorIdx % 3 === 0) && !!actCurtain;
+  if (isActStartFloor) {
+    if (actOverline) actOverline.textContent = actDef.overline;
+    if (actTitle) actTitle.textContent = actDef.title;
+    if (actEpigraph) actEpigraph.textContent = actDef.epigraph;
+
+    card.classList.add('hidden');
+    overlay.classList.add('act-curtain-mode');
+    actCurtain.classList.remove('hidden');
+    actCurtain.classList.add(actDef.themeClass);
+
+    let actCurtainFadingOut = false;
+    let canSkipActCurtain = false;
+
+    const beginActCurtainFadeOut = () => {
+      if (actCurtainFadingOut || finished) return;
+      actCurtainFadingOut = true;
+      overlay.onclick = null;
+      actCurtain.classList.remove('act-curtain-visible');
+      actCurtain.classList.add('act-curtain-fadeout');
+
+      const toCardTimer = setTimeout(() => {
+        revealFloorIntroCard();
+      }, 750);
+      activeFloorIntroTimers.push(toCardTimer);
+    };
+
+    // 1.0s input guard prevents accidental carry-over taps from skipping the Act title screen
+    const guardTimer = setTimeout(() => {
+      canSkipActCurtain = true;
+    }, 1000);
+    activeFloorIntroTimers.push(guardTimer);
+
+    overlay.onclick = () => {
+      if (!canSkipActCurtain) return;
+      sfx.playHoverTick();
+      beginActCurtainFadeOut();
+    };
+
     requestAnimationFrame(() => {
-      overlay.classList.add('floor-intro-active');
-      sfx.playLevelTransitionJingle(state.floorIdx, floorData.isBoss, floorData.isPreBoss);
-      triggerHaptic(floorData.isBoss ? [35, 30, 60] : [20, 25]);
+      requestAnimationFrame(() => {
+        overlay.classList.add('floor-intro-active');
+        actCurtain.classList.add('act-curtain-visible');
+        if (typeof sfx.playActCurtainChord === 'function') {
+          sfx.playActCurtainChord(actIdx);
+        }
+        triggerHaptic([25, 40, 25]);
+      });
     });
-  });
+
+    // 0.75s fade-in + 3.00s full-opacity reading hold = 3.75s before auto fade-out (4.50s total)
+    const holdTimer = setTimeout(() => {
+      beginActCurtainFadeOut();
+    }, 3750);
+    activeFloorIntroTimers.push(holdTimer);
+  } else {
+    revealFloorIntroCard();
+  }
 }
 
 function runOpeningSplashAndTitleSequence() {
@@ -251,5 +394,97 @@ function runOpeningSplashAndTitleSequence() {
       }
       startTutorialSequence();
     });
+  }
+}
+
+
+function returnToTitleScreen() {
+  // 1. Save mid-run checkpoint if currently in a saveable run
+  if (
+    typeof runPersistence !== 'undefined' &&
+    runPersistence &&
+    typeof runPersistence.saveRun === 'function' &&
+    !(typeof window !== 'undefined' && window.tutorialActive)
+  ) {
+    try { runPersistence.saveRun(); } catch (_) {}
+  }
+
+  // 2. Clear any floor intro timers & close open gameplay modals
+  if (typeof clearFloorIntroAndModalLocks === 'function') {
+    clearFloorIntroAndModalLocks();
+  }
+  if (typeof dismissAllActiveNotifications === 'function') {
+    dismissAllActiveNotifications();
+  }
+
+  const modalsToHide = [
+    'settings-modal',
+    'bazaar-modal',
+    'boss-chest-modal',
+    'roulette-modal',
+    'difficulty-modal',
+    'info-sheet-modal',
+    'gameover-modal',
+    'debug-menu-modal',
+    'tutorial-overlay'
+  ];
+  modalsToHide.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  // 3. Ensure Stage 0 (Terminal) & Stage 1 (Splash) are hidden, and Stage 2 (Title Screen) is ready
+  const termStage = document.getElementById('terminal-boot-stage');
+  const splashStage = document.getElementById('dyagonil-splash-stage');
+  const titleStage = document.getElementById('title-opener-stage');
+  const introOverlay = document.getElementById('intro-sequence-overlay');
+
+  if (termStage) {
+    termStage.classList.add('hidden');
+    termStage.classList.remove('flex');
+  }
+  if (splashStage) {
+    splashStage.classList.add('hidden');
+    splashStage.classList.remove('flex', 'splash-visible', 'splash-fadeout');
+  }
+
+  if (titleStage) {
+    titleStage.style.display = '';
+    titleStage.style.opacity = '1';
+    titleStage.style.pointerEvents = 'auto';
+    titleStage.classList.remove('hidden');
+    titleStage.classList.add('flex');
+  }
+
+  [0, 1, 2, 3].forEach((i) => {
+    const tokEl = document.getElementById(`title-tok-${i}`);
+    if (tokEl) {
+      tokEl.classList.add('token-landed', 'token-ignited');
+    }
+  });
+  ['title-Main-Header', 'title-Sub-Desc', 'title-Start-Wrap'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('slam-in');
+  });
+
+  if (typeof enableTitleTokensSecretInteraction === 'function') {
+    enableTitleTokensSecretInteraction();
+  }
+
+  // 4. Reveal #intro-sequence-overlay smoothly & set BGM to cavern theme
+  if (introOverlay) {
+    introOverlay.style.display = '';
+    introOverlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      introOverlay.style.opacity = '1';
+      introOverlay.style.pointerEvents = 'auto';
+    });
+  }
+
+  if (typeof bgm !== 'undefined' && bgm) {
+    bgm.isPausedForLevelIntro = false;
+    bgm.isPausedForModal = false;
+    if (typeof bgm.setMode === 'function') bgm.setMode('cavern');
+    if (typeof bgm.resumeFromSettings === 'function') bgm.resumeFromSettings();
   }
 }

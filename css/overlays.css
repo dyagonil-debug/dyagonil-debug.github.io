@@ -134,12 +134,131 @@
   opacity: 0 !important;
   pointer-events: none !important;
 }
+#floor-intro-overlay.act-curtain-mode {
+  background: radial-gradient(circle at 50% 44%, #0d0a14 0%, #050408 68%, #020103 100%) !important;
+}
+
+/* Stage 1: Stylized Dark Act Title Curtain (0.75s fade-in, 3.0s hold, 0.75s fade-out) */
+#act-intro-curtain {
+  display: flex;
+  opacity: 0;
+  transform: scale(0.94) translateY(10px);
+  transition:
+    opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  --act-primary: #34d399;
+  --act-secondary: #fbbf24;
+  --act-glow: rgba(52, 211, 153, 0.38);
+}
+#act-intro-curtain.hidden {
+  display: none !important;
+}
+#act-intro-curtain.act-curtain-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+#act-intro-curtain.act-curtain-fadeout {
+  opacity: 0;
+  transform: scale(1.04) translateY(-6px);
+  transition:
+    opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Per-Act Subterranean-to-Cosmic Color Themes */
+#act-intro-curtain.act-theme-1 {
+  --act-primary: #34d399;
+  --act-secondary: #fbbf24;
+  --act-glow: rgba(52, 211, 153, 0.42);
+}
+#act-intro-curtain.act-theme-2 {
+  --act-primary: #c084fc;
+  --act-secondary: #e2e8f0;
+  --act-glow: rgba(192, 132, 252, 0.42);
+}
+#act-intro-curtain.act-theme-3 {
+  --act-primary: #fb923c;
+  --act-secondary: #f43f5e;
+  --act-glow: rgba(244, 63, 94, 0.46);
+}
+#act-intro-curtain.act-theme-4 {
+  --act-primary: #38bdf8;
+  --act-secondary: #818cf8;
+  --act-glow: rgba(56, 189, 248, 0.46);
+}
+#act-intro-curtain.act-theme-5 {
+  --act-primary: #fde047;
+  --act-secondary: #e879f9;
+  --act-glow: rgba(232, 121, 249, 0.52);
+}
+
+.act-curtain-aura {
+  position: absolute;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--act-glow) 0%, transparent 70%);
+  filter: blur(36px);
+  opacity: 0.65;
+  z-index: -1;
+  animation: actAuraBreathe 3.2s ease-in-out infinite alternate;
+}
+@keyframes actAuraBreathe {
+  0% { transform: scale(0.92); opacity: 0.48; }
+  100% { transform: scale(1.12); opacity: 0.82; }
+}
+
+.act-curtain-overline {
+  color: var(--act-primary);
+  text-shadow: 0 0 16px var(--act-glow);
+}
+.act-curtain-title {
+  background: linear-gradient(135deg, #ffffff 0%, var(--act-primary) 52%, var(--act-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 26px var(--act-glow));
+}
+.act-curtain-divider {
+  height: 1.5px;
+  width: 0;
+  max-width: 7.5rem;
+  background: linear-gradient(90deg, transparent 0%, var(--act-primary) 50%, var(--act-secondary) 100%);
+  box-shadow: 0 0 12px var(--act-glow);
+  transition: width 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.18s;
+}
+#act-intro-curtain.act-curtain-visible .act-curtain-divider {
+  width: 6.5rem;
+}
+.act-curtain-diamond {
+  color: var(--act-secondary);
+  font-size: 0.75rem;
+  text-shadow: 0 0 12px var(--act-glow);
+  transform: scale(0.5) rotate(0deg);
+  opacity: 0;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.2s, opacity 0.55s ease 0.2s;
+}
+#act-intro-curtain.act-curtain-visible .act-curtain-diamond {
+  transform: scale(1) rotate(90deg);
+  opacity: 1;
+}
+.act-curtain-epigraph {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.75s ease 0.32s, transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.32s;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+}
+#act-intro-curtain.act-curtain-visible .act-curtain-epigraph {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stage 2: Floor Intro Card */
 #floor-intro-card {
   transform: translateY(18px) scale(0.94);
   opacity: 0;
   transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.08), opacity 0.45s ease-out;
 }
-#floor-intro-overlay.floor-intro-active #floor-intro-card {
+#floor-intro-overlay.floor-intro-active #floor-intro-card.floor-card-visible {
   transform: translateY(0) scale(1);
   opacity: 1;
 }

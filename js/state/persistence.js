@@ -578,7 +578,7 @@ function dismissAnyTitleOrSplashOverlays() {
     const el = document.getElementById(id);
     if (el) {
       el.classList.add('hidden');
-      el.classList.remove('floor-intro-active', 'floor-intro-fadeout');
+      el.classList.remove('floor-intro-active', 'floor-intro-fadeout', 'act-curtain-mode');
       el.style.display = '';
       el.style.opacity = '';
       el.style.pointerEvents = '';
@@ -632,6 +632,12 @@ function syncSceneAndHudAfterRestore(payload) {
     try { rebuildEnchantmentRings(); } catch (_) {}
   }
 
+  if (typeof rebuild3DBoardGeometry === 'function' && state && state.boardMask) {
+    try { rebuild3DBoardGeometry(state.boardMask); } catch (_) {}
+  }
+  if (typeof updateCavernAesthetics === 'function') {
+    try { updateCavernAesthetics(); } catch (_) {}
+  }
   if (typeof updateHUD === 'function') updateHUD();
   if (typeof updateTelemetryBadges === 'function') updateTelemetryBadges();
   if (typeof syncSettingsUI === 'function') syncSettingsUI();
@@ -665,6 +671,19 @@ function resumeSavedRun() {
 
     for (const [k, defaultVal] of Object.entries(SAFE_TRANSIENT_DEFAULTS)) {
       state[k] = defaultVal;
+    }
+    if (Array.isArray(state.reservePouch) && typeof RESERVE_CATALOG !== 'undefined') {
+      state.reservePouch = state.reservePouch.filter((id) => !!RESERVE_CATALOG[id]);
+    }
+    if (typeof CARD_CATALOG !== 'undefined') {
+      ['masterDeck', 'hand', 'drawPile', 'discardPile'].forEach((deckKey) => {
+        if (Array.isArray(state[deckKey])) {
+          state[deckKey] = state[deckKey].filter((id) => !!CARD_CATALOG[id]);
+        }
+      });
+    }
+    if (Array.isArray(state.gambits) && typeof GAMBIT_CATALOG !== 'undefined') {
+      state.gambits = state.gambits.filter((id) => !!GAMBIT_CATALOG[id]);
     }
     state.gameOver = false;
     state.busy = false;
@@ -901,66 +920,12 @@ function promptResumeIfAvailable(onAbandonCallback = null) {
 }
 
 function mountCheckpointPillUI() {
-  if (document.getElementById('c4-checkpoint-pill')) return;
-  const pill = document.createElement('button');
-  pill.id = 'c4-checkpoint-pill';
-  pill.className = 'font-mono-code';
-  pill.title = 'Click to manually save or restore checkpoint';
-  pill.style.cssText = [
-    'position: fixed',
-    'bottom: max(0.55rem, env(safe-area-inset-bottom))',
-    'right: 0.65rem',
-    'z-index: 49',
-    'padding: 0.28rem 0.55rem',
-    'border-radius: 999px',
-    'font-size: 0.62rem',
-    'letter-spacing: 0.06em',
-    'background: rgba(14, 12, 18, 0.88)',
-    'border: 1px solid rgba(45, 212, 191, 0.35)',
-    'color: #94a3b8',
-    'cursor: pointer',
-    'display: flex',
-    'align-items: center',
-    'gap: 0.35rem',
-    'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6)'
-  ].join(';');
-
-  pill.innerHTML = `<span id="c4-cp-dot" style="width:6px;height:6px;border-radius:50%;background:#64748b;display:inline-block;"></span><span id="c4-cp-label">CP: READY</span>`;
-
-  pill.addEventListener('click', () => {
-    if (_saveGateLocked && hasSavedRun()) {
-      promptResumeIfAvailable();
-      return;
-    }
-    const ok = saveCurrentRun(true);
-    if (ok) {
-      if (typeof showToast === 'function') {
-        try { showToast('CHECKPOINT SAVED'); } catch (_) {}
-      }
-    } else if (hasSavedRun()) {
-      promptResumeIfAvailable();
-    }
-  });
-
-  document.body.appendChild(pill);
-  updateCheckpointPillUI(hasSavedRun());
+  const existing = document.getElementById('c4-checkpoint-pill');
+  if (existing) existing.remove();
 }
 
-function updateCheckpointPillUI(saved) {
-  const dot = document.getElementById('c4-cp-dot');
-  const label = document.getElementById('c4-cp-label');
-  if (!dot || !label) return;
-  if (saved) {
-    dot.style.background = '#2dd4bf';
-    dot.style.boxShadow = '0 0 8px #2dd4bf';
-    label.style.color = '#ccfbf1';
-    label.textContent = 'CP: SAVED';
-  } else {
-    dot.style.background = '#64748b';
-    dot.style.boxShadow = 'none';
-    label.style.color = '#94a3b8';
-    label.textContent = 'CP: EMPTY';
-  }
+function updateCheckpointPillUI() {
+  // Bottom-right checkpoint indicator removed per design preference
 }
 
 // ----------------------------------------------------------------------------
