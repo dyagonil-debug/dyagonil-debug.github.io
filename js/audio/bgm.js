@@ -504,6 +504,129 @@ class SubterraneanChiptuneEngine {
       ]
     };
 
+    // 4D. BOSS 5 FINAL PHASE (Floor 15 Phase 3 — Ethereal Cylinder: "Astral Singularity Protocol", F# Harmonic Minor / Dorian #4, 136 BPM 16th-Grid, 192 Steps / 12 Bars)
+    //     100% Original 3-Movement Progressive Chiptune Arrangement:
+    //       • Bars 1–4  (Steps 0–63):   Syncopated 3+3+2 Neo-Classical Hook in F# Harmonic Minor (F#m -> Dmaj7 -> Bm -> C#7)
+    //       • Bars 5–8  (Steps 64–127): Soaring Astral Counterpoint & Dual-Lead Harmonic Dialogue (A -> E -> F#m -> C#7)
+    //       • Bars 9–12 (Steps 128–191): Virtuosic 16th-Note Interlocking Shred & Rising Chromatic Bass Climax
+    this.boss5FinalTrack = {
+      bpm: 136,
+      cutoff: 4900,
+      bassGain: 0.114,
+      leadGain: 0.065,
+      harmonyGain: 0.042,
+      arpGain: 0.032,
+      stabGain: 0.038,
+      leadWave: 'sawtooth',
+      harmonyWave: 'square',
+      arpWave: 'square',
+      detuneCents: 15,
+      vibratoDepth: 1.012,
+      staccatoArticulation: true,
+      bass: [
+        // Bars 1-4: Driving 3+3+2 Prog-Synth Octave Bass (F#m -> D -> Bm -> C#7)
+        42, 54, 42, 42, 54, 42, 49, 54, 42, 54, 45, 57, 44, 56, 42, 54,
+        38, 50, 38, 38, 50, 38, 45, 50, 38, 50, 42, 54, 45, 57, 49, 61,
+        35, 47, 35, 35, 47, 35, 42, 47, 35, 47, 38, 50, 42, 54, 47, 59,
+        37, 49, 37, 49, 41, 53, 44, 56, 49, 61, 47, 59, 44, 56, 41, 53,
+        // Bars 5-8: Melodic Gallop Bass (D -> E -> F#m -> D / C#7)
+        38, 50, 38, 50, 42, 54, 45, 57, 40, 52, 40, 52, 44, 56, 47, 59,
+        42, 54, 42, 54, 45, 57, 49, 61, 42, 54, 40, 52, 38, 50, 37, 49,
+        35, 47, 35, 47, 38, 50, 42, 54, 40, 52, 40, 52, 44, 56, 47, 59,
+        45, 57, 44, 56, 42, 54, 40, 52, 38, 50, 42, 54, 37, 49, 41, 53,
+        // Bars 9-12: Chromatic Ascending Tension & Rapid Pedal Point (D -> D# -> E -> E# -> F# -> G -> G# -> C#)
+        38, 50, 38, 50, 39, 51, 39, 51, 40, 52, 40, 52, 41, 53, 41, 53,
+        42, 54, 42, 54, 43, 55, 43, 55, 44, 56, 44, 56, 37, 49, 37, 49,
+        42, 54, 45, 57, 49, 61, 54, 49, 38, 50, 42, 54, 47, 59, 50, 47,
+        37, 49, 41, 53, 44, 56, 49, 61, 53, 49, 44, 41, 37, 41, 44, 49
+      ],
+      lead: [
+        // Bars 1-4: Original Syncopated F# Harmonic Minor Hook ("Astral Singularity" Motif)
+        78, null, 81, 78, 85, null, 83, 80, 81, null, 78, 76, 77, null, 80, 85,
+        86, null, 85, 81, 78, null, 81, 85, 86, 85, 81, 78, 80, null, 77, null,
+        74, null, 78, 83, 86, null, 85, 83, 81, null, 78, 81, 85, null, 88, null,
+        89, 85, 80, 85, 83, 80, 77, 80, 85, null, 86, 85, 80, 83, 85, null,
+        // Bars 5-8: Soaring Heroic Astral Theme & Syncopated Leaps
+        81, null, 85, null, 86, 85, 81, 78, 80, null, 83, null, 88, 86, 83, 80,
+        85, null, 88, null, 90, 88, 85, 81, 85, 86, 85, 81, 80, null, 77, null,
+        78, 81, 83, null, 86, 85, 83, 81, 80, 83, 88, null, 91, 88, 86, 83,
+        90, null, 88, 85, 86, null, 85, 81, 83, 81, 78, 81, 80, null, 89, null,
+        // Bars 9-12: Virtuosic 16th-Note Neo-Classical Arpeggio Shred & Climax
+        78, 81, 86, 81, 80, 84, 87, 84, 80, 83, 88, 83, 80, 85, 89, 85,
+        78, 81, 90, 85, 79, 82, 91, 86, 80, 84, 92, 88, 89, 85, 80, 77,
+        78, 81, 85, 90, 88, 85, 81, 78, 74, 78, 83, 86, 85, 83, 78, 74,
+        77, 80, 85, 89, 92, 89, 85, 80, 89, 90, 92, 93, 90, 85, 80, 77
+      ],
+      harmony: [
+        // Bars 1-4: Interlocking 3rd/6th Counter-Melody
+        73, null, 78, 73, 81, null, 80, 76, 78, null, 73, 71, 73, null, 77, 80,
+        78, null, 81, 78, 74, null, 78, 81, 81, 78, 74, 73, 77, null, 73, null,
+        71, null, 74, 78, 83, null, 81, 78, 78, null, 74, 78, 81, null, 85, null,
+        85, 80, 77, 80, 80, 77, 73, 77, 80, null, 83, 80, 77, 80, 80, null,
+        // Bars 5-8: Rich Dual-Lead Harmony
+        78, null, 81, null, 81, 78, 74, 73, 76, null, 80, null, 83, 80, 76, 74,
+        81, null, 85, null, 85, 81, 78, 76, 81, 83, 81, 78, 77, null, 73, null,
+        74, 78, 78, null, 83, 81, 78, 74, 76, 80, 83, null, 88, 83, 80, 76,
+        85, null, 85, 81, 81, null, 81, 78, 78, 74, 74, 78, 77, null, 85, null,
+        // Bars 9-12: Counterpoint Shred in Parallel 3rds/6ths
+        74, 78, 81, 78, 75, 80, 84, 80, 76, 80, 83, 80, 77, 80, 85, 80,
+        73, 78, 85, 81, 74, 79, 86, 82, 75, 80, 87, 84, 85, 80, 77, 73,
+        73, 78, 81, 85, 85, 81, 78, 73, 71, 74, 78, 83, 81, 78, 74, 71,
+        73, 77, 80, 85, 89, 85, 80, 77, 85, 86, 89, 89, 85, 80, 77, 73
+      ],
+      arp: [
+        // Bars 1-4: Rapid 16th-Note Astral Arpeggiator
+        66, 69, 73, 78, 81, 78, 73, 69, 66, 69, 73, 78, 68, 71, 76, 80,
+        62, 66, 69, 74, 78, 74, 69, 66, 62, 66, 69, 74, 65, 68, 73, 77,
+        59, 62, 66, 71, 74, 71, 66, 62, 59, 62, 66, 71, 66, 69, 73, 78,
+        61, 65, 68, 73, 77, 80, 85, 80, 77, 73, 68, 65, 61, 65, 68, 73,
+        // Bars 5-8: Wide 2-Octave Shimmering Sweeps
+        62, 66, 69, 74, 78, 81, 86, 81, 64, 68, 71, 76, 80, 83, 88, 83,
+        66, 69, 73, 78, 81, 85, 90, 85, 66, 69, 73, 78, 65, 68, 73, 77,
+        59, 62, 66, 71, 74, 78, 83, 78, 64, 68, 71, 76, 80, 83, 88, 83,
+        69, 73, 76, 81, 66, 69, 74, 78, 59, 62, 66, 71, 61, 65, 68, 77,
+        // Bars 9-12: Chromatic Diminished / Harmonic Minor Cascades
+        62, 66, 69, 74, 63, 66, 69, 75, 64, 68, 71, 76, 65, 68, 71, 77,
+        66, 69, 73, 78, 67, 70, 74, 79, 68, 72, 75, 80, 61, 65, 68, 73,
+        66, 69, 73, 78, 81, 85, 90, 85, 59, 62, 66, 71, 74, 78, 83, 78,
+        61, 65, 68, 73, 77, 80, 85, 89, 85, 80, 77, 73, 68, 65, 61, 57
+      ],
+      stab: [
+        // Bars 1-4: 3+3+2 Syncopated Chord Hits
+        66, null, null, 66, null, null, 69, null, 66, null, 69, null, 68, null, 66, null,
+        62, null, null, 62, null, null, 66, null, 62, null, 66, null, 69, null, 65, null,
+        59, null, null, 59, null, null, 62, null, 59, null, 62, null, 66, null, 71, null,
+        61, null, 65, null, 68, null, 73, null, 77, null, 73, null, 68, 65, 61, null,
+        // Bars 5-8: Anthemic Downbeat & Offbeat Brass Chords
+        62, null, 66, null, 69, null, 74, null, 64, null, 68, null, 71, null, 76, null,
+        66, null, 69, null, 73, null, 78, null, 66, null, 64, null, 62, null, 61, null,
+        59, null, 62, null, 66, null, 71, null, 64, null, 68, null, 71, null, 76, null,
+        69, null, 68, null, 66, null, 64, null, 62, null, 66, null, 61, 65, 68, 73,
+        // Bars 9-12: Relentless Chromatic Stabs
+        62, 62, null, 66, 63, 63, null, 69, 64, 64, null, 71, 65, 65, null, 71,
+        66, 66, null, 73, 67, 67, null, 74, 68, 68, null, 75, 73, null, 68, 65,
+        66, null, 69, null, 73, null, 78, null, 59, null, 62, null, 66, null, 71, null,
+        61, null, 65, null, 68, null, 73, null, 77, 73, 68, 65, 61, 65, 68, null
+      ],
+      drums: [
+        // Bars 1-4: Tight 3+3+2 Syncopated Prog-Rock Chiptune Groove
+        'C', 'H', 'S', 'K', 'H', 'K', 'S', 'O', 'K', 'H', 'S', 'K', 'K', 'S', 'K', 'O',
+        'K', 'H', 'S', 'K', 'H', 'K', 'S', 'O', 'K', 'H', 'S', 'K', 'S', 'T', 'S', 'O',
+        'K', 'H', 'S', 'K', 'H', 'K', 'S', 'O', 'K', 'H', 'S', 'K', 'K', 'S', 'K', 'O',
+        'K', 'K', 'S', 'K', 'K', 'S', 'T', 'O', 'K', 'S', 'K', 'S', 'T', 'T', 'S', 'C',
+        // Bars 5-8: Driving Double-Kick Anthem Groove
+        'C', 'K', 'S', 'H', 'K', 'K', 'S', 'O', 'C', 'K', 'S', 'H', 'K', 'S', 'K', 'O',
+        'K', 'K', 'S', 'H', 'K', 'K', 'S', 'O', 'K', 'S', 'K', 'S', 'T', 'S', 'K', 'O',
+        'C', 'K', 'S', 'H', 'K', 'K', 'S', 'O', 'K', 'K', 'S', 'H', 'K', 'S', 'T', 'O',
+        'K', 'S', 'K', 'S', 'T', 'T', 'S', 'O', 'S', 'S', 'T', 'T', 'S', 'S', 'K', 'C',
+        // Bars 9-12: Ascending Tension & Relentless Finale Fill
+        'C', 'K', 'S', 'K', 'C', 'K', 'S', 'K', 'C', 'K', 'S', 'K', 'C', 'K', 'S', 'O',
+        'C', 'K', 'S', 'K', 'C', 'K', 'S', 'K', 'C', 'K', 'S', 'K', 'T', 'T', 'S', 'C',
+        'K', 'H', 'S', 'K', 'K', 'H', 'S', 'O', 'K', 'H', 'S', 'K', 'K', 'H', 'S', 'O',
+        'S', 'S', 'T', 'T', 'S', 'S', 'T', 'T', 'S', 'S', 'S', 'S', 'K', 'S', 'T', 'C'
+      ]
+    };
+
     this.tracksByMode = {
       cavern: this.cavernTrack,
       boss1: this.boss1Track,
@@ -511,6 +634,7 @@ class SubterraneanChiptuneEngine {
       boss3: this.boss3Track,
       boss4: this.boss4Track,
       boss5: this.boss5Track,
+      boss5_final: this.boss5FinalTrack,
       bazaar: this.bazaarTrack,
       roulette: this.rouletteTrack
     };
@@ -560,7 +684,9 @@ class SubterraneanChiptuneEngine {
     }
     if (modeOrFloor === 'boss' || modeOrFloor === true) {
       const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 2;
-      if (fIdx >= 14) return 'boss5';
+      if (fIdx >= 14) {
+        return (typeof state !== 'undefined' && state && state.isCylinderPhase) ? 'boss5_final' : 'boss5';
+      }
       if (fIdx >= 11) return 'boss4';
       if (fIdx >= 8) return 'boss3';
       if (fIdx >= 5) return 'boss2';
@@ -698,7 +824,7 @@ class SubterraneanChiptuneEngine {
     const cutoffBoost = (this.currentMode === 'roulette' && this.isSpinOverdrive) ? 650 : 0;
     const effectiveCutoff = (track.cutoff || 2400) + cutoffBoost;
 
-    // 1. Triangle Sub-Bass Channel
+    // 1. Triangle Sub-Bass + Overdrive Saw Bass Channel
     const bassNote = track.bass[idx];
     if (bassNote) {
       const bFreq = this.midiToFreq(bassNote + pitchShift);
@@ -706,34 +832,47 @@ class SubterraneanChiptuneEngine {
         bFreq,
         'triangle',
         now,
-        stepDur * 0.92,
+        stepDur * (track.staccatoArticulation ? 0.84 : 0.92),
         track.bassGain || 0.08,
         false,
         effectiveCutoff
       );
-      if (this.currentMode === 'boss2' || this.currentMode === 'boss3' || (this.currentMode === 'roulette' && this.isSpinOverdrive)) {
+      if (
+        this.currentMode === 'boss2' ||
+        this.currentMode === 'boss3' ||
+        this.currentMode === 'boss4' ||
+        this.currentMode === 'boss5' ||
+        this.currentMode === 'boss5_final' ||
+        (this.currentMode === 'roulette' && this.isSpinOverdrive)
+      ) {
         this.playChipTone(
           bFreq,
           'sawtooth',
           now,
-          stepDur * 0.75,
-          this.currentMode === 'boss3' ? 0.032 : 0.022,
+          stepDur * 0.72,
+          this.currentMode === 'boss5_final'
+            ? 0.042
+            : ((this.currentMode === 'boss3' || this.currentMode === 'boss5') ? 0.034 : 0.024),
           false,
-          1100
+          this.currentMode === 'boss5_final' ? 1450 : 1100
         );
       }
     }
 
-    // 2. Lead Channel (with detuned dual-oscillator unison on Boss tracks for rich synth presence)
+    // 2. Lead Channel (with crisp staccato/sustain gating for rapid 16th riffs & dual-oscillator unison)
     const leadNote = track.lead[idx];
     if (leadNote) {
+      const nextLead = track.lead[(idx + 1) % trackLen];
+      const leadDurMult = track.staccatoArticulation
+        ? (nextLead !== null && nextLead !== undefined ? 0.76 : 1.38)
+        : 1.65;
       const lFreq = this.midiToFreq(leadNote + pitchShift);
       const lWave = track.leadWave || 'square';
       this.playChipTone(
         lFreq,
         lWave,
         now,
-        stepDur * 1.65,
+        stepDur * leadDurMult,
         track.leadGain || 0.045,
         true,
         effectiveCutoff,
@@ -745,12 +884,30 @@ class SubterraneanChiptuneEngine {
           lFreq * detuneRatio,
           'square',
           now,
-          stepDur * 1.45,
-          (track.leadGain || 0.045) * 0.48,
+          stepDur * (leadDurMult * 0.9),
+          (track.leadGain || 0.045) * 0.52,
           false,
-          effectiveCutoff * 0.9
+          effectiveCutoff * 0.92
         );
       }
+    }
+
+    // 2B. Secondary Harmony / Counter-Melody Channel (active on boss5_final)
+    if (track.harmony && track.harmony[idx]) {
+      const nextHarm = track.harmony[(idx + 1) % trackLen];
+      const harmDurMult = track.staccatoArticulation
+        ? (nextHarm !== null && nextHarm !== undefined ? 0.74 : 1.28)
+        : 1.35;
+      this.playChipTone(
+        this.midiToFreq(track.harmony[idx] + pitchShift),
+        track.harmonyWave || 'square',
+        now,
+        stepDur * harmDurMult,
+        track.harmonyGain || 0.036,
+        true,
+        effectiveCutoff * 0.88,
+        1.008
+      );
     }
 
     // 3. Arpeggio Channel
@@ -770,14 +927,14 @@ class SubterraneanChiptuneEngine {
     // 4. Harmonic Counter-Stab / Shop Organ Channel
     if (track.stab && track.stab[idx]) {
       const stabWave = this.currentMode === 'bazaar' ? 'triangle' : 'sawtooth';
-      const stabGain = this.currentMode === 'bazaar'
+      const stabGain = track.stabGain || (this.currentMode === 'bazaar'
         ? 0.028
-        : (this.currentMode === 'boss3' ? 0.034 : 0.026);
+        : ((this.currentMode === 'boss3' || this.currentMode === 'boss5') ? 0.036 : 0.026));
       this.playChipTone(
         this.midiToFreq(track.stab[idx] + pitchShift),
         stabWave,
         now,
-        stepDur * (this.currentMode === 'bazaar' ? 1.35 : 0.85),
+        stepDur * (this.currentMode === 'bazaar' ? 1.35 : (track.staccatoArticulation ? 0.72 : 0.85)),
         stabGain,
         this.currentMode !== 'bazaar',
         effectiveCutoff,
@@ -826,31 +983,48 @@ class SubterraneanChiptuneEngine {
 
   playChipDrum(kind, startTime) {
     const ctx = this.ctx;
-    const isFinalBoss = this.currentMode === 'boss3';
-    const isMidBoss = this.currentMode === 'boss2';
+    const isPhase3Final = this.currentMode === 'boss5_final';
+    const isFinalBoss = isPhase3Final || this.currentMode === 'boss3' || this.currentMode === 'boss5';
+    const isMidBoss = this.currentMode === 'boss2' || this.currentMode === 'boss4';
     if (kind === 'K') {
       const osc = ctx.createOscillator();
-      const kickVol = isFinalBoss ? 0.14 : (isMidBoss ? 0.125 : 0.11);
+      const kickVol = isPhase3Final ? 0.155 : (isFinalBoss ? 0.14 : (isMidBoss ? 0.125 : 0.11));
       const gain = this.createGainSafe(ctx, kickVol, startTime, 0.085);
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(isFinalBoss ? 165 : (isMidBoss ? 150 : 135), startTime);
-      osc.frequency.exponentialRampToValueAtTime(30, startTime + 0.078);
+      osc.frequency.setValueAtTime(isPhase3Final ? 180 : (isFinalBoss ? 165 : (isMidBoss ? 150 : 135)), startTime);
+      osc.frequency.exponentialRampToValueAtTime(28, startTime + 0.078);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(startTime);
       osc.stop(startTime + 0.09);
-    } else if (kind === 'S' || kind === 'H' || kind === 'O') {
+    } else if (kind === 'T') {
+      // Pitch-dropping 8-bit synth tom fill
+      const osc = ctx.createOscillator();
+      const gain = this.createGainSafe(ctx, 0.13, startTime, 0.095);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(260, startTime);
+      osc.frequency.exponentialRampToValueAtTime(75, startTime + 0.088);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.10);
+    } else if (kind === 'S' || kind === 'H' || kind === 'O' || kind === 'C') {
       this.ensureNoiseBuffer();
       if (!this.noiseBuffer) return;
       const noise = ctx.createBufferSource();
       noise.buffer = this.noiseBuffer;
 
       const filter = ctx.createBiquadFilter();
-      filter.type = kind === 'S' ? 'bandpass' : 'highpass';
-      filter.frequency.setValueAtTime(kind === 'S' ? (isFinalBoss ? 1650 : 1400) : 5200, startTime);
+      filter.type = (kind === 'S' || kind === 'C') ? 'bandpass' : 'highpass';
+      filter.frequency.setValueAtTime(
+        kind === 'S' ? (isFinalBoss ? 1750 : 1400) : (kind === 'C' ? 3200 : 5200),
+        startTime
+      );
 
-      const dur = kind === 'S' ? (isFinalBoss ? 0.11 : 0.095) : (kind === 'O' ? 0.14 : 0.032);
-      const vol = kind === 'S' ? (isFinalBoss ? 0.07 : (isMidBoss ? 0.062 : 0.055)) : (kind === 'O' ? 0.038 : 0.024);
+      const dur = kind === 'C' ? 0.22 : (kind === 'S' ? (isFinalBoss ? 0.11 : 0.095) : (kind === 'O' ? 0.14 : 0.032));
+      const vol = kind === 'C'
+        ? 0.065
+        : (kind === 'S' ? (isPhase3Final ? 0.082 : (isFinalBoss ? 0.07 : 0.055)) : (kind === 'O' ? 0.040 : 0.024));
       const gain = this.createGainSafe(ctx, vol, startTime, dur);
 
       noise.connect(filter);
@@ -898,7 +1072,7 @@ const bgm = new SubterraneanChiptuneEngine(sfx);
       const fIdx = (typeof state !== 'undefined' && typeof state.floorIdx === 'number') ? state.floorIdx : 0;
       const isBoss = typeof isBossFloorIndex === 'function' ? isBossFloorIndex(fIdx) : ((fIdx + 1) % 3 === 0);
       if (isBoss) {
-        bgm.setMode(fIdx >= 14 ? 'boss5' : (fIdx >= 11 ? 'boss4' : (fIdx >= 8 ? 'boss3' : (fIdx >= 5 ? 'boss2' : 'boss1'))));
+        bgm.setMode(fIdx >= 14 ? ((typeof state !== 'undefined' && state && state.isCylinderPhase) ? 'boss5_final' : 'boss5') : (fIdx >= 11 ? 'boss4' : (fIdx >= 8 ? 'boss3' : (fIdx >= 5 ? 'boss2' : 'boss1'))));
       } else {
         bgm.setMode('cavern');
       }

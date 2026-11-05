@@ -94,6 +94,7 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   ];
 
   const renderIntroCalloutContent = () => {
+    const wasCardVisible = card && card.classList.contains('floor-card-visible');
     const simp = typeof isSimplifiedView === 'function' ? isSimplifiedView() : true;
     const topoLabelEl = document.getElementById('floor-intro-topo-label');
     const aiRowEl = document.getElementById('floor-intro-ai-row');
@@ -186,6 +187,10 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
         ruleDesc.textContent = `Standard Cavern Sentinel (Negamax D${floorData.depth} • ${floorData.aiPrecisionPct}% Precision • ${floorData.stability}T Stability). Build your Gold economy and claim Enchanted Slots before the Boss chamber!`;
       }
     }
+
+    if ((wasCardVisible || (overlay && overlay.classList.contains('floor-intro-active'))) && card) {
+      card.classList.add('floor-card-visible');
+    }
   };
 
   window._refreshActiveFloorIntroCard = renderIntroCalloutContent;
@@ -262,7 +267,10 @@ function playFloorIntroTransition(floorData, topo, targetBgmMode) {
     }
     card.classList.remove('hidden');
 
-    overlay.onclick = () => {
+    overlay.onclick = (e) => {
+      if (e && e.target && typeof e.target.closest === 'function' && e.target.closest('#floor-intro-view-mode-btn')) {
+        return;
+      }
       sfx.playHoverTick();
       finishIntroAndResumeBGM();
     };

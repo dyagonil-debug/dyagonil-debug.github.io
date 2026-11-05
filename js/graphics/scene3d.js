@@ -151,14 +151,118 @@ function clearThreeGroup(group) {
   }
 }
 
+const CYLINDER_RADIUS = 4.35;
+const cylinderColFrameGroups = [];
+
+function getCylinderColumnAngle(col) {
+  const totalCols = (typeof CYLINDER_COLS === 'number') ? CYLINDER_COLS : 12;
+  const baseAngle = (col / totalCols) * Math.PI * 2;
+  const rot = (typeof state !== 'undefined' && state && Number.isFinite(state.cylinderAngle))
+    ? state.cylinderAngle
+    : 0;
+  return baseAngle + rot;
+}
+
+function isCylinderColumnVisible(col) {
+  if (typeof state !== 'undefined' && state && state.isCylinderLowering && (state.cylinderDropOffsetY || 0) > 3.2) {
+    return true;
+  }
+  return Math.cos(getCylinderColumnAngle(col)) > -0.05;
+}
+
+function isCylinderColumnInteractive(col) {
+  if (typeof state !== 'undefined' && state && state.isCylinderLowering) return false;
+  return Math.cos(getCylinderColumnAngle(col)) > 0.08;
+}
+
+function getCylinderColumnScreenXOrder(colsArray) {
+  return [...colsArray].sort((a, b) => Math.sin(getCylinderColumnAngle(a)) - Math.sin(getCylinderColumnAngle(b)));
+}
+
+function getCylinderCellWorldCoords(r, c, radialInset = 0) {
+  const theta = getCylinderColumnAngle(c);
+  const rad = CYLINDER_RADIUS - radialInset;
+  const sinT = Math.sin(theta);
+  const cosT = Math.cos(theta);
+  return {
+    x: rad * sinT,
+    y: START_Y + r * CELL_SPACING,
+    z: -rad * cosT,
+    rotY: -theta,
+    cosT,
+    sinT
+  };
+}
+
 function rebuild3DBoardGeometry(mask) {
   clearThreeGroup(dynamicFrameGroup);
+  cylinderColFrameGroups.length = 0;
+
+  const isCyl = typeof state !== 'undefined' && state && !!state.isCylinderPhase;
+  if (baseMesh) {
+    baseMesh.visible = !isCyl;
+  }
+
+  if (isCyl) {
+    const botCrown = new THREE.Mesh(
+      new THREE.TorusGeometry(CYLINDER_RADIUS, 0.14, 14, 64),
+      brassInlayMat
+    );
+    botCrown.rotation.x = Math.PI / 2;
+    botCrown.position.set(0, START_Y - CELL_SPACING * 0.5 - 0.12, 0);
+    dynamicFrameGroup.add(botCrown);
+
+    const topCrown = new THREE.Mesh(
+      new THREE.TorusGeometry(CYLINDER_RADIUS, 0.11, 14, 64),
+      brassInlayMat
+    );
+    topCrown.rotation.x = Math.PI / 2;
+    topCrown.position.set(0, START_Y + (ROWS - 0.5) * CELL_SPACING + 0.12, 0);
+    dynamicFrameGroup.add(topCrown);
+
+    for (let c = 0; c < COLS; c++) {
+      const colGroup = new THREE.Group();
+      colGroup.userData = { col: c };
+      for (let r = 0; r < ROWS; r++) {
+        const y = START_Y + r * CELL_SPACING;
+        const topBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
+        topBeam.position.set(0, y + CELL_SPACING * 0.5, 0);
+        colGroup.add(topBeam);
+
+        const botBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
+        botBeam.position.set(0, y - CELL_SPACING * 0.5, 0);
+        colGroup.add(botBeam);
+
+        const leftBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
+        leftBeam.position.set(-CELL_SPACING * 0.5, y, 0);
+        colGroup.add(leftBeam);
+
+        const rightBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
+        rightBeam.position.set(CELL_SPACING * 0.5, y, 0);
+        colGroup.add(rightBeam);
+
+        const fRing = new THREE.Mesh(ringGeo, brassInlayMat);
+        fRing.position.set(0, y, 0.36);
+        colGroup.add(fRing);
+
+        const bRing = new THREE.Mesh(ringGeo, brassInlayMat);
+        bRing.position.set(0, y, -0.36);
+        colGroup.add(bRing);
+      }
+      dynamicFrameGroup.add(colGroup);
+      cylinderColFrameGroups.push(colGroup);
+    }
+    if (typeof updateCylindricalBoardTransforms === 'function') {
+      updateCylindricalBoardTransforms(0);
+    }
+    return;
+  }
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const x = START_X + c * CELL_SPACING;
       const y = START_Y + r * CELL_SPACING;
-      const isPlayable = mask[r][c];
+      const isPlayable = mask && mask[r] ? mask[r][c] : true;
 
       if (isPlayable) {
         const topBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
@@ -1029,6 +1133,12 @@ const tesseractCrimsonMat = new THREE.MeshBasicMaterial({
   blending: THREE.AdditiveBlending
 });
 
+const tesseractShatteredMat = new THREE.MeshBasicMaterial({
+  color: 0x334155,
+  transparent: true,
+  opacity: 0.22
+});
+
 const phantomBoards = [];
 [
   { x: -8.6, y:  2.4, z: -6.8, idx: 0 },
@@ -1039,7 +1149,6 @@ const phantomBoards = [];
   const pFrame = new THREE.Group();
   pFrame.position.set(pb.x, pb.y, pb.z);
 
-  // Miniature holographic Connect-4 grid frame representing each of the 4 parallel boards
   const outerBox = new THREE.Mesh(
     new THREE.BoxGeometry(2.2, 1.85, 0.14),
     cavePillarMat
@@ -1048,14 +1157,208 @@ const phantomBoards = [];
 
   const rim = new THREE.Mesh(
     new THREE.TorusGeometry(1.35, 0.045, 8, 4),
-     pb.idx === 0 ? tesseractGoldMat : tesseractCrimsonMat
+    pb.idx === 0 ? tesseractGoldMat : tesseractCrimsonMat
   );
   rim.rotation.z = Math.PI / 4;
   pFrame.add(rim);
 
   act5TesseractGroup.add(pFrame);
-  phantomBoards.push({ group: pFrame, rim, baseX: pb.x, baseY: pb.y, baseZ: pb.z, idx: pb.idx });
+  phantomBoards.push({ group: pFrame, outerBox, rim, baseX: pb.x, baseY: pb.y, baseZ: pb.z, idx: pb.idx });
 });
+
+// 7E. Act V Phase 3 (1/5 HP Final Phase): Ethereal Cosmic 4D Plane (Revealed after Cavern Crumbles)
+const etherealPlaneGroup = new THREE.Group();
+etherealPlaneGroup.visible = false;
+scene.add(etherealPlaneGroup);
+
+const etherealGoldWireMat = new THREE.MeshBasicMaterial({
+  color: 0xfde047,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.72,
+  blending: THREE.AdditiveBlending
+});
+const etherealCyanWireMat = new THREE.MeshBasicMaterial({
+  color: 0x38bdf8,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.68,
+  blending: THREE.AdditiveBlending
+});
+const etherealVioletWireMat = new THREE.MeshBasicMaterial({
+  color: 0xc084fc,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.65,
+  blending: THREE.AdditiveBlending
+});
+
+const etherealAstrolabeRings = [];
+[
+  { radius: 12.2, tube: 0.065, mat: tesseractGoldMat, rx: 0.95, ry: 0.25, speedX: 0.22, speedY: 0.31, speedZ: 0.14 },
+  { radius: 16.8, tube: 0.055, mat: etherealCyanWireMat, rx: 1.42, ry: -0.45, speedX: -0.18, speedY: 0.24, speedZ: -0.19 },
+  { radius: 21.5, tube: 0.075, mat: etherealVioletWireMat, rx: 0.48, ry: 0.85, speedX: 0.14, speedY: -0.22, speedZ: 0.27 },
+  { radius: 9.2,  tube: 0.045, mat: tesseractCrimsonMat, rx: Math.PI / 2, ry: 0, speedX: 0.08, speedY: -0.35, speedZ: 0.12 }
+].forEach((cfg) => {
+  const ringMesh = new THREE.Mesh(new THREE.TorusGeometry(cfg.radius, cfg.tube, 12, 72), cfg.mat);
+  ringMesh.rotation.set(cfg.rx, cfg.ry, 0);
+  etherealPlaneGroup.add(ringMesh);
+  etherealAstrolabeRings.push({ mesh: ringMesh, ...cfg });
+});
+
+const etherealHypercubes = [];
+[
+  { x: -11.5, y:  5.2, z: -11.5, scale: 1.35, phase: 0.0 },
+  { x:  11.5, y:  5.2, z: -11.5, scale: 1.35, phase: 1.6 },
+  { x: -13.0, y: -3.6, z: -10.0, scale: 1.15, phase: 3.1 },
+  { x:  13.0, y: -3.6, z: -10.0, scale: 1.15, phase: 4.7 },
+  { x:   0.0, y:  7.8, z: -14.5, scale: 1.75, phase: 2.4 },
+  { x:   0.0, y: -6.8, z: -13.5, scale: 1.55, phase: 5.2 }
+].forEach((hc, idx) => {
+  const hGroup = new THREE.Group();
+  hGroup.position.set(hc.x, hc.y, hc.z);
+  hGroup.scale.setScalar(hc.scale);
+  const outer = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 1.9, 1.9),
+    idx % 2 === 0 ? etherealGoldWireMat : etherealCyanWireMat
+  );
+  const inner = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 1.0, 1.0),
+    etherealVioletWireMat
+  );
+  const core = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.42, 0),
+    tesseractGoldMat
+  );
+  hGroup.add(outer);
+  hGroup.add(inner);
+  hGroup.add(core);
+  etherealPlaneGroup.add(hGroup);
+  etherealHypercubes.push({ group: hGroup, outer, inner, core, baseY: hc.y, phase: hc.phase });
+});
+
+const etherealStarCount = 260;
+const etherealStarGeo = new THREE.BufferGeometry();
+const etherealStarPositions = new Float32Array(etherealStarCount * 3);
+for (let i = 0; i < etherealStarCount; i++) {
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 8.5 + Math.random() * 20.0;
+  etherealStarPositions[i * 3] = Math.cos(angle) * dist;
+  etherealStarPositions[i * 3 + 1] = (Math.random() - 0.5) * 26.0;
+  etherealStarPositions[i * 3 + 2] = -Math.abs(Math.sin(angle) * dist) - 2.0;
+}
+etherealStarGeo.setAttribute('position', new THREE.BufferAttribute(etherealStarPositions, 3));
+const etherealStarMat = new THREE.PointsMaterial({
+  color: 0xfef08a,
+  size: 0.34,
+  map: glowSpriteTex,
+  transparent: true,
+  opacity: 0.88,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+});
+const etherealStarField = new THREE.Points(etherealStarGeo, etherealStarMat);
+etherealPlaneGroup.add(etherealStarField);
+
+function resetCavernFromEtherealPlane() {
+  if (typeof state !== 'undefined' && state) {
+    state.etherealPlaneActive = false;
+  }
+  cavernEnvGroup.visible = true;
+  cavernEnvGroup.position.set(0, 0, 0);
+  cavernEnvGroup.rotation.set(0, 0, 0);
+  cavernEnvGroup.children.forEach((child) => {
+    if (child && child.userData && child.userData._origCached) {
+      child.position.copy(child.userData._origPos);
+      child.rotation.copy(child.userData._origRot);
+      child.scale.copy(child.userData._origScale);
+    }
+  });
+  phantomBoards.forEach((pb) => {
+    pb.outerBox.visible = true;
+    pb.outerBox.rotation.set(0, 0, 0);
+    pb.group.scale.setScalar(1);
+  });
+  etherealPlaneGroup.visible = false;
+  etherealPlaneGroup.scale.setScalar(1);
+}
+
+function triggerCavernCrumbleToEtherealPlane(onComplete = null) {
+  if (typeof state !== 'undefined' && state) {
+    state.etherealPlaneActive = true;
+  }
+  cavernEnvGroup.children.forEach((child, idx) => {
+    if (!child) return;
+    if (!child.userData) child.userData = {};
+    if (!child.userData._origCached) {
+      child.userData._origCached = true;
+      child.userData._origPos = child.position.clone();
+      child.userData._origRot = child.rotation.clone();
+      child.userData._origScale = child.scale.clone();
+    }
+    child.userData._crumbleSpeedY = 16.0 + (idx % 7) * 2.8;
+    child.userData._crumbleRotX = ((idx % 2 === 0 ? 1 : -1) * (0.45 + (idx % 5) * 0.14));
+    child.userData._crumbleRotZ = ((idx % 3 === 0 ? 1 : -1) * (0.38 + (idx % 4) * 0.12));
+  });
+
+  etherealPlaneGroup.visible = true;
+  etherealPlaneGroup.scale.setScalar(0.35);
+
+  if (typeof sfx !== 'undefined' && sfx && typeof sfx.playCavernCrumbleToEthereal === 'function') {
+    sfx.playCavernCrumbleToEthereal();
+  }
+  if (typeof triggerBoardShake === 'function') {
+    triggerBoardShake(0.68);
+  }
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(1.45);
+  }
+
+  const startMs = performance.now();
+  const durationMs = 2350;
+
+  function stepCrumble(now) {
+    const p = Math.min(1, (now - startMs) / durationMs);
+    const easeIn = p * p * p;
+    const easeOut = 1 - Math.pow(1 - p, 3);
+
+    if (p < 0.75 && Math.random() < 0.35 && typeof triggerBoardShake === 'function') {
+      triggerBoardShake(0.28 * (1 - p));
+    }
+
+    cavernEnvGroup.children.forEach((child) => {
+      if (!child || !child.userData || !child.userData._origCached) return;
+      const origPos = child.userData._origPos;
+      const origRot = child.userData._origRot;
+      const jitterX = (Math.random() - 0.5) * 0.28 * (1 - p);
+      child.position.set(
+        origPos.x + jitterX,
+        origPos.y - easeIn * child.userData._crumbleSpeedY,
+        origPos.z - easeIn * 4.5
+      );
+      child.rotation.set(
+        origRot.x + easeIn * child.userData._crumbleRotX,
+        origRot.y,
+        origRot.z + easeIn * child.userData._crumbleRotZ
+      );
+    });
+
+    etherealPlaneGroup.scale.setScalar(0.35 + 0.65 * easeOut);
+
+    if (p < 1) {
+      requestAnimationFrame(stepCrumble);
+    } else {
+      cavernEnvGroup.visible = false;
+      etherealPlaneGroup.scale.setScalar(1.0);
+      updateCavernAesthetics();
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }
+  }
+
+  requestAnimationFrame(stepCrumble);
+}
 
 // 8. VOLUMETRIC SUBTERRANEAN MIST RIBBONS
 const cavernMistLayers = [];
@@ -1453,11 +1756,35 @@ function updateCavernAesthetics() {
   });
 
   // Toggle Boss-Tier Ominous Architecture across all 5 Acts
-  obsidianSpikesGroup.visible = baseProfile.showObsidianSpikes || (isBoss && tier >= 0 && bossWounded);
-  eldritchWatchersGroup.visible = baseProfile.showEldritchWatchers || (isBoss && tier >= 1 && bossWounded);
-  voidMonolithsGroup.visible = baseProfile.showVoidMonoliths;
-  act4SingularityGroup.visible = !!baseProfile.showAct4Singularity || (isBoss && tier === 2 && bossWounded);
-  act5TesseractGroup.visible = !!baseProfile.showAct5Tesseract || (isBoss && tier === 3 && bossWounded);
+  const isEthereal = typeof state !== 'undefined' && state && !!state.etherealPlaneActive;
+  if (isEthereal) {
+    cavernEnvGroup.visible = false;
+    etherealPlaneGroup.visible = true;
+    if (scene.fog) {
+      if (scene.fog.color && typeof scene.fog.color.setHex === 'function') {
+        scene.fog.color.setHex(0x050214);
+      }
+      scene.fog.density = 0.010;
+    }
+    if (ambientLight && ambientLight.color && typeof ambientLight.color.setHex === 'function') {
+      ambientLight.color.setHex(0xe0e7ff);
+      ambientLight.intensity = 0.66;
+    }
+    amberLanternLight.color.setHex(0xfde047);
+    tealBiolumLight.color.setHex(0x38bdf8);
+    cavernRimLightLeft.color.setHex(0xc084fc);
+    cavernRimLightRight.color.setHex(0xfde047);
+    cavernChasmLight.color.setHex(0x38bdf8);
+    cavernVaultLight.color.setHex(0xfde047);
+  } else {
+    cavernEnvGroup.visible = true;
+    etherealPlaneGroup.visible = false;
+    obsidianSpikesGroup.visible = baseProfile.showObsidianSpikes || (isBoss && tier >= 0 && bossWounded);
+    eldritchWatchersGroup.visible = baseProfile.showEldritchWatchers || (isBoss && tier >= 1 && bossWounded);
+    voidMonolithsGroup.visible = baseProfile.showVoidMonoliths;
+    act4SingularityGroup.visible = !!baseProfile.showAct4Singularity || (isBoss && tier === 2 && bossWounded);
+    act5TesseractGroup.visible = !!baseProfile.showAct5Tesseract || (isBoss && tier === 3 && bossWounded);
+  }
 
   // Sync HTML body attribute for atmospheric vignette & HUD styling
   if (typeof document !== 'undefined' && document.body) {
@@ -1576,19 +1903,59 @@ function updateCavernAnimation(elapsed) {
     });
   }
 
-  // 6C. Animate Act V Sovereign Tesseract Phantom Boards (highlighting active board 0..3)
+  // 6C. Animate Act V Sovereign Tesseract Phantom Boards (highlighting active board & dimming shattered boards)
   if (act5TesseractGroup.visible) {
     const activeB = (typeof state !== 'undefined' && state && Number.isFinite(state.activeTesseractBoardIdx))
       ? state.activeTesseractBoardIdx
       : 0;
+    const tBoards = (typeof state !== 'undefined' && state && Array.isArray(state.tesseractBoards))
+      ? state.tesseractBoards
+      : [];
     phantomBoards.forEach((pb) => {
-      const isCurrent = pb.idx === activeB;
-      pb.group.position.y = pb.baseY + Math.sin(elapsed * 1.8 + pb.idx * 1.5) * 0.36;
-      pb.group.rotation.y = Math.sin(elapsed * 0.9 + pb.idx) * 0.32;
-      pb.rim.rotation.z = elapsed * (isCurrent ? 1.8 : 0.6) + pb.idx;
-      pb.group.scale.setScalar(isCurrent ? 1.18 : 0.86);
-      pb.rim.material = isCurrent ? tesseractGoldMat : tesseractCrimsonMat;
+      const entry = tBoards[pb.idx];
+      const isShattered = !!(entry && entry.isShattered);
+      const isCurrent = !isShattered && pb.idx === activeB;
+      if (isShattered) {
+        pb.group.position.y = pb.baseY - 1.1 + Math.sin(elapsed * 0.7 + pb.idx) * 0.08;
+        pb.group.rotation.set(0.45, -0.35, 0.52);
+        pb.group.scale.setScalar(0.54);
+        pb.outerBox.visible = false;
+        pb.rim.material = tesseractShatteredMat;
+      } else {
+        pb.outerBox.visible = true;
+        pb.group.rotation.x = 0;
+        pb.group.rotation.z = 0;
+        pb.group.position.y = pb.baseY + Math.sin(elapsed * 1.8 + pb.idx * 1.5) * 0.36;
+        pb.group.rotation.y = Math.sin(elapsed * 0.9 + pb.idx) * 0.32;
+        pb.rim.rotation.z = elapsed * (isCurrent ? 1.8 : 0.6) + pb.idx;
+        pb.group.scale.setScalar(isCurrent ? 1.18 : 0.86);
+        pb.rim.material = isCurrent ? tesseractGoldMat : tesseractCrimsonMat;
+      }
     });
+  }
+
+  // 6D. Animate Phase 3 Ethereal Cosmic Plane
+  if (etherealPlaneGroup.visible) {
+    etherealAstrolabeRings.forEach((rObj) => {
+      rObj.mesh.rotation.x += 0.0035 * rObj.speedX;
+      rObj.mesh.rotation.y += 0.0045 * rObj.speedY;
+      rObj.mesh.rotation.z += 0.0030 * rObj.speedZ;
+    });
+    etherealHypercubes.forEach((hc) => {
+      hc.group.position.y = hc.baseY + Math.sin(elapsed * 1.4 + hc.phase) * 0.55;
+      hc.outer.rotation.set(elapsed * 0.85 + hc.phase, elapsed * 1.1, 0);
+      hc.inner.rotation.set(-elapsed * 1.3, -elapsed * 0.95, elapsed * 0.7);
+      hc.core.rotation.y = elapsed * 2.4;
+    });
+    const eArr = etherealStarGeo.attributes.position.array;
+    if (eArr) {
+      for (let i = 0; i < etherealStarCount; i++) {
+        const i3 = i * 3;
+        eArr[i3 + 1] += 0.018;
+        if (eArr[i3 + 1] > 13.0) eArr[i3 + 1] = -13.0;
+      }
+      etherealStarGeo.attributes.position.needsUpdate = true;
+    }
   }
 
   // 7. Drift Subterranean Mist Layers
@@ -1626,9 +1993,10 @@ updateCavernAesthetics();
 
 const columnHitboxes = [];
 const invisibleMat = new THREE.MeshBasicMaterial({ visible: false });
-for (let c = 0; c < COLS; c++) {
+const TOTAL_HITBOX_COLS = typeof MAX_COLS !== 'undefined' ? MAX_COLS : 12;
+for (let c = 0; c < TOTAL_HITBOX_COLS; c++) {
   const x = START_X + c * CELL_SPACING;
-  const hitBox = new THREE.Mesh(new THREE.BoxGeometry(CELL_SPACING, BOARD_H + 2.5, 1.6), invisibleMat);
+  const hitBox = new THREE.Mesh(new THREE.BoxGeometry(CELL_SPACING * 1.12, BOARD_H + 2.5, 1.6), invisibleMat);
   hitBox.position.set(x, START_Y + (BOARD_H - CELL_SPACING) / 2 + 0.3, 0);
   hitBox.userData = { col: c };
   boardGroup.add(hitBox);
@@ -1686,7 +2054,17 @@ function addEnchantRingMesh(r, c, eType) {
   const mat = enchantMaterials[eType];
   if (!mat) return;
   const eRing = new THREE.Mesh(enchantRingGeo, mat);
-  eRing.position.set(START_X + c * CELL_SPACING, START_Y + r * CELL_SPACING, 0.39);
+  eRing.userData = { row: r, col: c, eType };
+  if (typeof state !== 'undefined' && state && state.isCylinderPhase) {
+    const pos = getCylinderCellWorldCoords(r, c, 0.39);
+    eRing.position.set(pos.x, pos.y, pos.z);
+    eRing.rotation.set(0, pos.rotY, 0);
+    eRing.visible = isCylinderColumnVisible(c);
+  } else {
+    eRing.position.set(START_X + c * CELL_SPACING, START_Y + r * CELL_SPACING, 0.39);
+    eRing.rotation.set(0, 0, 0);
+    eRing.visible = true;
+  }
   enchantGroup.add(eRing);
 }
 
@@ -1749,11 +2127,18 @@ function generateSlotEnchantments() {
 
 function createTokenMesh(r, c, type, initialY) {
   const mesh = new THREE.Mesh(tokenGeo, getTokenMaterial(type));
-  const targetX = START_X + c * CELL_SPACING;
+  const isCyl = typeof state !== 'undefined' && state && !!state.isCylinderPhase;
+  const cylPos = isCyl ? getCylinderCellWorldCoords(r, c, 0) : null;
+  const targetX = isCyl ? cylPos.x : (START_X + c * CELL_SPACING);
+  const targetZ = isCyl ? cylPos.z : 0;
   const targetY = START_Y + r * CELL_SPACING;
 
-  mesh.position.set(targetX, initialY, 0);
-  mesh.userData = { row: r, col: c, targetX, targetY, velY: 0, type };
+  mesh.position.set(targetX, initialY, targetZ);
+  if (isCyl) {
+    mesh.rotation.y = cylPos.rotY;
+    mesh.visible = isCylinderColumnVisible(c);
+  }
+  mesh.userData = { row: r, col: c, targetX, targetY, targetZ, velY: 0, type };
 
   const innerRing = new THREE.Mesh(tokenInnerRingGeo, brassInlayMat);
   innerRing.position.z = 0.16;
@@ -1801,6 +2186,91 @@ function rebuildEnchantmentRings() {
       const eType = state.enchantGrid[r][c];
       if (eType !== ENCHANT_TYPES.NONE) {
         addEnchantRingMesh(r, c, eType);
+      }
+    }
+  }
+}
+
+
+function updateCylindricalBoardTransforms(dt = 0) {
+  if (typeof state === 'undefined' || !state) return;
+  if (!state.isCylinderPhase) {
+    for (let c = 0; c < columnHitboxes.length; c++) {
+      const hb = columnHitboxes[c];
+      if (!hb) continue;
+      hb.position.set(START_X + c * CELL_SPACING, START_Y + (BOARD_H - CELL_SPACING) / 2 + 0.3, 0);
+      hb.rotation.set(0, 0, 0);
+    }
+    colHighlightMesh.rotation.set(0, 0, 0);
+    return;
+  }
+
+  if (!state.isCylinderRotationPaused && !state.isCylinderLowering && dt > 0) {
+    const speed = Number.isFinite(state.cylinderAutoRotateSpeed) ? state.cylinderAutoRotateSpeed : 0.38;
+    state.cylinderAngle = ((state.cylinderAngle || 0) + speed * dt) % (Math.PI * 2);
+  }
+
+  const dropOffsetY = Number.isFinite(state.cylinderDropOffsetY) ? state.cylinderDropOffsetY : 0;
+  boardGroup.position.y = dropOffsetY;
+
+  for (let c = 0; c < cylinderColFrameGroups.length; c++) {
+    const colGrp = cylinderColFrameGroups[c];
+    if (!colGrp) continue;
+    const pos = getCylinderCellWorldCoords(0, c, 0);
+    colGrp.position.set(pos.x, 0, pos.z);
+    colGrp.rotation.set(0, pos.rotY, 0);
+    colGrp.visible = isCylinderColumnVisible(c);
+  }
+
+  for (let c = 0; c < columnHitboxes.length; c++) {
+    const hb = columnHitboxes[c];
+    if (!hb) continue;
+    if (c < COLS) {
+      const pos = getCylinderCellWorldCoords(0, c, 0);
+      hb.position.set(pos.x, START_Y + (BOARD_H - CELL_SPACING) / 2 + 0.3, pos.z);
+      hb.rotation.set(0, pos.rotY, 0);
+    }
+  }
+
+  enchantGroup.children.forEach((ring) => {
+    if (!ring || !ring.userData || typeof ring.userData.col !== 'number') return;
+    const { row, col } = ring.userData;
+    const pos = getCylinderCellWorldCoords(row, col, 0.39);
+    ring.position.set(pos.x, pos.y, pos.z);
+    ring.rotation.set(0, pos.rotY, 0);
+    ring.visible = isCylinderColumnVisible(col);
+  });
+
+  tokensGroup.children.forEach((mesh) => {
+    if (!mesh || !mesh.userData || typeof mesh.userData.col !== 'number') return;
+    const d = mesh.userData;
+    if (d.freefall) {
+      mesh.visible = true;
+      return;
+    }
+    const pos = getCylinderCellWorldCoords(d.row, d.col, 0);
+    mesh.position.x = pos.x;
+    mesh.position.z = pos.z;
+    mesh.rotation.y = pos.rotY;
+    mesh.visible = isCylinderColumnVisible(d.col) || !!d.vfxControlled;
+  });
+
+  if (state.previewCol >= 0 && state.previewCol < COLS) {
+    if (!isCylinderColumnInteractive(state.previewCol)) {
+      if (typeof updateColumnPreviewVisual === 'function') {
+        updateColumnPreviewVisual(-1);
+      }
+    } else {
+      const hPos = getCylinderCellWorldCoords(0, state.previewCol, 0.08);
+      colHighlightMesh.position.set(hPos.x, START_Y + (BOARD_H - CELL_SPACING) / 2, hPos.z);
+      colHighlightMesh.rotation.set(0, hPos.rotY, 0);
+      if (ghostToken.visible && typeof aiEngine !== 'undefined') {
+        const availRow = aiEngine.getAvailableRow(state.board, state.previewCol);
+        if (availRow !== -1) {
+          const gPos = getCylinderCellWorldCoords(availRow, state.previewCol, 0.08);
+          ghostToken.position.set(gPos.x, gPos.y, gPos.z);
+          ghostToken.rotation.y = gPos.rotY;
+        }
       }
     }
   }

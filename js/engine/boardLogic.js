@@ -179,7 +179,31 @@ function startFloorMatch(showIntroScreen = true) {
   if (!Array.isArray(state.shuffledTopologyPool) || state.shuffledTopologyPool.length < BOARD_TOPOLOGIES.length) {
     state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
   }
+  if (typeof setActiveBoardCols === 'function') {
+    setActiveBoardCols(7);
+  }
   state.isCarouselRotating = false;
+  state.tesseractPhase2ComboUsed = false;
+  state.isCylinderPhase = false;
+  state.isCylinderLowering = false;
+  state.isCylinderRotationPaused = false;
+  state.cylinderDropOffsetY = 0;
+  state.cylinderAngle = 0;
+  state.etherealPlaneActive = false;
+  if (state._preVoidFlameSnapshot) {
+    state.gambits = [...state._preVoidFlameSnapshot.gambits];
+    state.maxGambitSlots = state._preVoidFlameSnapshot.maxGambitSlots;
+    state.reservePouch = [...state._preVoidFlameSnapshot.reservePouch];
+    state.reservePouchUnlocked = state._preVoidFlameSnapshot.reservePouchUnlocked;
+    state.masterDeck = [...state._preVoidFlameSnapshot.masterDeck];
+    state.maxMana = state._preVoidFlameSnapshot.maxMana;
+    state.handSize = state._preVoidFlameSnapshot.handSize;
+    state._preVoidFlameSnapshot = null;
+  }
+  state.voidFlamePurged = false;
+  if (typeof resetCavernFromEtherealPlane === 'function') {
+    resetCavernFromEtherealPlane();
+  }
   const floorData = getFloorConfig(state.floorIdx);
   const topo = getFloorTopology(state.floorIdx);
   state.currentTopology = topo;
@@ -246,29 +270,51 @@ function startFloorMatch(showIntroScreen = true) {
 
   generateSlotEnchantments();
 
-  // Initialize 4 Parallel Tesseract Boards if fighting the Act V Final Boss
+  // Initialize 4 Parallel Tesseract Boards with 4 distinct procedural topologies if fighting the Act V Final Boss
   const isTesseractBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract';
   if (isTesseractBoss) {
     const cloneGrid2D = (g) => g.map((row) => row.slice());
     state.tesseractBoards = [];
     state.activeTesseractBoardIdx = 0;
     const boardLabels = ['Board I (Alpha)', 'Board II (Beta)', 'Board III (Gamma)', 'Board IV (Omega)'];
+    const topoPool = (Array.isArray(state.shuffledTopologyPool) && state.shuffledTopologyPool.length >= 4)
+      ? state.shuffledTopologyPool
+      : shuffle(BOARD_TOPOLOGIES);
+
     for (let bIdx = 0; bIdx < 4; bIdx++) {
-      if (bIdx > 0) {
-        generateSlotEnchantments();
-      }
+      const pick = topoPool[bIdx % topoPool.length];
+      const builtMask = pick.buildMask();
+      const boardTopo = {
+        id: pick.id,
+        name: pick.name,
+        icon: pick.icon,
+        desc: pick.desc,
+        loreDesc: (typeof TOPOLOGY_LORE_HINTS !== 'undefined' && TOPOLOGY_LORE_HINTS[pick.id]) || pick.loreDesc || pick.desc,
+        isProcedural: true,
+        isAsymmetrical: !!pick.isAsymmetrical,
+        mask: cloneGrid2D(builtMask)
+      };
+      state.boardMask = cloneGrid2D(builtMask);
+      state.board = Array.from({ length: ROWS }, (_, r) =>
+        Array.from({ length: COLS }, (_, c) => (builtMask[r][c] ? EMPTY : VOID_CELL))
+      );
+      generateSlotEnchantments();
       state.tesseractBoards.push({
+        originalIdx: bIdx,
         label: boardLabels[bIdx],
-        boardMask: cloneGrid2D(topo.mask),
-        board: Array.from({ length: ROWS }, (_, r) =>
-          Array.from({ length: COLS }, (_, c) => (topo.mask[r][c] ? EMPTY : VOID_CELL))
-        ),
+        isShattered: false,
+        topology: boardTopo,
+        boardMask: cloneGrid2D(builtMask),
+        board: cloneGrid2D(state.board),
         enchantGrid: cloneGrid2D(state.enchantGrid)
       });
     }
     // Restore Board I (index 0) as the starting active board
+    state.currentTopology = state.tesseractBoards[0].topology;
+    state.boardMask = cloneGrid2D(state.tesseractBoards[0].boardMask);
     state.board = cloneGrid2D(state.tesseractBoards[0].board);
     state.enchantGrid = cloneGrid2D(state.tesseractBoards[0].enchantGrid);
+    rebuild3DBoardGeometry(state.boardMask);
     rebuildEnchantmentRings();
   } else {
     state.tesseractBoards = [];
@@ -306,6 +352,10 @@ function startFloorMatch(showIntroScreen = true) {
       }
     }
     showToast(`🤖 Opponent Headstart: AI deployed ${dropped} opening token(s)!`, '⚠️');
+  }
+
+  if (isTesseractBoss && typeof saveCurrentTesseractBoardState === 'function') {
+    saveCurrentTesseractBoardState();
   }
 
   state.drawPile = shuffle(state.masterDeck.slice());
@@ -387,7 +437,7 @@ function triggerSlotEnchantment(r, c, actor) {
       const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
       for (const [dr, dc] of dirs) {
         const nr = r + dr;
-        const nc = c + dc;
+        const nc = state.isCylinderPhase ? ((c + dc + COLS) % COLS) : (c + dc);
         if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && state.board[nr][nc] === AI) {
           state.board[nr][nc] = EMPTY;
           applyColumnGravity(nc);
@@ -526,19 +576,46 @@ function updateColumnPreviewVisual(col) {
     return;
   }
 
+  if (state.isCylinderPhase && typeof isCylinderColumnInteractive === 'function' && !isCylinderColumnInteractive(col)) {
+    state.previewCol = -1;
+    colHighlightMesh.visible = false;
+    ghostToken.visible = false;
+    document.getElementById('confirm-drop-btn').classList.add('hidden');
+    return;
+  }
+
   if (state.previewCol !== col) sfx.playHoverTick();
   state.previewCol = col;
-  const colX = START_X + col * CELL_SPACING;
 
-  colHighlightMesh.position.set(colX, START_Y + (BOARD_H - CELL_SPACING) / 2, 0);
-  colHighlightMesh.visible = true;
+  if (state.isCylinderPhase && typeof getCylinderCellWorldCoords === 'function') {
+    const hPos = getCylinderCellWorldCoords(0, col, 0.08);
+    colHighlightMesh.position.set(hPos.x, START_Y + (BOARD_H - CELL_SPACING) / 2, hPos.z);
+    colHighlightMesh.rotation.set(0, hPos.rotY, 0);
+    colHighlightMesh.visible = true;
 
-  const availRow = aiEngine.getAvailableRow(state.board, col);
-  if (availRow !== -1 && state.selectedCardIdx === null) {
-    ghostToken.position.set(colX, START_Y + availRow * CELL_SPACING, 0);
-    ghostToken.visible = true;
+    const availRow = aiEngine.getAvailableRow(state.board, col);
+    if (availRow !== -1 && state.selectedCardIdx === null) {
+      const gPos = getCylinderCellWorldCoords(availRow, col, 0.08);
+      ghostToken.position.set(gPos.x, gPos.y, gPos.z);
+      ghostToken.rotation.y = gPos.rotY;
+      ghostToken.visible = true;
+    } else {
+      ghostToken.visible = false;
+    }
   } else {
-    ghostToken.visible = false;
+    const colX = START_X + col * CELL_SPACING;
+    colHighlightMesh.position.set(colX, START_Y + (BOARD_H - CELL_SPACING) / 2, 0);
+    colHighlightMesh.rotation.set(0, 0, 0);
+    colHighlightMesh.visible = true;
+
+    const availRow = aiEngine.getAvailableRow(state.board, col);
+    if (availRow !== -1 && state.selectedCardIdx === null) {
+      ghostToken.position.set(colX, START_Y + availRow * CELL_SPACING, 0);
+      ghostToken.rotation.y = 0;
+      ghostToken.visible = true;
+    } else {
+      ghostToken.visible = false;
+    }
   }
 
   const confirmBtn = document.getElementById('confirm-drop-btn');
@@ -882,7 +959,7 @@ const RESERVE_EFFECT_HANDLERS = {
     const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
     for (const [dr, dc] of dirs) {
       const nr = r + dr;
-      const nc = col + dc;
+      const nc = state.isCylinderPhase ? ((col + dc + COLS) % COLS) : (col + dc);
       if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && state.board[nr][nc] === AI) {
         spawn3DParticleBurst(nr, nc, 0xef4444, 14, 0.13, 460, 'box');
         state.board[nr][nc] = EMPTY;
@@ -937,7 +1014,7 @@ const RESERVE_EFFECT_HANDLERS = {
     state.stability += stabGain;
 
     let webbedCols = 0;
-    [col - 1, col + 1].forEach((nc) => {
+    (state.isCylinderPhase ? [(col - 1 + COLS) % COLS, (col + 1) % COLS] : [col - 1, col + 1]).forEach((nc) => {
       if (nc >= 0 && nc < COLS) {
         const ar = aiEngine.getAvailableRow(state.board, nc);
         if (ar !== -1 && state.enchantGrid) {
@@ -1024,7 +1101,7 @@ const RESERVE_EFFECT_HANDLERS = {
     const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
     for (const [dr, dc] of dirs) {
       const nr = r + dr;
-      const nc = col + dc;
+      const nc = state.isCylinderPhase ? ((col + dc + COLS) % COLS) : (col + dc);
       if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
         if (state.board[nr][nc] === AI || state.board[nr][nc] === STONE) {
           state.board[nr][nc] = PLAYER;
@@ -1885,8 +1962,7 @@ const CARD_EFFECT_HANDLERS = {
   guillotine_blade(handIdx, col, effCost) {
     const card = CARD_CATALOG.guillotine_blade;
     const spanCols = [col];
-    if (col > 0) spanCols.push(col - 1);
-    if (col < COLS - 1) spanCols.push(col + 1);
+    if (state.isCylinderPhase) { spanCols.push((col - 1 + COLS) % COLS, (col + 1) % COLS); } else { if (col > 0) spanCols.push(col - 1); if (col < COLS - 1) spanCols.push(col + 1); }
 
     let bestCol = -1;
     let bestTopR = -1;
@@ -1934,7 +2010,7 @@ const CARD_EFFECT_HANDLERS = {
       showToast(`Col ${col + 1} is empty!`, '🌡️');
       return true;
     }
-    const candidates = [col - 1, col + 1].filter((nc) => nc >= 0 && nc < COLS && aiEngine.getAvailableRow(state.board, nc) !== -1);
+    const candidates = (state.isCylinderPhase ? [(col - 1 + COLS) % COLS, (col + 1) % COLS] : [col - 1, col + 1]).filter((nc) => nc >= 0 && nc < COLS && aiEngine.getAvailableRow(state.board, nc) !== -1);
     if (candidates.length === 0) {
       showToast('Adjacent columns are full!', '⚠️');
       return true;
@@ -2146,7 +2222,7 @@ const CARD_EFFECT_HANDLERS = {
       showToast('No AI token available to hex with Pins & Wax Effigy!', '🪡');
       return true;
     }
-    const neighborCol = col < COLS - 1 ? col + 1 : col - 1;
+    const neighborCol = state.isCylinderPhase ? ((col + 1) % COLS) : (col < COLS - 1 ? col + 1 : col - 1);
 
     state.busy = true;
     consumeCardAndClearSelection(handIdx, effCost);
@@ -2238,7 +2314,7 @@ const CARD_EFFECT_HANDLERS = {
 
   hydraulic_piston(handIdx, col, effCost) {
     const card = CARD_CATALOG.hydraulic_piston;
-    const neighborCol = col < COLS - 1 ? col + 1 : col - 1;
+    const neighborCol = state.isCylinderPhase ? ((col + 1) % COLS) : (col < COLS - 1 ? col + 1 : col - 1);
     const stackA = [];
     const stackB = [];
     for (let r = 0; r < ROWS; r++) {
@@ -2284,8 +2360,7 @@ const CARD_EFFECT_HANDLERS = {
   ouroboros_fang(handIdx, col, effCost) {
     const card = CARD_CATALOG.ouroboros_fang;
     const spanCols = [col];
-    if (col > 0) spanCols.push(col - 1);
-    if (col < COLS - 1) spanCols.push(col + 1);
+    if (state.isCylinderPhase) { spanCols.push((col - 1 + COLS) % COLS, (col + 1) % COLS); } else { if (col > 0) spanCols.push(col - 1); if (col < COLS - 1) spanCols.push(col + 1); }
 
     const hasAnyToken = spanCols.some((c) => aiEngine.getBottomOccupiedRow(state.board, c) !== -1);
     if (!hasAnyToken) {
@@ -2692,14 +2767,28 @@ function triggerAITurn() {
 
       state.stability--;
       if (state.stability <= 0) {
-        const validCols = getPlayableColumns();
-        if (validCols.length > 0) {
-          const collapseCol = validCols[Math.floor(Math.random() * validCols.length)];
-          const cr = aiEngine.getAvailableRow(state.board, collapseCol);
-          spawn3DColumnBeam(collapseCol, 0x78716c, 0.42, 460, false);
-          spawn3DShockwaveRing(cr, collapseCol, 0xf97316, 2.4, 460);
-          spawnTokenMesh(cr, collapseCol, STONE);
-          showToast(`🌋 Cavern Collapse dropped Stone in Col ${collapseCol + 1}!`, '🪨');
+        const stonesToDrop = state.isCylinderPhase ? 2 : 1;
+        const collapsedCols = [];
+        for (let sIdx = 0; sIdx < stonesToDrop; sIdx++) {
+          const validCols = getPlayableColumns();
+          if (validCols.length > 0) {
+            const collapseCol = validCols[Math.floor(Math.random() * validCols.length)];
+            const cr = aiEngine.getAvailableRow(state.board, collapseCol);
+            if (cr !== -1) {
+              spawn3DColumnBeam(collapseCol, 0x78716c, 0.42, 460, false);
+              spawn3DShockwaveRing(cr, collapseCol, 0xf97316, 2.4, 460);
+              spawnTokenMesh(cr, collapseCol, STONE);
+              collapsedCols.push(collapseCol + 1);
+            }
+          }
+        }
+        if (collapsedCols.length > 0) {
+          showToast(
+            collapsedCols.length > 1
+              ? `🌋 Ethereal Collapse (≤0 Stab) dropped 2 Stones in Cols ${collapsedCols.join(' & ')}!`
+              : `🌋 Cavern Collapse dropped Stone in Col ${collapsedCols[0]}!`,
+            '🪨'
+          );
         }
       }
 
@@ -2717,20 +2806,22 @@ function triggerAITurn() {
         state.busy = false;
       }
 
-      const diff = getActiveDifficulty();
-      const regenInterval = diff.manaRegenInterval || 1;
-      if (state.turnNumber % regenInterval === 0) {
-        const regenAmt = diff.manaRegenPerTurn || 1;
-        state.mana = Math.min(state.maxMana, state.mana + regenAmt);
-      }
-
-      const drawInterval = diff.drawRateInterval || 1;
-      if (state.turnNumber % drawInterval === 0) {
-        let cardsToDraw = diff.cardsPerTurn || 1;
-        if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
-          cardsToDraw += 1;
+      if (!state.voidFlamePurged) {
+        const diff = getActiveDifficulty();
+        const regenInterval = diff.manaRegenInterval || 1;
+        if (state.turnNumber % regenInterval === 0) {
+          const regenAmt = diff.manaRegenPerTurn || 1;
+          state.mana = Math.min(state.maxMana, state.mana + regenAmt);
         }
-        drawCards(cardsToDraw);
+
+        const drawInterval = diff.drawRateInterval || 1;
+        if (state.turnNumber % drawInterval === 0) {
+          let cardsToDraw = diff.cardsPerTurn || 1;
+          if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
+            cardsToDraw += 1;
+          }
+          drawCards(cardsToDraw);
+        }
       }
 
       updateHUD();
@@ -2739,7 +2830,10 @@ function triggerAITurn() {
     };
 
     const arch = floorData.isBoss ? floorData.bossArchetype : null;
-    const isBossAbilityDue = arch && (state.turnNumber % getEffectiveBossInterval(arch) === 0);
+    const isTesseractSwapDisabled = arch && arch.id === 'sovereign_tesseract' && (
+      state.isCylinderPhase || getIntactTesseractBoardIndices().length <= 1
+    );
+    const isBossAbilityDue = arch && !isTesseractSwapDisabled && (state.turnNumber % getEffectiveBossInterval(arch) === 0);
     if (isBossAbilityDue) {
       setStatusBanner(false, `⚡ ${floorData.boss} is unleashing its Boss Ability...`);
       setTimeout(() => {
@@ -3264,11 +3358,13 @@ const BOSS_ABILITY_HANDLERS = {
   },
 
   sovereign_tesseract(onComplete) {
-    if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) {
-      if (typeof playBossSovereignTesseractVFX === 'function') {
-        playBossSovereignTesseractVFX();
-      }
-      if (typeof onComplete === 'function') setTimeout(onComplete, 950);
+    if (state.isCylinderPhase) {
+      if (typeof onComplete === 'function') onComplete();
+      return;
+    }
+    const intactIndices = getIntactTesseractBoardIndices();
+    if (intactIndices.length <= 1) {
+      if (typeof onComplete === 'function') onComplete();
       return;
     }
     // Do not rotate away if either side already connected 4 on this board
@@ -3276,10 +3372,11 @@ const BOSS_ABILITY_HANDLERS = {
       if (typeof onComplete === 'function') onComplete();
       return;
     }
-    const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
+    const nextIdx = getNextIntactTesseractBoardIndex(state.activeTesseractBoardIdx);
+    const nextLabel = (state.tesseractBoards[nextIdx] && state.tesseractBoards[nextIdx].label) || `Board ${nextIdx + 1}`;
     triggerFinalBossBoardRotation(
       nextIdx,
-      `🌌 Sovereign Tesseract rotated to Parallel Board ${nextIdx + 1}/4!`,
+      `🌌 Sovereign Tesseract rotated to ${nextLabel} (${intactIndices.length}/4 Intact)!`,
       () => {
         if (typeof onComplete === 'function') {
           onComplete();
@@ -3293,10 +3390,33 @@ const BOSS_ABILITY_HANDLERS = {
   }
 };
 
+function getIntactTesseractBoardIndices() {
+  if (!Array.isArray(state.tesseractBoards)) return [];
+  const out = [];
+  for (let i = 0; i < state.tesseractBoards.length; i++) {
+    if (state.tesseractBoards[i] && !state.tesseractBoards[i].isShattered) {
+      out.push(i);
+    }
+  }
+  return out;
+}
+
+function getNextIntactTesseractBoardIndex(fromIdx = state.activeTesseractBoardIdx) {
+  const intact = getIntactTesseractBoardIndices();
+  if (intact.length === 0) return -1;
+  if (intact.length === 1) return intact[0];
+  for (let step = 1; step <= 4; step++) {
+    const cand = ((fromIdx || 0) + step) % 4;
+    if (intact.includes(cand)) return cand;
+  }
+  return intact[0];
+}
+
 function countEmptyPlayableCells(boardGrid) {
   let emptyCount = 0;
+  const cols = (boardGrid && boardGrid[0]) ? boardGrid[0].length : COLS;
   for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
+    for (let c = 0; c < cols; c++) {
       if (boardGrid[r][c] === EMPTY) emptyCount++;
     }
   }
@@ -3304,24 +3424,34 @@ function countEmptyPlayableCells(boardGrid) {
 }
 
 function saveCurrentTesseractBoardState() {
+  if (state.isCylinderPhase) return;
   if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) return;
   const idx = state.activeTesseractBoardIdx || 0;
-  if (!state.tesseractBoards[idx]) return;
+  const entry = state.tesseractBoards[idx];
+  if (!entry || entry.isShattered) return;
   if (Array.isArray(state.boardMask) && state.boardMask.length === ROWS) {
-    state.tesseractBoards[idx].boardMask = state.boardMask.map((row) => row.slice());
+    entry.boardMask = state.boardMask.map((row) => row.slice());
   }
-  state.tesseractBoards[idx].board = state.board.map((row) => row.slice());
-  state.tesseractBoards[idx].enchantGrid = state.enchantGrid.map((row) => row.slice());
+  if (state.currentTopology) {
+    entry.topology = {
+      ...state.currentTopology,
+      mask: entry.boardMask ? entry.boardMask.map((row) => row.slice()) : state.currentTopology.mask
+    };
+  }
+  entry.board = state.board.map((row) => row.slice());
+  entry.enchantGrid = state.enchantGrid.map((row) => row.slice());
 }
 
-function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = null) {
+function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = null, saveOutgoing = true) {
   if (!Array.isArray(state.tesseractBoards) || state.tesseractBoards.length < 4) {
     if (typeof onComplete === 'function') onComplete();
     return;
   }
   state.busy = true;
   state.isCarouselRotating = true;
-  saveCurrentTesseractBoardState();
+  if (saveOutgoing) {
+    saveCurrentTesseractBoardState();
+  }
   const nextIdx = ((targetIdx % 4) + 4) % 4;
   const startMs = performance.now();
   const durationMs = 1150;
@@ -3342,7 +3472,6 @@ function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = nul
     const p = Math.min(1, elapsed / durationMs);
 
     if (p < 0.5) {
-      // Outgoing board slides & rotates 90 degrees into the Tesseract
       const t = p / 0.5;
       const easeIn = t * t;
       boardGroup.rotation.y = easeIn * (Math.PI * 0.52);
@@ -3351,28 +3480,42 @@ function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = nul
     } else {
       if (!swappedAtMidpoint) {
         swappedAtMidpoint = true;
-        // Re-save right before swapping so any end-of-turn collapse stones are preserved
-        saveCurrentTesseractBoardState();
+        if (saveOutgoing) {
+          saveCurrentTesseractBoardState();
+        }
         state.activeTesseractBoardIdx = nextIdx;
         const nextEntry = state.tesseractBoards[nextIdx];
 
-        if (Array.isArray(nextEntry.boardMask) && nextEntry.boardMask.length === ROWS) {
+        if (baseMesh) {
+          baseMesh.visible = true;
+          baseMesh.position.set(0, START_Y - 1.0, 0);
+          baseMesh.rotation.set(0, 0, 0);
+        }
+
+        if (nextEntry && Array.isArray(nextEntry.boardMask) && nextEntry.boardMask.length === ROWS) {
           state.boardMask = nextEntry.boardMask.map((row) => row.slice());
-          if (state.currentTopology) {
+          if (nextEntry.topology) {
+            state.currentTopology = {
+              ...nextEntry.topology,
+              mask: state.boardMask
+            };
+          } else if (state.currentTopology) {
             state.currentTopology.mask = state.boardMask;
           }
           rebuild3DBoardGeometry(state.boardMask);
         }
 
         // Ensure incoming board has ample room (if < 6 empty cells remain, flush it clean!)
-        if (countEmptyPlayableCells(nextEntry.board) < 6) {
+        if (nextEntry && countEmptyPlayableCells(nextEntry.board) < 6) {
           nextEntry.board = Array.from({ length: ROWS }, (_, r) =>
             Array.from({ length: COLS }, (_, c) => (state.boardMask[r][c] ? EMPTY : VOID_CELL))
           );
         }
 
-        state.board = nextEntry.board.map((row) => row.slice());
-        state.enchantGrid = nextEntry.enchantGrid.map((row) => row.slice());
+        if (nextEntry) {
+          state.board = nextEntry.board.map((row) => row.slice());
+          state.enchantGrid = nextEntry.enchantGrid.map((row) => row.slice());
+        }
         rebuildEnchantmentRings();
         rebuildBoardMeshes();
         if (typeof updateCavernAesthetics === 'function') {
@@ -3384,7 +3527,6 @@ function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = nul
           showToast(toastMessage, '🌌', 3800);
         }
       }
-      // Incoming board slides & rotates smoothly from +90 degrees into center
       const t = (p - 0.5) / 0.5;
       const easeOut = 1 - Math.pow(1 - t, 3);
       boardGroup.rotation.y = -(1 - easeOut) * (Math.PI * 0.52);
@@ -3411,6 +3553,702 @@ function triggerFinalBossBoardRotation(targetIdx, toastMessage, onComplete = nul
   requestAnimationFrame(stepCarouselRotation);
 }
 
+// ============================================================================
+// SOVEREIGN TESSERACT REDESIGNED CINEMATIC PHASE SEQUENCES
+//   1. Planar Board Shatter & Falling Tokens (Phases 1 & 2)
+//   2. Phase 2 One-Time Opener: 50% Token Glow-Shatter + Safe 4D Upheaval Flip
+//   3. Phase 3 Transition: Cavern Crumble to Ethereal Plane + 12-Col Cylinder Descent
+//   4. Phase 3 Final Victory: Multi-Stage 4D Hypercube & Cylinder Destruction
+// ============================================================================
+function triggerTesseractPlanarBoardShatter(winLine, shatteredBoardIdx, onComplete) {
+  state.busy = true;
+  if (Array.isArray(state.tesseractBoards) && state.tesseractBoards[shatteredBoardIdx]) {
+    state.tesseractBoards[shatteredBoardIdx].isShattered = true;
+  }
+
+  sfx.playBossPhaseShatter();
+  if (typeof sfx.playPlanarBoardShatter === 'function') {
+    sfx.playPlanarBoardShatter();
+  }
+  triggerHaptic([65, 35, 95, 35, 85]);
+  triggerBoardShake(0.55);
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(1.15);
+  }
+  if (typeof updateCavernAesthetics === 'function') {
+    updateCavernAesthetics();
+  }
+
+  if (Array.isArray(winLine)) {
+    winLine.forEach(([r, c]) => {
+      spawn3DShockwaveRing(r, c, 0xf43f5e, 2.8, 560);
+      spawn3DParticleBurst(r, c, 0xfde047, 18, 0.16, 620, 'octa');
+    });
+  }
+
+  if (typeof playPlanarBoardShatterVFX === 'function') {
+    playPlanarBoardShatterVFX(1350);
+  }
+
+  // Drop all tokens in tokensGroup to the ground
+  tokensGroup.children.forEach((mesh) => {
+    const d = mesh.userData;
+    if (!d) return;
+    d.vfxControlled = false;
+    d.targetY = START_Y - 15.0 - Math.random() * 4.0;
+    d.velY = -0.07 - Math.random() * 0.15;
+    d.rotSpeedX = (Math.random() - 0.5) * 0.28;
+  });
+
+  // Animate the board frame struts fracturing and falling apart
+  dynamicFrameGroup.children.forEach((strut, idx) => {
+    strut.userData = {
+      origX: strut.position.x,
+      origY: strut.position.y,
+      origZ: strut.position.z,
+      vx: (strut.position.x * 0.03) + (Math.random() - 0.5) * 0.11,
+      vy: 0.04 + (idx % 4) * 0.025,
+      vz: (Math.random() - 0.5) * 0.12,
+      rx: (Math.random() - 0.5) * 0.24,
+      ry: (Math.random() - 0.5) * 0.24,
+      rz: (Math.random() - 0.5) * 0.24
+    };
+  });
+
+  enchantGroup.children.forEach((ring) => {
+    ring.visible = false;
+  });
+
+  const startMs = performance.now();
+  const durationMs = 1320;
+
+  function stepBoardShatter(now) {
+    const p = Math.min(1, (now - startMs) / durationMs);
+    dynamicFrameGroup.children.forEach((strut) => {
+      const u = strut.userData;
+      if (!u) return;
+      strut.position.x += u.vx;
+      strut.position.y += u.vy;
+      strut.position.z += u.vz;
+      u.vy -= 0.011;
+      strut.rotation.x += u.rx;
+      strut.rotation.y += u.ry;
+      strut.rotation.z += u.rz;
+    });
+
+    if (baseMesh) {
+      baseMesh.position.y = (START_Y - 1.0) - (p * p) * 12.0;
+      baseMesh.rotation.z = p * 0.35;
+      baseMesh.rotation.x = p * 0.28;
+    }
+
+    if (p < 1) {
+      requestAnimationFrame(stepBoardShatter);
+    } else {
+      clearThreeGroup(dynamicFrameGroup);
+      clearThreeGroup(tokensGroup);
+      clearThreeGroup(enchantGroup);
+      if (baseMesh) {
+        baseMesh.position.set(0, START_Y - 1.0, 0);
+        baseMesh.rotation.set(0, 0, 0);
+      }
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }
+  }
+
+  requestAnimationFrame(stepBoardShatter);
+}
+
+function ensurePhase2BoardHasTokensForCombo() {
+  let tokenCount = countTokensInPlay(state.board);
+  if (tokenCount >= 4) return;
+
+  // Seed a balanced set of dimensional echo tokens if the 4th board had fewer than 4 pieces
+  const validCols = getPlayableColumns();
+  const seedTypes = [PLAYER, AI, PLAYER, AI, STONE, PLAYER, AI, STONE];
+  let idx = 0;
+  while (countTokensInPlay(state.board) < 6 && idx < seedTypes.length && validCols.length > 0) {
+    const c = validCols[idx % validCols.length];
+    const r = aiEngine.getAvailableRow(state.board, c);
+    const tType = seedTypes[idx];
+    idx++;
+    if (r === -1) continue;
+    state.board[r][c] = tType;
+    if (aiEngine.findWinningLine(state.board, PLAYER) || aiEngine.findWinningLine(state.board, AI)) {
+      state.board[r][c] = STONE;
+    }
+  }
+  saveCurrentTesseractBoardState();
+  rebuildBoardMeshes();
+}
+
+function triggerTesseractPhase2OpenerCombo(onComplete = null) {
+  state.busy = true;
+  state.tesseractPhase2ComboUsed = true;
+
+  ensurePhase2BoardHasTokensForCombo();
+
+  // Gather all occupied token cells on the final planar board
+  const occupiedCells = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = state.board[r][c];
+      if (cell !== EMPTY && cell !== VOID_CELL) {
+        occupiedCells.push([r, c]);
+      }
+    }
+  }
+
+  const pickCount = Math.max(1, Math.round(occupiedCells.length * 0.5));
+  const chosenToShatter = shuffle(occupiedCells).slice(0, pickCount);
+
+  // Action 1: Summon 3D Sovereign Tesseract Model + 50% Token Growing Glow -> Shatter -> Gravity Drop
+  sfx.playBossAlarm();
+  if (typeof sfx.playTokenGlowCharge === 'function') {
+    sfx.playTokenGlowCharge();
+  }
+  if (typeof playBossSovereignTesseractVFX === 'function') {
+    playBossSovereignTesseractVFX();
+  }
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(1.0);
+  }
+
+  setStatusBanner(false, `🌌 FINAL PLANAR BOARD (2/5 ❤️): Charging 50% of tokens to shatter...`);
+  showToast(
+    `🌌 Last Planar Board! Sovereign Tesseract is overloading ${chosenToShatter.length} token(s) to shatter!`,
+    '💥',
+    4500,
+    'border-amber-400/80 text-amber-100'
+  );
+
+  const executeTokenShatterAndThenFlip = () => {
+    // Shatter the 50% glowing tokens simultaneously
+    const affectedColsSet = new Set();
+    chosenToShatter.forEach(([r, c]) => {
+      state.board[r][c] = EMPTY;
+      affectedColsSet.add(c);
+      spawn3DShockwaveRing(r, c, 0xf43f5e, 2.1, 460);
+      spawn3DParticleBurst(r, c, 0xfde047, 14, 0.14, 520, 'octa');
+    });
+
+    onTokenShattered(chosenToShatter.length);
+    triggerBoardShake(0.38);
+    triggerHaptic([50, 30, 80]);
+
+    // Apply gravity so remaining 50% tokens fall to fill the gaps
+    const affectedCols = Array.from(affectedColsSet);
+    applyBoardGravity();
+    rebuildBoardMeshes(affectedCols);
+    sfx.playWoodClack(true);
+
+    // Neutralize any accidental Connect-4 formed purely by the 50% shatter before flipping
+    let preFlipAiLine = aiEngine.findWinningLine(state.board, AI);
+    while (preFlipAiLine) {
+      const [ar, ac] = preFlipAiLine[preFlipAiLine.length - 1];
+      state.board[ar][ac] = STONE;
+      preFlipAiLine = aiEngine.findWinningLine(state.board, AI);
+    }
+
+    // Action 2 (after remaining tokens fall & settle): Summon 3D Tesseract Model + Custom 4D Board Upheaval Flip
+    setTimeout(() => {
+      if (typeof playBossSovereignTesseractVFX === 'function') {
+        playBossSovereignTesseractVFX();
+      }
+      if (typeof playTesseractUpheavalCageVFX === 'function') {
+        playTesseractUpheavalCageVFX(960);
+      }
+      if (typeof sfx.playTesseractUpheavalFlip === 'function') {
+        sfx.playTesseractUpheavalFlip();
+      } else {
+        sfx.playBoardFlipWhoosh();
+      }
+      triggerHaptic([45, 30, 75, 30, 55]);
+      setStatusBanner(false, `🌌 Tesseract Upheaval! Inverting the final planar board across 4D space...`);
+
+      const BOARD_CENTER_Y = START_Y + ((ROWS - 1) * CELL_SPACING) / 2;
+      const flipDuration = 940;
+      const flipStart = performance.now();
+
+      function stepTesseractUpheavalFlip(now) {
+        const rawP = Math.min(1, (now - flipStart) / flipDuration);
+        const ease = rawP < 0.5
+          ? 4 * rawP * rawP * rawP
+          : 1 - Math.pow(-2 * rawP + 2, 3) / 2;
+
+        // Custom Tesseract-themed 4D diagonal gimbal inversion (distinct from player's Abyssal Upheaval)
+        const angleX = ease * Math.PI;
+        const gimY = Math.sin(rawP * Math.PI) * (Math.PI * 0.38);
+        const gimZ = Math.sin(rawP * Math.PI * 2) * 0.32;
+
+        boardGroup.rotation.set(angleX, gimY, gimZ);
+        boardGroup.position.y = BOARD_CENTER_Y * (1 - Math.cos(angleX)) + Math.sin(rawP * Math.PI) * 0.65;
+        boardGroup.position.z = -BOARD_CENTER_Y * Math.sin(angleX) - Math.sin(rawP * Math.PI) * 3.1;
+
+        if (rawP < 1) {
+          requestAnimationFrame(stepTesseractUpheavalFlip);
+          return;
+        }
+
+        boardGroup.rotation.set(0, 0, 0);
+        boardGroup.position.set(0, 0, 0);
+
+        // Safe Effect of Abyssal Upheaval: invert boardMask, enchantGrid, and column stacks 180 degrees
+        const invertedMask = Array.from({ length: ROWS }, (_, r) =>
+          Array.from({ length: COLS }, (_, c) => {
+            const srcR = ROWS - 1 - r;
+            return state.boardMask && state.boardMask[srcR]
+              ? !!state.boardMask[srcR][c]
+              : (state.board[srcR][c] !== VOID_CELL);
+          })
+        );
+        state.boardMask = invertedMask;
+        if (state.currentTopology) {
+          state.currentTopology.mask = invertedMask;
+        }
+
+        state.enchantGrid = Array.from({ length: ROWS }, (_, r) =>
+          Array.from({ length: COLS }, (_, c) => {
+            const srcR = ROWS - 1 - r;
+            if (!invertedMask[r][c]) return ENCHANT_TYPES.NONE;
+            return (state.enchantGrid[srcR] && state.enchantGrid[srcR][c]) || ENCHANT_TYPES.NONE;
+          })
+        );
+
+        const nextBoard = Array.from({ length: ROWS }, (_, r) =>
+          Array.from({ length: COLS }, (_, c) => (invertedMask[r][c] ? EMPTY : VOID_CELL))
+        );
+        const dropStartRowsByCol = Array.from({ length: COLS }, () => []);
+
+        for (let c = 0; c < COLS; c++) {
+          const playableDestRows = [];
+          for (let r = 0; r < ROWS; r++) {
+            if (invertedMask[r][c]) playableDestRows.push(r);
+          }
+
+          const fallingTokens = [];
+          for (let oldR = ROWS - 1; oldR >= 0; oldR--) {
+            const cell = state.board[oldR][c];
+            if (cell !== EMPTY && cell !== VOID_CELL) {
+              fallingTokens.push({ type: cell, startRow: ROWS - 1 - oldR });
+            }
+          }
+
+          for (let i = 0; i < playableDestRows.length; i++) {
+            const destR = playableDestRows[i];
+            if (i < fallingTokens.length) {
+              nextBoard[destR][c] = fallingTokens[i].type;
+              dropStartRowsByCol[c][destR] = fallingTokens[i].startRow;
+            } else {
+              nextBoard[destR][c] = EMPTY;
+            }
+          }
+        }
+
+        state.board = nextBoard;
+
+        // Safety guard: neutralize any accidental Connect-4 created directly by the boss flip
+        let accidentalAiWin = aiEngine.findWinningLine(state.board, AI);
+        while (accidentalAiWin) {
+          const [ar, ac] = accidentalAiWin[accidentalAiWin.length - 1];
+          state.board[ar][ac] = STONE;
+          accidentalAiWin = aiEngine.findWinningLine(state.board, AI);
+        }
+        let accidentalPlayerWin = aiEngine.findWinningLine(state.board, PLAYER);
+        while (accidentalPlayerWin) {
+          const [pr, pc] = accidentalPlayerWin[accidentalPlayerWin.length - 1];
+          state.board[pr][pc] = STONE;
+          accidentalPlayerWin = aiEngine.findWinningLine(state.board, PLAYER);
+        }
+
+        saveCurrentTesseractBoardState();
+        rebuild3DBoardGeometry(state.boardMask);
+        rebuildEnchantmentRings();
+        rebuildBoardMeshes();
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const mesh = state.meshes[r] && state.meshes[r][c];
+            if (mesh) {
+              const startR = (dropStartRowsByCol[c] && dropStartRowsByCol[c][r] !== undefined)
+                ? dropStartRowsByCol[c][r]
+                : r;
+              const startY = START_Y + Math.max(r, startR) * CELL_SPACING + 0.55;
+              mesh.position.y = Math.max(mesh.userData.targetY + 0.45, startY);
+              mesh.userData.velY = -0.02;
+            }
+          }
+        }
+
+        sfx.playWoodClack(true);
+        spawn3DShockwaveRing(2, 3, 0xfde047, 3.6, 560);
+        showToast(
+          '🌌 Phase 2 Dimensional Upheaval! 50% of tokens shattered & the final planar board flipped 180°!',
+          '🔄',
+          5200,
+          'border-purple-400/80 text-purple-100'
+        );
+
+        setTimeout(() => {
+          state.turn = PLAYER;
+          state.busy = false;
+          updateHUD();
+          updateTelemetryBadges();
+          setStatusBanner(true, `🌌 Final Planar Board (2/5 ❤️) • Shatter this board to breach the Tesseract Core!`);
+          if (typeof onComplete === 'function') onComplete();
+        }, 460);
+      }
+
+      requestAnimationFrame(stepTesseractUpheavalFlip);
+    }, 780);
+  };
+
+  if (typeof playPhase2TokenGlowAndShatterVFX === 'function' && chosenToShatter.length > 0) {
+    playPhase2TokenGlowAndShatterVFX(chosenToShatter, 1080, executeTokenShatterAndThenFlip);
+  } else {
+    setTimeout(executeTokenShatterAndThenFlip, 950);
+  }
+}
+
+
+function triggerPhase3VoidFlamePurge(onComplete = null) {
+  state.busy = true;
+
+  // Save a pre-burn snapshot so if the player loses in Phase 3 and clicks "Retry Floor",
+  // their deck, reserves, and relics are restored for the fresh Floor 15 attempt!
+  state._preVoidFlameSnapshot = {
+    gambits: Array.isArray(state.gambits) ? [...state.gambits] : [],
+    maxGambitSlots: state.maxGambitSlots || 1,
+    reservePouch: Array.isArray(state.reservePouch) ? [...state.reservePouch] : [],
+    reservePouchUnlocked: !!state.reservePouchUnlocked,
+    masterDeck: Array.isArray(state.masterDeck) ? [...state.masterDeck] : [],
+    maxMana: state.maxMana || 1,
+    handSize: state.handSize || 2
+  };
+
+  // If the player's hand is currently empty but they still own cards in drawPile/masterDeck,
+  // fan those cards into hand right before the Void Flame strikes so they visibly burn in the UI!
+  if (state.hand.length === 0 && (state.drawPile.length > 0 || state.masterDeck.length > 0)) {
+    const sourceCards = state.drawPile.length > 0 ? state.drawPile : state.masterDeck;
+    state.hand = sourceCards.slice(0, Math.max(2, state.handSize || 3));
+  }
+  clearActionSelection();
+  updateHUD();
+
+  if (typeof sfx.playVoidFlameIncineration === 'function') {
+    sfx.playVoidFlameIncineration();
+  } else {
+    sfx.playBossAlarm();
+  }
+  if (typeof playBossSovereignTesseractVFX === 'function') {
+    playBossSovereignTesseractVFX();
+  }
+  triggerBoardShake(0.45);
+  triggerHaptic([60, 30, 90, 30, 75]);
+
+  // Spawn violet/crimson void fire shockwaves across the 3D cylinder
+  for (let c = 0; c < COLS; c += 2) {
+    spawn3DShockwaveRing(2, c, 0xa855f7, 2.6, 720);
+    spawn3DParticleBurst(2, c, 0xf43f5e, 12, 0.14, 760, 'octa');
+  }
+
+  setStatusBanner(false, `🔥 VOID FLAME PURGE! The Sovereign Tesseract is incinerating all Arcane Cards, Reserve Tokens & Relics!`);
+  showToast(
+    '🔥 VOID FLAME PURGE! All Arcane Cards, Special Reserve Tokens & Relics are burning away!',
+    '🔥',
+    4500,
+    'border-purple-400/90 text-purple-100'
+  );
+
+  // Collect all UI elements in the Gambit Strip, Reserve Pouch, and Hand Container to ignite with Void Flames
+  const gambitStrip = document.getElementById('gambit-strip');
+  const pouchEl = document.getElementById('reserve-pouch-container');
+  const handEl = document.getElementById('hand-container');
+
+  const uiTargets = [];
+  if (gambitStrip && gambitStrip.children) {
+    Array.from(gambitStrip.children).forEach((el) => uiTargets.push({ el, delay: 0 }));
+  }
+  if (pouchEl && pouchEl.children) {
+    Array.from(pouchEl.children).forEach((el) => uiTargets.push({ el, delay: 140 }));
+  }
+  if (handEl && handEl.children) {
+    Array.from(handEl.children).forEach((el, idx) => uiTargets.push({ el, delay: 260 + idx * 75 }));
+  }
+
+  uiTargets.forEach(({ el, delay }) => {
+    setTimeout(() => {
+      if (!el) return;
+      el.classList.add('void-flame-incinerating');
+      if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+        const flameOverlay = document.createElement('div');
+        flameOverlay.className = 'void-flame-overlay';
+        el.appendChild(flameOverlay);
+      }
+    }, delay);
+  });
+
+  setTimeout(() => {
+    state.voidFlamePurged = true;
+    state.gambits = [];
+    state.maxGambitSlots = 0;
+    state.reservePouch = [];
+    state.hand = [];
+    state.drawPile = [];
+    state.discardPile = [];
+    state.masterDeck = [];
+    state.mana = 0;
+    state.maxMana = 0;
+    clearActionSelection();
+    updateHUD();
+    updateTelemetryBadges();
+
+    if (typeof onComplete === 'function') {
+      onComplete();
+    }
+  }, 1750);
+}
+
+function triggerPhase3EtherealCylinderTransition() {
+  state.busy = true;
+  setStatusBanner(false, `🌌 All 4 Planar Boards Shattered (1/5 ❤️)! The subterranean cavern is collapsing into the Ethereal Plane...`);
+  showToast(
+    '🌌 ALL 4 BOARDS SHATTERED (1/5 ❤️)! The cavern is crumbling into the Ethereal Plane!',
+    '🌌',
+    5200,
+    'border-cyan-400/80 text-cyan-100'
+  );
+
+  const startCylinderDescent = () => {
+    if (typeof setActiveBoardCols === 'function') {
+      setActiveBoardCols(12);
+    }
+    state.isCylinderPhase = true;
+    state.isCylinderLowering = true;
+    state.isCylinderRotationPaused = false;
+    state.cylinderDropOffsetY = 15.5;
+    state.cylinderAngle = 0;
+
+    const cleanFullMask = createGrid(ROWS, 12, true);
+    state.boardMask = cleanFullMask;
+    state.currentTopology = {
+      id: 'ethereal_cylinder',
+      name: '12-Col Ethereal Cylinder (Edgeless)',
+      icon: (typeof renderC4IconHTML === 'function') ? renderC4IconHTML('bosses', 'sovereign_tesseract', 'c4-item-icon-sm', '12-Col Ethereal Cylinder') : '🪐',
+      desc: '12-column rotating cylindrical Connect-4 arena with seamless left/right wrap-around.',
+      loreDesc: 'An edgeless 12-column astral cylinder rotating in the heart of the tesseract.',
+      isProcedural: true,
+      isAsymmetrical: false,
+      mask: cleanFullMask
+    };
+
+    state.board = createGrid(ROWS, 12, EMPTY);
+    state.meshes = createGrid(ROWS, 12, null);
+
+    generateSlotEnchantments();
+    rebuild3DBoardGeometry(state.boardMask);
+    rebuildEnchantmentRings();
+    updateHUD();
+    updateTelemetryBadges();
+
+    if (typeof sfx.playCylinderDescentLock === 'function') {
+      sfx.playCylinderDescentLock();
+    }
+    if (typeof playBossSovereignTesseractVFX === 'function') {
+      playBossSovereignTesseractVFX();
+    }
+    setStatusBanner(false, `🪐 A 12-Column Cylindrical Board is lowering over you across the Ethereal Plane...`);
+
+    const descentStart = performance.now();
+    const descentDuration = 2200;
+
+    function stepCylinderDescent(now) {
+      const p = Math.min(1, (now - descentStart) / descentDuration);
+      const easeOut = 1 - Math.pow(1 - p, 3);
+
+      state.cylinderDropOffsetY = 15.5 * (1 - easeOut);
+      state.cylinderAngle = (1 - easeOut) * Math.PI * 0.85;
+
+      if (p < 1) {
+        requestAnimationFrame(stepCylinderDescent);
+      } else {
+        state.cylinderDropOffsetY = 0;
+        state.isCylinderLowering = false;
+        boardGroup.position.set(0, 0, 0);
+        boardGroup.rotation.set(0, 0, 0);
+        triggerBoardShake(0.36);
+        triggerHaptic([50, 30, 75]);
+
+        // Trigger the Void Flame UI Incineration after the cylindrical board has lowered in,
+        // burning all Arcane Cards, Reserve Tokens, and Relics before starting the Phase 3 duel!
+        triggerPhase3VoidFlamePurge(() => {
+          if (typeof bgm !== 'undefined' && bgm && typeof bgm.setMode === 'function') {
+            bgm.hasStartedAfterDifficulty = true;
+            bgm.isPausedForLevelIntro = false;
+            bgm.isPausedForModal = false;
+            bgm.setMode('boss5_final');
+          }
+
+          state.turn = PLAYER;
+          state.busy = false;
+          updateHUD();
+          updateTelemetryBadges();
+          showToast(
+            '🪐 FINAL PHASE (1/5 ❤️): 12-Column Rotating Cylinder! All items burned by Void Flame — Pure Connect-4 Duel!',
+            '🪐',
+            6200,
+            'border-amber-300/90 text-amber-100'
+          );
+          setStatusBanner(true, `🪐 Ethereal Cylinder Active (1/5 ❤️) • Pure Connect-4 Trial — Wait for columns to rotate & Connect 4!`);
+        });
+      }
+    }
+
+    requestAnimationFrame(stepCylinderDescent);
+  };
+
+  if (typeof triggerCavernCrumbleToEtherealPlane === 'function') {
+    triggerCavernCrumbleToEtherealPlane(startCylinderDescent);
+  } else {
+    setTimeout(startCylinderDescent, 1500);
+  }
+}
+
+function triggerSovereignTesseractFinalDeathSequence(winLine, floorData) {
+  state.busy = true;
+  state.gameOver = true;
+  state.bossHp = 0;
+  state.isCylinderRotationPaused = true;
+
+  // Stop the Phase 3 boss track immediately before the final destruction cinematic begins
+  if (typeof bgm !== 'undefined' && bgm && typeof bgm.stop === 'function') {
+    bgm.stop();
+  }
+
+  const clearedBossNum = Math.floor(state.floorIdx / 3) + 1;
+  state.unlockedShopTier = Math.min(5, Math.max(state.unlockedShopTier || 1, clearedBossNum + 1));
+  state.highTierCardsUnlocked = true;
+
+  let philosopherBonus = 0;
+  if (hasGambit('alkahest_vial')) {
+    let stoneCount = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (state.board[r][c] === STONE) stoneCount++;
+      }
+    }
+    philosopherBonus = Math.max(3, stoneCount * 2);
+    pulseGambitBadgeInHUD('alkahest_vial');
+  }
+
+  const baseReward = 7;
+  const speedBonus = Math.max(0, state.stability);
+  const totalEarned = baseReward + speedBonus + philosopherBonus;
+  state.gold += totalEarned;
+  state.pendingVictoryPayout = { totalEarned, speedBonus };
+  updateHUD();
+
+  // Stage 1 (0.0s - 1.6s): Resonance Overload & Colossal 4D Hypercube Manifestation
+  sfx.playBossPhaseShatter();
+  triggerHaptic([80, 40, 100, 40, 120]);
+  triggerBoardShake(0.55);
+  if (typeof triggerCavernBossEnragePulse === 'function') {
+    triggerCavernBossEnragePulse(1.6);
+  }
+  if (typeof playSovereignFinalDestructionVFX === 'function') {
+    playSovereignFinalDestructionVFX(6200);
+  }
+
+  if (Array.isArray(winLine)) {
+    winLine.forEach(([r, c]) => {
+      spawn3DShockwaveRing(r, c, 0xfde047, 3.2, 750);
+      spawn3DParticleBurst(r, c, 0xffffff, 22, 0.16, 780, 'octa');
+    });
+  }
+
+  setStatusBanner(true, `💥 FINAL CONNECT-4 SCORED (0/5 ❤️)! Sovereign Tesseract Core Destabilizing...`);
+  showToast(
+    '💥 SOVEREIGN TESSERACT BREACHED! Dimensional Cylinder Overload Initiated!',
+    '🌌',
+    5800,
+    'border-amber-300/90 text-amber-100'
+  );
+
+  // Stage 2 (1.6s - 3.5s): Sequential 12-Column Chain Detonation & Zero-Gravity Token Freefall
+  const totalCols = COLS;
+  for (let c = 0; c < totalCols; c++) {
+    setTimeout(() => {
+      sfx.playShatterCrunch();
+      triggerBoardShake(0.32);
+      const midR = Math.floor(ROWS / 2);
+      const waveColors = [0xfde047, 0xf43f5e, 0x38bdf8, 0xc084fc];
+      const colColor = waveColors[c % waveColors.length];
+      spawn3DColumnBeam(c, colColor, 0.52, 680, true);
+      spawn3DShockwaveRing(midR, c, colColor, 3.0, 620);
+      spawn3DParticleBurst(midR, c, 0xfde047, 16, 0.17, 680, 'octa');
+
+      // Launch tokens in column c into cosmic freefall
+      for (let r = 0; r < ROWS; r++) {
+        const tMesh = state.meshes[r] && state.meshes[r][c];
+        if (tMesh && tMesh.userData) {
+          const theta = typeof getCylinderColumnAngle === 'function' ? getCylinderColumnAngle(c) : 0;
+          tMesh.userData.vfxControlled = false;
+          tMesh.userData.freefall = true;
+          tMesh.userData.velX = Math.sin(theta) * (0.06 + Math.random() * 0.08);
+          tMesh.userData.velZ = -Math.cos(theta) * (0.06 + Math.random() * 0.08);
+          tMesh.userData.velY = 0.08 + Math.random() * 0.12;
+          tMesh.userData.rotSpeedX = (Math.random() - 0.5) * 0.32;
+          tMesh.userData.rotSpeedZ = (Math.random() - 0.5) * 0.32;
+        }
+      }
+
+      // Hide/fracture this column's frame group
+      if (typeof cylinderColFrameGroups !== 'undefined' && cylinderColFrameGroups[c]) {
+        cylinderColFrameGroups[c].visible = false;
+      }
+    }, 1550 + c * 145);
+  }
+
+  // Stage 3A (3.4s): Singularity Implosion
+  setTimeout(() => {
+    clearThreeGroup(dynamicFrameGroup);
+    clearThreeGroup(enchantGroup);
+    if (typeof sfx.playPlanarBoardShatter === 'function') {
+      sfx.playPlanarBoardShatter();
+    }
+    triggerBoardShake(0.72);
+    setStatusBanner(true, `✨ Fourfold Hypercube Imploding into Astral Supernova...`);
+  }, 3400);
+
+  // Stage 3B (4.0s): Fourfold Supernova Eruption & Victory Fanfare
+  setTimeout(() => {
+    clearThreeGroup(tokensGroup);
+    if (typeof sfx.playSovereignVictoryFanfare === 'function') {
+      sfx.playSovereignVictoryFanfare();
+    } else {
+      sfx.playResultChime(true);
+    }
+    triggerHaptic([90, 45, 130, 45, 160]);
+    triggerBoardShake(0.85);
+    if (typeof triggerCavernBossEnragePulse === 'function') {
+      triggerCavernBossEnragePulse(2.0);
+    }
+    spawnFloatingPop(`🏆 SOVEREIGN TESSERACT VANQUISHED! +$${totalEarned} Gold!`, 'text-amber-300', 6000);
+    setStatusBanner(true, `🏆 THE SOVEREIGN TESSERACT IS SHATTERED! Earned +$${totalEarned} Gold!`);
+  }, 4000);
+
+  // Stage 4 (6.3s): Open Final Ascension Victory Modal
+  setTimeout(() => {
+    showGameOverModal(
+      true,
+      'Subterranean Ascension Mastered!',
+      `You shattered all 4 parallel warped boards, survived the Dimensional Upheaval, conquered the 12-Column Ethereal Cylinder, and vanquished The Sovereign Tesseract with $${state.gold} Gold!`
+    );
+  }, 6300);
+}
+
 function triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData) {
   sfx.playTrapdoorRelease();
   triggerHaptic([60, 40, 90, 40, 80]);
@@ -3419,7 +4257,6 @@ function triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData) {
     triggerCavernBossEnragePulse(1.25);
   }
 
-  // Also summon the Act IV Boss 3D centerpiece during the Midpoint Cataclysm!
   const archId = floorData && floorData.bossArchetype ? floorData.bossArchetype.id : null;
   if (archId === 'void_weaver' && typeof playBossVoidWeaverVFX === 'function') {
     playBossVoidWeaverVFX([[2, 2], [2, 4]], null, null, null);
@@ -3432,7 +4269,6 @@ function triggerAct4MidpointBoardFlush(shouldAdvanceToAI, floorData) {
     spawn3DParticleBurst(0, c, 0xf43f5e, 10, 0.14, 560, 'octa');
   }
 
-  // Release all tokens in tokensGroup so they plummet downward out of the bottom of the frame
   tokensGroup.children.forEach((mesh) => {
     const d = mesh.userData;
     if (d) d.vfxControlled = false;
@@ -3526,7 +4362,100 @@ function handleFloorVictory(winLine) {
   state.busy = true;
   highlightWinningLine(winLine);
   const floorData = getFloorConfig(state.floorIdx);
+  const isTesseractBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract';
 
+  // Special Multi-Phase Board-Shattering Logic for Floor 15 Final Boss (The Sovereign Tesseract)
+  if (isTesseractBoss) {
+    state.lastActionWasDrop = false;
+
+    if (Array.isArray(winLine)) {
+      winLine.forEach(([r, c]) => {
+        spawn3DShockwaveRing(r, c, 0xfde047, 1.85, 520);
+      });
+    }
+    sfx.playCoinDing();
+
+    if (state.bossHp > 1) {
+      const nextRemHp = state.bossHp - 1;
+      const shatteredIdx = state.activeTesseractBoardIdx || 0;
+      const shatteredLabel = (state.tesseractBoards[shatteredIdx] && state.tesseractBoards[shatteredIdx].label) || `Board ${shatteredIdx + 1}`;
+      setStatusBanner(true, `✨ Connect 4 on ${shatteredLabel}! Fracturing dimensional board...`);
+
+      // Give 780ms for the winning token to physically drop into its slot and highlight the 4-in-a-row before shattering the board!
+      setTimeout(() => {
+        state.bossHp = nextRemHp;
+        state.gold += 2;
+        const remHp = state.bossHp;
+
+        const hpStrip = document.getElementById('boss-hp-strip');
+        if (hpStrip) {
+          hpStrip.classList.add('ring-2', 'ring-amber-300', 'scale-110');
+          setTimeout(() => hpStrip.classList.remove('ring-2', 'ring-amber-300', 'scale-110'), 700);
+        }
+        updateHUD();
+
+        spawnFloatingPop(`💥 ${shatteredLabel} Shattered! (${remHp}/${state.bossMaxHp} ❤️ Left) +$2`, 'text-rose-300', 4800);
+        setStatusBanner(true, `💥 ${shatteredLabel} Shattered (${remHp}/${state.bossMaxHp} ❤️ Left)! Removing board from rotation...`);
+
+        // If the 4th planar board just shattered (dropping Boss to 1/5 HP), stop the normal boss BGM immediately
+        // so the board shatter, cavern crumble, and cylinder descent play out before the Phase 3 track starts!
+        if (remHp === 1 && typeof bgm !== 'undefined' && bgm && typeof bgm.stop === 'function') {
+          bgm.stop();
+        }
+
+        triggerTesseractPlanarBoardShatter(winLine, shatteredIdx, () => {
+          const intactIndices = getIntactTesseractBoardIndices();
+
+          // Phase 1 Continues (2 or 3 intact planar boards remain: 4/5 or 3/5 HP)
+          if (remHp >= 3 && intactIndices.length >= 2) {
+            const nextIdx = getNextIntactTesseractBoardIndex(shatteredIdx);
+            const nextLabel = (state.tesseractBoards[nextIdx] && state.tesseractBoards[nextIdx].label) || `Board ${nextIdx + 1}`;
+            triggerFinalBossBoardRotation(
+              nextIdx,
+              `💥 ${shatteredLabel} Destroyed! ${intactIndices.length} Boards Remain — Sliding ${nextLabel} into play!`,
+              () => {
+                state.turn = PLAYER;
+                state.busy = false;
+                updateHUD();
+                updateTelemetryBadges();
+                setStatusBanner(true, `🌌 ${nextLabel} Active (${intactIndices.length}/4 Intact • ${remHp}/${state.bossMaxHp} ❤️) • Your Turn!`);
+              },
+              false
+            );
+            return;
+          }
+
+          // Phase 2 Begins (3 boards shattered, 1 planar board remains at 2/5 HP -> Trigger One-Time Opener Combo!)
+          if (remHp === 2 && intactIndices.length >= 1) {
+            const lastIdx = intactIndices[0];
+            const lastLabel = (state.tesseractBoards[lastIdx] && state.tesseractBoards[lastIdx].label) || `Board ${lastIdx + 1}`;
+            triggerFinalBossBoardRotation(
+              lastIdx,
+              `🌌 3 Boards Shattered! Only ${lastLabel} Remains — Sovereign Tesseract Unleashes Dimensional Upheaval!`,
+              () => {
+                triggerTesseractPhase2OpenerCombo();
+              },
+              false
+            );
+            return;
+          }
+
+          // Phase 3 Transition (All 4 planar boards shattered at 1/5 HP -> Cavern Crumbles & 12-Col Cylinder Lowers!)
+          triggerPhase3EtherealCylinderTransition();
+        });
+      }, 780);
+      return;
+    }
+
+    // Final Phase 3 Cylinder Beaten (1/5 HP -> 0/5 HP): Let the winning token drop into the cylinder slot (780ms), then cut BGM & launch Final Destruction!
+    setStatusBanner(true, `✨ Final Connect 4 Connected! Breaching Sovereign Tesseract Core...`);
+    setTimeout(() => {
+      triggerSovereignTesseractFinalDeathSequence(winLine, floorData);
+    }, 780);
+    return;
+  }
+
+  // Standard Multi-HP Bosses (Acts I - IV)
   if (floorData.isBoss && state.bossHp > 1) {
     const shouldAdvanceToAI = !!state.lastActionWasDrop;
     state.lastActionWasDrop = false;
@@ -3595,27 +4524,6 @@ function handleFloorVictory(winLine) {
       spawn3DShockwaveRing(stoneR, stoneC, 0xa8a29e, 2.4, 480);
       spawn3DParticleBurst(stoneR, stoneC, 0x78716c, 16, 0.12, 480, 'box');
       rebuildBoardMeshes();
-
-      const isTesseractBoss = floorData.isBoss && floorData.bossArchetype && floorData.bossArchetype.id === 'sovereign_tesseract';
-      if (isTesseractBoss && Array.isArray(state.tesseractBoards) && state.tesseractBoards.length === 4) {
-        const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
-        triggerFinalBossBoardRotation(
-          nextIdx,
-          `🌌 Heart Shattered (${state.bossHp}/${state.bossMaxHp} ❤️)! Tesseract rotated to Board ${nextIdx + 1}/4!`,
-          () => {
-            if (shouldAdvanceToAI) {
-              triggerAITurn();
-            } else {
-              state.turn = PLAYER;
-              state.busy = false;
-              updateHUD();
-              updateTelemetryBadges();
-              setStatusBanner(true, `🌌 Board ${state.activeTesseractBoardIdx + 1}/4 Active • Boss at ${state.bossHp}/${state.bossMaxHp} ❤️!`);
-            }
-          }
-        );
-        return;
-      }
 
       if (aiEngine.isBoardFull(state.board)) {
         handleDraw();
@@ -3718,9 +4626,28 @@ function handleDraw() {
     state.board = Array.from({ length: ROWS }, (_, r) =>
       Array.from({ length: COLS }, (_, c) => (state.boardMask[r][c] ? EMPTY : VOID_CELL))
     );
+    if (state.isCylinderPhase) {
+      rebuildBoardMeshes();
+      showToast('🪐 Cylinder Full! Ethereal grid flushed clean for final convergence!', '🪐', 4200);
+      state.turn = PLAYER;
+      state.busy = false;
+      updateHUD();
+      updateTelemetryBadges();
+      return;
+    }
     saveCurrentTesseractBoardState();
-    const nextIdx = (state.activeTesseractBoardIdx + 1) % 4;
-    triggerFinalBossBoardRotation(nextIdx, '🌌 Board Full! Tesseract flushed & rotated to next Parallel Board!', () => {
+    const intact = getIntactTesseractBoardIndices();
+    if (intact.length <= 1) {
+      rebuildBoardMeshes();
+      showToast('🌌 Board Full! Final Planar Board flushed clean!', '🌌', 3800);
+      state.turn = PLAYER;
+      state.busy = false;
+      updateHUD();
+      updateTelemetryBadges();
+      return;
+    }
+    const nextIdx = getNextIntactTesseractBoardIndex(state.activeTesseractBoardIdx);
+    triggerFinalBossBoardRotation(nextIdx, '🌌 Board Full! Tesseract flushed & rotated to next intact Parallel Board!', () => {
       state.turn = PLAYER;
       state.busy = false;
       updateHUD();

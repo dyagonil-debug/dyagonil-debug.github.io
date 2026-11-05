@@ -2,6 +2,7 @@
 // ANIMATION LOOP, OCCLUSION CULLING & RESPONSIVE RESIZE (js/graphics/loop.js)
 // ============================================================================
 const clock = new THREE.Clock();
+let lastFrameElapsed = 0;
 const projVec = new THREE.Vector3();
 
 const OCCLUDING_MODAL_IDS = [
@@ -38,6 +39,8 @@ function animate() {
   }
 
   const elapsed = clock.getElapsedTime();
+  const dt = Math.min(0.1, Math.max(0, elapsed - lastFrameElapsed));
+  lastFrameElapsed = elapsed;
 
   camState.theta += (camState.targetTheta - camState.theta) * 0.1;
   camState.phi += (camState.targetPhi - camState.phi) * 0.1;
@@ -75,6 +78,15 @@ function animate() {
   tokensGroup.children.forEach((mesh) => {
     const d = mesh.userData;
     if (!d || d.vfxControlled) return;
+    if (d.freefall) {
+      d.velY -= 0.028;
+      mesh.position.x += (d.velX || 0);
+      mesh.position.y += d.velY;
+      mesh.position.z += (d.velZ || 0);
+      if (d.rotSpeedX) mesh.rotation.x += d.rotSpeedX;
+      if (d.rotSpeedZ) mesh.rotation.z += d.rotSpeedZ;
+      return;
+    }
     if (mesh.position.y > d.targetY) {
       d.velY -= 0.035;
       mesh.position.y += d.velY;
@@ -104,24 +116,42 @@ function animate() {
   if (typeof updateCavernAnimation === 'function') {
     updateCavernAnimation(elapsed);
   }
+  if (typeof updateCylindricalBoardTransforms === 'function') {
+    updateCylindricalBoardTransforms(dt);
+  }
 
   const winW = window.innerWidth;
   const winH = window.innerHeight;
-  const topY = START_Y + BOARD_H + 0.35;
+  const topY = START_Y + BOARD_H + 0.35 + ((typeof state !== 'undefined' && state && state.cylinderDropOffsetY) || 0);
+  const isCyl = typeof state !== 'undefined' && state && !!state.isCylinderPhase;
 
-  for (let c = 0; c < COLS; c++) {
-    const colX = START_X + c * CELL_SPACING;
-    projVec.set(colX, topY, 0);
+  for (let c = 0; c < colBadges.length; c++) {
+    const badge = colBadges[c];
+    if (!badge) continue;
+    if (c >= COLS) {
+      badge.style.display = 'none';
+      continue;
+    }
+    if (isCyl) {
+      if (typeof isCylinderColumnInteractive === 'function' && !isCylinderColumnInteractive(c)) {
+        badge.style.display = 'none';
+        continue;
+      }
+      badge.style.display = 'flex';
+      const pos = getCylinderCellWorldCoords(0, c, 0);
+      projVec.set(pos.x, topY, pos.z);
+    } else {
+      badge.style.display = 'flex';
+      const colX = START_X + c * CELL_SPACING;
+      projVec.set(colX, topY, 0);
+    }
     projVec.project(camera);
 
     const sx = (projVec.x * 0.5 + 0.5) * winW;
     const sy = (-(projVec.y * 0.5) + 0.5) * winH;
 
-    const badge = colBadges[c];
-    if (badge) {
-      badge.style.left = `${sx}px`;
-      badge.style.top = `${sy}px`;
-    }
+    badge.style.left = `${sx}px`;
+    badge.style.top = `${sy}px`;
 
     const numEl = (typeof colNumEls !== 'undefined' && colNumEls[c]) || document.getElementById(`col-num-${c}`);
     if (numEl) {

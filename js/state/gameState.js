@@ -43,6 +43,15 @@ const state = {
   bossMarkedCol: 3,
   tesseractBoards: [],
   activeTesseractBoardIdx: 0,
+  tesseractPhase2ComboUsed: false,
+  isCylinderPhase: false,
+  isCylinderLowering: false,
+  isCylinderRotationPaused: false,
+  cylinderDropOffsetY: 0,
+  cylinderAngle: 0,
+  cylinderAutoRotateSpeed: 0.38,
+  etherealPlaneActive: false,
+  voidFlamePurged: false,
 
   // Progression & Boss-Gated Shop Tier Unlocks
   //   • unlockedShopTier = 1 on Floors 1–3 (Act I before defeating Boss 1)
@@ -101,6 +110,9 @@ function createDefaultFloorModifiers() {
 function initNewRun() {
   activeDebugTopologyOverride = null;
   activeDebugBossOverride = null;
+  if (typeof setActiveBoardCols === 'function') {
+    setActiveBoardCols(7);
+  }
   const diff = getActiveDifficulty();
   if (!state.loadoutId || (typeof LOADOUT_CATALOG !== 'undefined' && !LOADOUT_CATALOG[state.loadoutId])) {
     state.loadoutId = 'spelunker';
@@ -138,9 +150,21 @@ function initNewRun() {
   state.shuffledBossPool = [easyPick, mediumPick, hardPick, act4Pick, finalPick];
   state.tesseractBoards = [];
   state.activeTesseractBoardIdx = 0;
+  state.tesseractPhase2ComboUsed = false;
+  state.isCylinderPhase = false;
+  state.isCylinderLowering = false;
+  state.isCylinderRotationPaused = false;
+  state.cylinderDropOffsetY = 0;
+  state.cylinderAngle = 0;
+  state.etherealPlaneActive = false;
+  state.voidFlamePurged = false;
+  state._preVoidFlameSnapshot = null;
   state.shuffledTopologyPool = shuffle(BOARD_TOPOLOGIES);
 
   state.nextFloorModifiers = createDefaultFloorModifiers();
+  if (typeof resetCavernFromEtherealPlane === 'function') {
+    resetCavernFromEtherealPlane();
+  }
   if (typeof bgm !== 'undefined' && bgm && typeof bgm.setMode === 'function') {
     bgm.setMode('cavern');
   }

@@ -8,9 +8,11 @@ const colWarnEls = [];
 const colScoreEls = [];
 const colNumEls = [];
 
-for (let c = 0; c < COLS; c++) {
+const TOTAL_HUD_BADGE_COLS = typeof MAX_COLS !== 'undefined' ? MAX_COLS : 12;
+for (let c = 0; c < TOTAL_HUD_BADGE_COLS; c++) {
   const badge = document.createElement('div');
   badge.className = 'telemetry-tag flex flex-col items-center';
+  if (c >= COLS) badge.style.display = 'none';
   badge.innerHTML = `
     <div id="col-warn-${c}" class="hidden text-[10px] font-mono-code font-bold text-rose-300 bg-rose-950/90 border border-rose-400/50 px-1 rounded mb-0.5 animate-bounce">⚠️FLIP</div>
     <span id="col-score-${c}" class="px-1.5 py-0.5 rounded-md text-[9px] font-mono-code font-bold bg-stone-950/90 text-slate-300 border border-white/15">0</span>
@@ -81,7 +83,11 @@ function updateTelemetryBadges() {
   const archId = floorData.isBoss && floorData.bossArchetype ? floorData.bossArchetype.id : null;
   const isMarkedColBoss = archId === 'chronos_dali' || archId === 'abyssal_lodestone';
 
-  for (let c = 0; c < COLS; c++) {
+  for (let c = 0; c < colBadges.length; c++) {
+    if (c >= COLS) {
+      if (colBadges[c]) colBadges[c].style.display = 'none';
+      continue;
+    }
     const scoreEl = colScoreEls[c];
     const warnEl = colWarnEls[c];
 
@@ -176,8 +182,19 @@ function updateHUD() {
     } else if (arch.id === 'abyssal_lodestone') {
       teleEl.textContent = `🧲 Pulls into Col ${state.bossMarkedCol + 1} (${remLabel}) • Flush at 2/4❤️`;
     } else if (arch.id === 'sovereign_tesseract') {
-      const bNum = (state.activeTesseractBoardIdx || 0) + 1;
-      teleEl.textContent = `🌌 Board ${bNum}/4 Active • Rotates (${remLabel})`;
+      if (state.isCylinderPhase) {
+        teleEl.textContent = `🪐 12-Col Ethereal Cylinder (Edgeless) • 2x Collapse at ≤0 Stab!`;
+      } else {
+        const intactCount = Array.isArray(state.tesseractBoards)
+          ? state.tesseractBoards.filter((b) => b && !b.isShattered).length
+          : 4;
+        if (intactCount <= 1) {
+          teleEl.textContent = `🌌 Final Planar Board (1/4 Intact) • Dimensional Upheaval!`;
+        } else {
+          const bNum = (state.activeTesseractBoardIdx || 0) + 1;
+          teleEl.textContent = `🌌 Board ${bNum}/4 (${intactCount} Intact) • Rotates (${remLabel})`;
+        }
+      }
     } else {
       teleEl.textContent = `⚡ ${arch.shortTelegraph} (${remLabel})`;
     }
@@ -234,39 +251,48 @@ function updateHUD() {
 
   const gambitStrip = document.getElementById('gambit-strip');
   gambitStrip.innerHTML = '';
-  if (state.gambits.length === 0) {
-    const hint = document.createElement('span');
-    hint.className = 'text-[10px] font-mono-code text-slate-400 mr-1';
-    hint.textContent = `Gambits (0/${state.maxGambitSlots}):`;
-    gambitStrip.appendChild(hint);
-  }
-  state.gambits.forEach((gId) => {
-    const g = GAMBIT_CATALOG[gId];
-    if (!g) return;
-    const spentCat = (gId === 'obsidian_cat' && state.catNineLivesUsed);
-    const btn = document.createElement('button');
-    btn.className = `px-2 py-0.5 rounded-lg border text-xs flex items-center gap-1 shrink-0 active:scale-95 transition ${
-      spentCat ? 'bg-stone-900/40 border-white/10 opacity-50' : 'bg-amber-500/15 border-amber-400/35 text-amber-200'
-    }`;
-    btn.innerHTML = `<span>${g.icon}</span><span class="text-[10px] font-medium">${g.name.split(' ')[0]}</span>`;
-    btn.addEventListener('click', () => openGambitSheet(gId));
-    gambitStrip.appendChild(btn);
-  });
+  if (state.voidFlamePurged) {
+    const burnedRelics = document.createElement('span');
+    burnedRelics.className = 'text-[10px] font-mono-code text-purple-300/90 px-2 py-0.5 rounded-lg bg-purple-950/50 border border-purple-500/30';
+    burnedRelics.textContent = '🔥 Relics Consumed by Void Flame';
+    gambitStrip.appendChild(burnedRelics);
+  } else {
+    if (state.gambits.length === 0) {
+      const hint = document.createElement('span');
+      hint.className = 'text-[10px] font-mono-code text-slate-400 mr-1';
+      hint.textContent = `Gambits (0/${state.maxGambitSlots}):`;
+      gambitStrip.appendChild(hint);
+    }
+    state.gambits.forEach((gId) => {
+      const g = GAMBIT_CATALOG[gId];
+      if (!g) return;
+      const spentCat = (gId === 'obsidian_cat' && state.catNineLivesUsed);
+      const btn = document.createElement('button');
+      btn.className = `gambit-relic-pill px-2 py-0.5 rounded-lg border text-xs flex items-center gap-1 shrink-0 active:scale-95 transition ${
+        spentCat ? 'bg-stone-900/40 border-white/10 opacity-50' : 'bg-amber-500/15 border-amber-400/35 text-amber-200'
+      }`;
+      btn.innerHTML = `<span>${g.icon}</span><span class="text-[10px] font-medium">${g.name.split(' ')[0]}</span>`;
+      btn.addEventListener('click', () => openGambitSheet(gId));
+      gambitStrip.appendChild(btn);
+    });
 
-  for (let i = state.gambits.length; i < 5; i++) {
-    const isUnlocked = i < state.maxGambitSlots;
-    const slot = document.createElement('div');
-    slot.className = isUnlocked
-      ? 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-dashed border-amber-400/30 flex items-center justify-center text-[9px] text-amber-300/60 shrink-0'
-      : 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-white/5 bg-stone-950/60 flex items-center justify-center text-[9px] text-slate-700 shrink-0';
-    slot.textContent = isUnlocked ? '+' : '🔒';
-    slot.title = isUnlocked ? 'Unlocked Gambit Slot' : 'Locked Gambit Slot (Defeat Bosses or Upgrade in Bazaar)';
-    gambitStrip.appendChild(slot);
+    for (let i = state.gambits.length; i < 5; i++) {
+      const isUnlocked = i < state.maxGambitSlots;
+      const slot = document.createElement('div');
+      slot.className = isUnlocked
+        ? 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-dashed border-amber-400/30 flex items-center justify-center text-[9px] text-amber-300/60 shrink-0'
+        : 'w-6 h-6 md:w-7 md:h-7 rounded-lg border border-white/5 bg-stone-950/60 flex items-center justify-center text-[9px] text-slate-700 shrink-0';
+      slot.textContent = isUnlocked ? '+' : '🔒';
+      slot.title = isUnlocked ? 'Unlocked Gambit Slot' : 'Locked Gambit Slot (Defeat Bosses or Upgrade in Bazaar)';
+      gambitStrip.appendChild(slot);
+    }
   }
 
   const pouchEl = document.getElementById('reserve-pouch-container');
   pouchEl.innerHTML = '';
-  if (!state.reservePouchUnlocked && state.reservePouch.length === 0) {
+  if (state.voidFlamePurged) {
+    pouchEl.innerHTML = `<span class="text-[10px] font-mono-code text-purple-300/90 px-2 py-0.5 rounded-lg bg-purple-950/50 border border-purple-500/30">🔥 Reserves Consumed by Void Flame</span>`;
+  } else if (!state.reservePouchUnlocked && state.reservePouch.length === 0) {
     pouchEl.innerHTML = `<span class="text-[10px] font-mono-code text-slate-500 px-1">🔒 Pouch unlocks Floor 3 Boss</span>`;
   } else if (state.reservePouch.length === 0) {
     pouchEl.innerHTML = `<span class="text-[10px] font-mono-code text-slate-400 px-1">Pouch Ready (0 Tokens)</span>`;
@@ -306,10 +332,15 @@ function updateHUD() {
 
   if (state.hand.length === 0) {
     const emptyMsg = document.createElement('div');
-    emptyMsg.className = 'w-full flex items-center justify-center text-[10px] font-mono-code text-slate-400 py-3 px-2 border border-dashed border-white/10 rounded-xl';
-    emptyMsg.textContent = state.drawPile.length > 0
-      ? `Hand Empty • ${state.drawPile.length} consumable card(s) left in floor deck (Max Hand: ${state.handSize})`
-      : 'All stockpiled consumable cards expended • Buy more in the Underground Bazaar!';
+    if (state.voidFlamePurged) {
+      emptyMsg.className = 'w-full flex items-center justify-center text-[10px] font-mono-code text-purple-300 py-3 px-2 border border-dashed border-purple-500/40 bg-purple-950/30 rounded-xl';
+      emptyMsg.textContent = '🔥 All Arcane Cards, Reserve Tokens & Relics Incinerated by Void Flame — Pure Connect-4 Final Trial!';
+    } else {
+      emptyMsg.className = 'w-full flex items-center justify-center text-[10px] font-mono-code text-slate-400 py-3 px-2 border border-dashed border-white/10 rounded-xl';
+      emptyMsg.textContent = state.drawPile.length > 0
+        ? `Hand Empty • ${state.drawPile.length} consumable card(s) left in floor deck (Max Hand: ${state.handSize})`
+        : 'All stockpiled consumable cards expended • Buy more in the Underground Bazaar!';
+    }
     handContainer.appendChild(emptyMsg);
   } else {
     const totalTokensOnBoard = countTokensInPlay(state.board);

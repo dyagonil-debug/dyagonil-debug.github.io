@@ -1152,6 +1152,164 @@ class TactileSFX {
         this.playNoiseBurst(0.18, 2200, 0.15, 'bandpass');
     }
 
+
+    // 65. 8-Bit Planar Connect-4 Board Fracture & Falling Rubble Roar
+    playPlanarBoardShatter() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 880.00, dur: 0.028, gain: 0.16 },
+            { freq: 622.25, dur: 0.032, gain: 0.17 },
+            { freq: 440.00, dur: 0.038, gain: 0.17 },
+            { freq: 293.66, dur: 0.048, gain: 0.18 },
+            { freq: 146.83, dur: 0.080, gain: 0.19 },
+            { freq: 73.42,  dur: 0.180, gain: 0.20 }
+        ], 'sawtooth', 0.18, 3400);
+        this.playSteppedSequence([
+            { freq: 220.00, dur: 0.055, gain: 0.18 },
+            { freq: 110.00, dur: 0.095, gain: 0.19 },
+            { freq: 55.00,  dur: 0.220, gain: 0.20 }
+        ], 'triangle', 0.19, 1400);
+        this.playNoiseBurst(0.28, 1350, 0.19, 'bandpass');
+    }
+
+    // 66. 8-Bit Phase 2 Token Glow-Charge Rising Harmonic Sweep
+    playTokenGlowCharge() {
+        if (this.muted) return;
+        const notes = [293.66, 349.23, 440.00, 523.25, 587.33, 698.46, 880.00, 1046.50, 1174.66, 1479.98, 1760.00];
+        this.playSteppedSequence(
+            notes.map((f, i) => ({ freq: f, dur: 0.075, gain: 0.10 + i * 0.006 })),
+            'square',
+            0.16,
+            3900
+        );
+        this.playSteppedSequence(
+            notes.map((f) => ({ freq: f * 0.5, dur: 0.075, gain: 0.13 })),
+            'triangle',
+            0.15,
+            2200
+        );
+    }
+
+    // 67. 8-Bit Phase 2 Tesseract 4D Gimbal Board Upheaval Flip
+    playTesseractUpheavalFlip() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 146.83,  dur: 0.045, gain: 0.15 },
+            { freq: 220.00,  dur: 0.045, gain: 0.15 },
+            { freq: 293.66,  dur: 0.045, gain: 0.16 },
+            { freq: 440.00,  dur: 0.050, gain: 0.16 },
+            { freq: 587.33,  dur: 0.055, gain: 0.17 },
+            { freq: 880.00,  dur: 0.060, gain: 0.17 },
+            { freq: 1174.66, dur: 0.065, gain: 0.18 },
+            { freq: 587.33,  dur: 0.055, gain: 0.16 },
+            { freq: 293.66,  dur: 0.095, gain: 0.18 }
+        ], 'sawtooth', 0.17, 3600);
+        this.playNoiseBurst(0.26, 1500, 0.15, 'bandpass');
+    }
+
+    // 68. 8-Bit Cavern Crumble to Ethereal Cosmic Plane Transition
+    playCavernCrumbleToEthereal() {
+        if (this.muted) return;
+        // Part 1: Deep tectonic cavern collapse
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+                if (this.muted) return;
+                this.playSteppedSequence([
+                    { freq: 164.81 - i * 18, dur: 0.065, gain: 0.18 },
+                    { freq: 110.00 - i * 12, dur: 0.095, gain: 0.19 },
+                    { freq: 65.41 - i * 6,   dur: 0.180, gain: 0.20 }
+                ], 'triangle', 0.19, 1200);
+                this.playNoiseBurst(0.24, 900 - i * 120, 0.18, 'lowpass');
+            }, i * 280);
+        }
+        // Part 2: Shimmering astral plane reveal chord
+        setTimeout(() => {
+            if (this.muted) return;
+            this.playSteppedSequence([
+                { freq: 293.66,  dur: 0.090, gain: 0.13 },
+                { freq: 440.00,  dur: 0.090, gain: 0.14 },
+                { freq: 587.33,  dur: 0.090, gain: 0.15 },
+                { freq: 739.99,  dur: 0.090, gain: 0.15 },
+                { freq: 880.00,  dur: 0.100, gain: 0.16 },
+                { freq: 1174.66, dur: 0.120, gain: 0.16 },
+                { freq: 1479.98, dur: 0.340, gain: 0.17 }
+            ], 'square', 0.16, 4200);
+        }, 1050);
+    }
+
+    // 69. 8-Bit 12-Column Cylindrical Board Descent & Lock-In
+    playCylinderDescentLock() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 880.00, dur: 0.075, gain: 0.13 },
+            { freq: 783.99, dur: 0.075, gain: 0.13 },
+            { freq: 659.25, dur: 0.075, gain: 0.14 },
+            { freq: 587.33, dur: 0.080, gain: 0.14 },
+            { freq: 440.00, dur: 0.085, gain: 0.15 },
+            { freq: 293.66, dur: 0.110, gain: 0.17 },
+            { freq: 146.83, dur: 0.220, gain: 0.19 }
+        ], 'sawtooth', 0.16, 3200);
+        setTimeout(() => {
+            if (this.muted) return;
+            this.playSteppedSequence([
+                { freq: 293.66,  dur: 0.045, gain: 0.16 },
+                { freq: 587.33,  dur: 0.045, gain: 0.16 },
+                { freq: 880.00,  dur: 0.055, gain: 0.17 },
+                { freq: 1174.66, dur: 0.240, gain: 0.18 }
+            ], 'square', 0.17, 4000);
+            this.playNoiseBurst(0.16, 1400, 0.16, 'bandpass');
+        }, 720);
+    }
+
+    // 70. 8-Bit Grand Sovereign Tesseract Final Destruction & Victory Fanfare
+    playSovereignVictoryFanfare() {
+        if (this.muted) return;
+        this.playSteppedSequence([
+            { freq: 587.33,  dur: 0.080, gain: 0.15 }, // D5
+            { freq: 587.33,  dur: 0.080, gain: 0.15 }, // D5
+            { freq: 587.33,  dur: 0.080, gain: 0.15 }, // D5
+            { freq: 880.00,  dur: 0.220, gain: 0.17 }, // A5
+            { freq: 698.46,  dur: 0.180, gain: 0.16 }, // F5
+            { freq: 783.99,  dur: 0.180, gain: 0.16 }, // G5
+            { freq: 880.00,  dur: 0.140, gain: 0.17 }, // A5
+            { freq: 783.99,  dur: 0.090, gain: 0.16 }, // G5
+            { freq: 880.00,  dur: 0.200, gain: 0.17 }, // A5
+            { freq: 1174.66, dur: 0.480, gain: 0.18 }  // D6
+        ], 'square', 0.17, 4200);
+        this.playSteppedSequence([
+            { freq: 293.66, dur: 0.240, gain: 0.15 },
+            { freq: 440.00, dur: 0.220, gain: 0.15 },
+            { freq: 349.23, dur: 0.180, gain: 0.15 },
+            { freq: 392.00, dur: 0.180, gain: 0.15 },
+            { freq: 440.00, dur: 0.430, gain: 0.16 },
+            { freq: 587.33, dur: 0.480, gain: 0.17 }
+        ], 'triangle', 0.16, 2600);
+    }
+
+    // 71. 8-Bit Void Flame Item Incineration Roar & Cinder Crackle
+    playVoidFlameIncineration() {
+        if (this.muted) return;
+        // Deep abyssal ignition whoosh + rising tritone void fire sweep
+        this.playSteppedSequence([
+            { freq: 110.00, dur: 0.055, gain: 0.18 },
+            { freq: 155.56, dur: 0.055, gain: 0.18 },
+            { freq: 220.00, dur: 0.060, gain: 0.17 },
+            { freq: 311.13, dur: 0.065, gain: 0.17 },
+            { freq: 440.00, dur: 0.070, gain: 0.16 },
+            { freq: 622.25, dur: 0.080, gain: 0.16 },
+            { freq: 311.13, dur: 0.095, gain: 0.17 },
+            { freq: 146.83, dur: 0.180, gain: 0.19 },
+            { freq: 73.42,  dur: 0.260, gain: 0.20 }
+        ], 'sawtooth', 0.18, 3200);
+
+        // Staggered cinder crackle bursts across 1.2s
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                if (this.muted) return;
+                this.playNoiseBurst(0.22, 1100 + i * 280, 0.17, 'bandpass');
+            }, i * 210);
+        }
+    }
 }
 
 const sfx = new TactileSFX();

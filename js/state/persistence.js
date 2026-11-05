@@ -612,6 +612,9 @@ function dismissAnyTitleOrSplashOverlays() {
 }
 
 function syncSceneAndHudAfterRestore(payload) {
+  if (typeof setActiveBoardCols === 'function' && typeof state !== 'undefined' && state) {
+    setActiveBoardCols(state.isCylinderPhase ? 12 : 7);
+  }
   const tGroup = (typeof tokensGroup !== 'undefined' && tokensGroup)
     ? tokensGroup
     : (window.C4 && window.C4.scene3d ? window.C4.scene3d.tokensGroup : null);

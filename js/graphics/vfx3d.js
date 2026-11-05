@@ -42,6 +42,10 @@ function triggerBoardShake(amount = 0.22) {
 function getCellWorldPos(r, c, zOffset = 0.55) {
   const safeR = Math.max(0, Math.min(ROWS - 1, Number.isFinite(r) && r >= 0 ? r : 2));
   const safeC = Math.max(0, Math.min(COLS - 1, Number.isFinite(c) && c >= 0 ? c : 3));
+  if (typeof state !== 'undefined' && state && state.isCylinderPhase && typeof getCylinderCellWorldCoords === 'function') {
+    const pos = getCylinderCellWorldCoords(safeR, safeC, zOffset);
+    return new THREE.Vector3(pos.x, pos.y, pos.z);
+  }
   return new THREE.Vector3(
     START_X + safeC * CELL_SPACING,
     START_Y + safeR * CELL_SPACING,
@@ -214,6 +218,10 @@ function spawn3DShockwaveRing(r, c, colorHex = 0xf59e0b, maxScale = 2.8, duratio
   });
   const ring = new THREE.Mesh(ringGeoVfx, ringMatVfx);
   ring.position.copy(getCellWorldPos(r, c, 0.68));
+  if (typeof state !== 'undefined' && state && state.isCylinderPhase && typeof getCylinderCellWorldCoords === 'function') {
+    const cPos = getCylinderCellWorldCoords(r, c, 0.68);
+    ring.rotation.y = cPos.rotY;
+  }
 
   addTimedVFX(ring, durationMs, (p) => {
     const ease = 1 - Math.pow(1 - p, 3);
@@ -226,8 +234,14 @@ function spawn3DShockwaveRing(r, c, colorHex = 0xf59e0b, maxScale = 2.8, duratio
 // Helper: 3D Vertical Column Pillar / Beam
 function spawn3DColumnBeam(col, colorHex = 0xef4444, radius = 0.48, durationMs = 620, pulseRings = true) {
   const group = new THREE.Group();
-  const colX = START_X + col * CELL_SPACING;
+  const isCyl = typeof state !== 'undefined' && state && !!state.isCylinderPhase && typeof getCylinderCellWorldCoords === 'function';
+  const cylCoord = isCyl ? getCylinderCellWorldCoords(2, col, 0.42) : null;
+  const colX = isCyl ? 0 : (START_X + col * CELL_SPACING);
   const centerY = VFX_CENTER_Y;
+  if (isCyl && cylCoord) {
+    group.position.set(cylCoord.x, 0, cylCoord.z);
+    group.rotation.y = cylCoord.rotY;
+  }
 
   const cylGeo = new THREE.CylinderGeometry(radius, radius, BOARD_H, 20, 1, true);
   const cylMat = new THREE.MeshBasicMaterial({
@@ -4014,5 +4028,320 @@ function playBossSovereignTesseractVFX() {
     const s = Math.max(0.01, scaleEnv);
     group.scale.setScalar(s);
     bossLight.intensity = 3.6 * s;
+  });
+}
+
+
+// 36J. SOVEREIGN TESSERACT PLANAR BOARD SHATTER: Structural Strut Fracture & Shard Rain
+function playPlanarBoardShatterVFX(durationMs = 1350) {
+  const group = new THREE.Group();
+  const shards = [];
+  const shardColors = [0xfbbf24, 0xf43f5e, 0xc084fc, 0x78350f, 0x38bdf8];
+
+  for (let i = 0; i < 42; i++) {
+    const isBeam = i % 2 === 0;
+    const geo = isBeam
+      ? new THREE.BoxGeometry(0.65 + (i % 3) * 0.25, 0.14, 0.42)
+      : new THREE.OctahedronGeometry(0.24 + (i % 3) * 0.08, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      color: shardColors[i % shardColors.length],
+      transparent: true,
+      opacity: 0.96
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    const r = i % ROWS;
+    const c = i % 7;
+    const sx = START_X + c * CELL_SPACING + (Math.random() - 0.5) * 0.6;
+    const sy = START_Y + r * CELL_SPACING + (Math.random() - 0.5) * 0.6;
+    mesh.position.set(sx, sy, (Math.random() - 0.5) * 0.6);
+    mesh.userData = {
+      vx: (sx * 0.025) + (Math.random() - 0.5) * 0.12,
+      vy: 0.06 + Math.random() * 0.12,
+      vz: (Math.random() - 0.35) * 0.14,
+      rx: (Math.random() - 0.5) * 0.32,
+      ry: (Math.random() - 0.5) * 0.32,
+      rz: (Math.random() - 0.5) * 0.32
+    };
+    group.add(mesh);
+    shards.push(mesh);
+  }
+
+  addTimedVFX(group, durationMs, (p) => {
+    shards.forEach((sh) => {
+      sh.position.x += sh.userData.vx;
+      sh.position.y += sh.userData.vy;
+      sh.position.z += sh.userData.vz;
+      sh.userData.vy -= 0.0085;
+      sh.rotation.x += sh.userData.rx;
+      sh.rotation.y += sh.userData.ry;
+      sh.rotation.z += sh.userData.rz;
+      if (p > 0.65) {
+        sh.material.opacity = Math.max(0, 1 - (p - 0.65) / 0.35);
+      }
+    });
+  });
+}
+
+// 36K. PHASE 2 OPENER PART 1: 50% Random Token Growing Glow & Simultaneous Shatter
+function playPhase2TokenGlowAndShatterVFX(selectedCoords, durationMs = 1080, onComplete = null) {
+  const group = new THREE.Group();
+  const glowNodes = [];
+
+  selectedCoords.forEach(([r, c]) => {
+    const pos = getCellWorldPos(r, c, 0.22);
+    const nodeGrp = new THREE.Group();
+    nodeGrp.position.copy(pos);
+
+    const auraMat = new THREE.MeshBasicMaterial({
+      color: 0xf43f5e,
+      transparent: true,
+      opacity: 0.25,
+      blending: THREE.AdditiveBlending
+    });
+    const auraRing = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.07, 10, 28), auraMat);
+
+    const coreShellMat = new THREE.MeshBasicMaterial({
+      color: 0xfef08a,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending
+    });
+    const coreShell = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 16), coreShellMat);
+
+    nodeGrp.add(auraRing);
+    nodeGrp.add(coreShell);
+    group.add(nodeGrp);
+
+    const tokenMesh = (typeof state !== 'undefined' && state.meshes && state.meshes[r]) ? state.meshes[r][c] : null;
+    glowNodes.push({
+      r,
+      c,
+      nodeGrp,
+      auraRing,
+      auraMat,
+      coreShell,
+      coreShellMat,
+      tokenMesh,
+      baseX: tokenMesh ? tokenMesh.position.x : pos.x,
+      baseY: tokenMesh ? tokenMesh.position.y : pos.y
+    });
+  });
+
+  let completed = false;
+  addTimedVFX(group, durationMs, (p) => {
+    const ease = p * p;
+    glowNodes.forEach((gn, idx) => {
+      const pulse = 1.0 + ease * 0.45 + Math.sin(p * Math.PI * 14 + idx) * 0.12 * p;
+      gn.auraRing.scale.setScalar(pulse);
+      gn.auraRing.rotation.z = p * Math.PI * 6;
+      gn.auraMat.opacity = Math.min(1.0, 0.25 + ease * 0.75);
+      if (p > 0.5) {
+        gn.auraMat.color.setHex(p > 0.8 ? 0xffffff : 0xfde047);
+      }
+      gn.coreShell.scale.setScalar(0.85 + ease * 0.52);
+      gn.coreShellMat.opacity = Math.min(0.95, ease * 0.95);
+
+      if (gn.tokenMesh) {
+        const jitter = (Math.random() - 0.5) * 0.14 * ease;
+        gn.tokenMesh.position.x = gn.baseX + jitter;
+        gn.tokenMesh.scale.setScalar(1.0 + ease * 0.32);
+      }
+    });
+
+    if (p >= 1 && !completed) {
+      completed = true;
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }
+  });
+}
+
+// 36L. PHASE 2 OPENER PART 2: Tesseract-Themed 4D Gimbal Cage for 180-Degree Board Upheaval
+function playTesseractUpheavalCageVFX(durationMs = 920) {
+  const group = new THREE.Group();
+  group.position.set(0, VFX_CENTER_Y, 0);
+
+  const outerCage = new THREE.Mesh(
+    new THREE.BoxGeometry(BOARD_W + 1.2, BOARD_H + 0.9, 2.2),
+    new THREE.MeshBasicMaterial({
+      color: 0xfde047,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  const innerCage = new THREE.Mesh(
+    new THREE.BoxGeometry(BOARD_W * 0.72, BOARD_H * 0.72, 3.1),
+    new THREE.MeshBasicMaterial({
+      color: 0xf43f5e,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.82,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  const gimbalRing = new THREE.Mesh(
+    new THREE.TorusGeometry(4.8, 0.08, 12, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0xc084fc,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending
+    })
+  );
+
+  group.add(outerCage);
+  group.add(innerCage);
+  group.add(gimbalRing);
+
+  addTimedVFX(group, durationMs, (p) => {
+    const env = p < 0.15 ? (p / 0.15) : (p > 0.82 ? (1 - p) / 0.18 : 1);
+    outerCage.rotation.set(p * Math.PI, Math.sin(p * Math.PI) * 0.45, 0);
+    innerCage.rotation.set(-p * Math.PI, -Math.sin(p * Math.PI) * 0.65, p * Math.PI);
+    gimbalRing.rotation.set(p * Math.PI * 2, p * Math.PI, 0);
+    outerCage.material.opacity = 0.88 * env;
+    innerCage.material.opacity = 0.82 * env;
+    gimbalRing.material.opacity = 0.9 * env;
+  });
+}
+
+// 36M. PHASE 3 FINAL BOSS DESTRUCTION: Multi-Stage 4D Hypercube Implosion, 12-Col Chain Shatter & Supernova
+function playSovereignFinalDestructionVFX(totalDurationMs = 6200) {
+  const group = new THREE.Group();
+  group.position.set(0, VFX_CENTER_Y + 0.25, -1.8);
+
+  const coreLight = new THREE.PointLight(0xfde047, 4.5, 28);
+  coreLight.position.set(0, 0.5, 1.5);
+  group.add(coreLight);
+
+  const outerHyper = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 3.4, 3.4),
+    new THREE.MeshBasicMaterial({ color: 0xfde047, wireframe: true, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+  );
+  const midHyper = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 2.2, 2.2),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+  );
+  const innerHyper = new THREE.Mesh(
+    new THREE.BoxGeometry(1.25, 1.25, 1.25),
+    new THREE.MeshBasicMaterial({ color: 0xf43f5e, wireframe: true, transparent: true, opacity: 0.98, blending: THREE.AdditiveBlending })
+  );
+  const singularityCore = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.82, 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.98, blending: THREE.AdditiveBlending })
+  );
+
+  const gimbalRings = [
+    new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.08, 12, 48), C4_VFX_MATS.agedBrass),
+    new THREE.Mesh(new THREE.TorusGeometry(3.1, 0.065, 12, 48), C4_VFX_MATS.crimsonRuby),
+    new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.055, 12, 48), C4_VFX_MATS.quicksilverChrome)
+  ];
+
+  group.add(outerHyper);
+  group.add(midHyper);
+  group.add(innerHyper);
+  group.add(singularityCore);
+  gimbalRings.forEach((r) => group.add(r));
+
+  // Supernova Shockwave Rings & Star Shards (activated at p >= 0.58)
+  const novaWaves = [0xfde047, 0xf43f5e, 0x38bdf8, 0xc084fc].map((colHex, idx) => {
+    const wave = new THREE.Mesh(
+      new THREE.TorusGeometry(0.8 + idx * 0.25, 0.12, 14, 56),
+      new THREE.MeshBasicMaterial({ color: colHex, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending })
+    );
+    wave.rotation.set(idx * 0.45, idx * 0.35, 0);
+    group.add(wave);
+    return wave;
+  });
+
+  const novaShards = [];
+  const shardColors = [0xfde047, 0xf43f5e, 0x38bdf8, 0xc084fc, 0xffffff];
+  for (let i = 0; i < 84; i++) {
+    const sh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.18 + (i % 3) * 0.07, 0),
+      new THREE.MeshBasicMaterial({
+        color: shardColors[i % shardColors.length],
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    const phi = Math.acos(2 * ((i + 0.5) / 84) - 1);
+    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+    const speed = 0.16 + (i % 5) * 0.045;
+    sh.userData = {
+      dx: Math.sin(phi) * Math.cos(theta) * speed,
+      dy: Math.sin(phi) * Math.sin(theta) * speed,
+      dz: Math.cos(phi) * speed,
+      rx: (Math.random() - 0.5) * 0.3,
+      ry: (Math.random() - 0.5) * 0.3
+    };
+    group.add(sh);
+    novaShards.push(sh);
+  }
+
+  addTimedVFX(group, totalDurationMs, (p) => {
+    const spinAccel = 1 + p * 8.0;
+    outerHyper.rotation.set(p * Math.PI * 5 * spinAccel, p * Math.PI * 6 * spinAccel, 0);
+    midHyper.rotation.set(-p * Math.PI * 6 * spinAccel, p * Math.PI * 4 * spinAccel, p * Math.PI * 3);
+    innerHyper.rotation.set(p * Math.PI * 8 * spinAccel, -p * Math.PI * 7 * spinAccel, -p * Math.PI * 5);
+    singularityCore.rotation.y = p * Math.PI * 16;
+
+    gimbalRings[0].rotation.x = p * Math.PI * 9;
+    gimbalRings[1].rotation.y = -p * Math.PI * 11;
+    gimbalRings[2].rotation.z = p * Math.PI * 8;
+
+    if (p < 0.54) {
+      // Stage 1 & 2: Hypercube swells and destabilizes while cylinder detonates
+      const swell = 0.85 + (p / 0.54) * 0.65 + Math.sin(p * Math.PI * 36) * 0.08;
+      outerHyper.scale.setScalar(swell);
+      midHyper.scale.setScalar(swell);
+      innerHyper.scale.setScalar(swell);
+      singularityCore.scale.setScalar(swell * 1.15);
+      gimbalRings.forEach((r) => r.scale.setScalar(swell));
+      coreLight.intensity = 4.5 + p * 6.0;
+    } else if (p < 0.64) {
+      // Stage 3A: Rapid Singularity Implosion (0.54 -> 0.64)
+      const impP = (p - 0.54) / 0.10;
+      const shrink = Math.max(0.04, 1.5 * (1 - impP * impP));
+      outerHyper.scale.setScalar(shrink);
+      midHyper.scale.setScalar(shrink);
+      innerHyper.scale.setScalar(shrink);
+      singularityCore.scale.setScalar(Math.max(0.15, shrink * 0.8));
+      gimbalRings.forEach((r) => r.scale.setScalar(shrink));
+      coreLight.intensity = 10.0 * (1 - impP * 0.5);
+    } else {
+      // Stage 3B & 4: Fourfold Supernova Eruption & Celestial Afterglow (0.64 -> 1.0)
+      const novaP = (p - 0.64) / 0.36;
+      const novaEase = 1 - Math.pow(1 - novaP, 3);
+      const fadeOut = novaP > 0.65 ? Math.max(0, 1 - (novaP - 0.65) / 0.35) : 1.0;
+
+      outerHyper.visible = false;
+      midHyper.visible = false;
+      innerHyper.visible = false;
+      gimbalRings.forEach((r) => { r.visible = false; });
+
+      singularityCore.scale.setScalar(0.2 + novaEase * 3.2);
+      singularityCore.material.opacity = fadeOut * 0.85;
+      coreLight.intensity = 14.0 * fadeOut;
+
+      novaWaves.forEach((wave, idx) => {
+        const wScale = 0.5 + novaEase * (11.5 + idx * 3.2);
+        wave.scale.setScalar(wScale);
+        wave.rotation.z += 0.04 * (idx % 2 === 0 ? 1 : -1);
+        wave.material.opacity = Math.max(0, (1 - novaP) * 0.95);
+      });
+
+      novaShards.forEach((sh) => {
+        sh.position.x += sh.userData.dx;
+        sh.position.y += sh.userData.dy;
+        sh.position.z += sh.userData.dz;
+        sh.rotation.x += sh.userData.rx;
+        sh.rotation.y += sh.userData.ry;
+        sh.material.opacity = Math.max(0, (1 - novaP) * 0.95);
+      });
+    }
   });
 }

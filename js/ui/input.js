@@ -9,11 +9,23 @@ let pointerMovedSignificantly = false;
 let downX = 0;
 let downY = 0;
 
+function isColCurrentlyTargetable(col) {
+  if (col < 0 || col >= COLS) return false;
+  if (typeof state !== 'undefined' && state && state.isCylinderPhase) {
+    if (state.isCylinderLowering) return false;
+    if (typeof isCylinderColumnInteractive === 'function') {
+      return isCylinderColumnInteractive(col);
+    }
+  }
+  return true;
+}
+
 function getColumnFromPointerEvent(e) {
   pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(columnHitboxes);
+  const activeHitboxes = columnHitboxes.filter((hb) => hb && hb.userData && isColCurrentlyTargetable(hb.userData.col));
+  const hits = raycaster.intersectObjects(activeHitboxes);
   return hits.length > 0 ? hits[0].object.userData.col : -1;
 }
 
@@ -66,7 +78,9 @@ window.addEventListener('pointerup', (e) => {
 
 // UI Button Listeners
 document.getElementById('confirm-drop-btn').addEventListener('click', () => {
-  if (state.previewCol !== -1) commitColumnAction(state.previewCol);
+  if (state.previewCol !== -1 && isColCurrentlyTargetable(state.previewCol)) {
+    commitColumnAction(state.previewCol);
+  }
 });
 
 document.getElementById('cancel-action-btn').addEventListener('click', clearActionSelection);
@@ -153,37 +167,61 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 1. Number Keys 1-7: Aim or Drop in Column 1-7
-  if (e.key >= '1' && e.key <= '7') {
-    e.preventDefault();
+  // 1. Number Keys 1-9 (and 0 for Col 10): Aim or Drop in Targetable Column
+  if (e.key >= '1' && e.key <= '9') {
     const col = parseInt(e.key, 10) - 1;
-    if (userSettings.touchDropMode === 'instant' || state.previewCol === col) {
-      commitColumnAction(col);
-    } else {
-      updateColumnPreviewVisual(col);
+    if (col < COLS && isColCurrentlyTargetable(col)) {
+      e.preventDefault();
+      if (userSettings.touchDropMode === 'instant' || state.previewCol === col) {
+        commitColumnAction(col);
+      } else {
+        updateColumnPreviewVisual(col);
+      }
+      return;
     }
-    return;
   }
 
-  // 2. ArrowLeft / ArrowRight (or A / D): Step Column Aim
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+  // 2. ArrowLeft / ArrowRight (or A / D): Step Column Aim across currently targetable columns
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
     e.preventDefault();
-    const nextCol = state.previewCol <= 0 ? COLS - 1 : state.previewCol - 1;
-    updateColumnPreviewVisual(nextCol);
-    return;
-  }
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-    e.preventDefault();
-    const nextCol = (state.previewCol < 0 || state.previewCol >= COLS - 1) ? 0 : state.previewCol + 1;
-    updateColumnPreviewVisual(nextCol);
+    const isRight = (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D');
+    const visibleCols = [];
+    for (let c = 0; c < COLS; c++) {
+      if (isColCurrentlyTargetable(c)) visibleCols.push(c);
+    }
+    if (visibleCols.length === 0) return;
+    if (state.isCylinderPhase && typeof getCylinderColumnScreenXOrder === 'function') {
+      const ordered = getCylinderColumnScreenXOrder(visibleCols);
+      const curPos = ordered.indexOf(state.previewCol);
+      const nextPos = curPos === -1
+        ? Math.floor(ordered.length / 2)
+        : (isRight ? Math.min(ordered.length - 1, curPos + 1) : Math.max(0, curPos - 1));
+      updateColumnPreviewVisual(ordered[nextPos]);
+    } else {
+      const nextCol = isRight
+        ? ((state.previewCol < 0 || state.previewCol >= COLS - 1) ? 0 : state.previewCol + 1)
+        : (state.previewCol <= 0 ? COLS - 1 : state.previewCol - 1);
+      updateColumnPreviewVisual(nextCol);
+    }
     return;
   }
 
   // 3. Enter or Space: Confirm Action on Previewed Column
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    const targetCol = state.previewCol !== -1 ? state.previewCol : 3;
-    if (state.previewCol === -1) {
+    let fallbackCol = 3;
+    if (state.isCylinderPhase) {
+      for (let c = 0; c < COLS; c++) {
+        if (isColCurrentlyTargetable(c)) {
+          fallbackCol = c;
+          break;
+        }
+      }
+    }
+    const targetCol = (state.previewCol !== -1 && isColCurrentlyTargetable(state.previewCol))
+      ? state.previewCol
+      : fallbackCol;
+    if (state.previewCol === -1 || !isColCurrentlyTargetable(state.previewCol)) {
       updateColumnPreviewVisual(targetCol);
     } else {
       commitColumnAction(targetCol);

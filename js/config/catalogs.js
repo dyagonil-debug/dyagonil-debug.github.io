@@ -832,8 +832,8 @@ const BOSS_POOLS_BY_ACT = {
       name: 'The Sovereign Tesseract',
       icon: '🌌',
       interval: 3,
-      shortTelegraph: 'Rotates between 4 Parallel Boards in play!',
-      fullRule: 'THE FOUR-BOARD CONVERGENCE (5 HP Phases): Commands 4 Parallel Connect-4 Boards in play simultaneously! Every 3 turns (and whenever a Boss HP heart is shattered), rotates the 3D Tesseract Carousel—saving the current board state and sliding the next parallel board into play!'
+      shortTelegraph: '4 Warped Boards (Shatter to Destroy) → Last-Board Upheaval → 12-Col Ethereal Cylinder!',
+      fullRule: 'THE FOURFOLD CONVERGENCE (5 HP Phases): Commands 4 uniquely warped Connect-4 Boards in rotation! Scoring a 4-in-a-row (or Overkill) shatters the active board out of rotation. At 1 board left (2/5 ❤️), shatters 50% of tokens and flips the board 180°. Shattering the 4th board (1/5 ❤️) crumbles the cavern into an Ethereal Plane and lowers a rotating 12-Column Edgeless Cylindrical Board where ≤0 Stability drops 2 Stones!'
     }
   ]
 };
@@ -1091,7 +1091,7 @@ const C4_LORE_TOOLTIPS = {
     tectonic_behemoth: 'Every 3 turns, quakes the cavern ceiling (-1 Stability) and drops a stone blocker.',
     abyssal_lodestone: 'Every 3 turns, pulls adjacent tokens into its marked column—and shakes the board clean at half health!',
     void_weaver: 'Every 3 turns, spins cursed silk snares & drags a token sideways—and shakes the board clean at half health!',
-    sovereign_tesseract: 'Every 3 turns (and when losing a Heart), rotates between four parallel Connect-4 boards in play!'
+    sovereign_tesseract: 'Shatter all 4 parallel boards, survive the Last-Board Upheaval, and conquer the 12-column rotating Ethereal Cylinder!'
   }
 };
 
