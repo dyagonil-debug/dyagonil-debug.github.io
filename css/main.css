@@ -290,3 +290,25 @@ body[data-cavern-tier="3"] .cavern-panel {
 body[data-cavern-tier="4"] .cavern-panel {
   border-color: rgba(244, 63, 94, 0.45);
 }
+
+
+/* ============================================================================
+   PERFORMANCE MODE OVERRIDES (body.perf-mode)
+   Eliminates live backdrop-filter Gaussian blur passes over the 3D WebGL canvas
+   and heavy inset viewport shadows to prevent mobile heat & Retina MacBook lag
+   ============================================================================ */
+body.perf-mode .cavern-panel,
+body.perf-mode #floor-intro-overlay,
+body.perf-mode [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.perf-mode .cavern-panel {
+  background: rgba(14, 12, 18, 0.96) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.82) !important;
+}
+
+body.perf-mode #cavern-vignette-overlay {
+  box-shadow: none !important;
+}

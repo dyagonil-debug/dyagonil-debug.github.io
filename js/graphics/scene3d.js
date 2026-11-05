@@ -51,6 +51,9 @@ function updateCameraAspect() {
     }
   }
   camera.updateProjectionMatrix();
+  const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
+  const maxDpr = perf ? 1.0 : 2.0;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
   renderer.setSize(w, h);
 }
 
@@ -223,31 +226,38 @@ function rebuild3DBoardGeometry(mask) {
     for (let c = 0; c < COLS; c++) {
       const colGroup = new THREE.Group();
       colGroup.userData = { col: c };
+      const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
       for (let r = 0; r < ROWS; r++) {
         const y = START_Y + r * CELL_SPACING;
         const topBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
         topBeam.position.set(0, y + CELL_SPACING * 0.5, 0);
         colGroup.add(topBeam);
 
-        const botBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
-        botBeam.position.set(0, y - CELL_SPACING * 0.5, 0);
-        colGroup.add(botBeam);
+        if (!perf || r === 0) {
+          const botBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
+          botBeam.position.set(0, y - CELL_SPACING * 0.5, 0);
+          colGroup.add(botBeam);
+        }
 
         const leftBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
         leftBeam.position.set(-CELL_SPACING * 0.5, y, 0);
         colGroup.add(leftBeam);
 
-        const rightBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
-        rightBeam.position.set(CELL_SPACING * 0.5, y, 0);
-        colGroup.add(rightBeam);
+        if (!perf) {
+          const rightBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
+          rightBeam.position.set(CELL_SPACING * 0.5, y, 0);
+          colGroup.add(rightBeam);
+        }
 
         const fRing = new THREE.Mesh(ringGeo, brassInlayMat);
         fRing.position.set(0, y, 0.36);
         colGroup.add(fRing);
 
-        const bRing = new THREE.Mesh(ringGeo, brassInlayMat);
-        bRing.position.set(0, y, -0.36);
-        colGroup.add(bRing);
+        if (!perf) {
+          const bRing = new THREE.Mesh(ringGeo, brassInlayMat);
+          bRing.position.set(0, y, -0.36);
+          colGroup.add(bRing);
+        }
       }
       dynamicFrameGroup.add(colGroup);
       cylinderColFrameGroups.push(colGroup);
@@ -258,6 +268,7 @@ function rebuild3DBoardGeometry(mask) {
     return;
   }
 
+  const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const x = START_X + c * CELL_SPACING;
@@ -269,25 +280,33 @@ function rebuild3DBoardGeometry(mask) {
         topBeam.position.set(x, y + CELL_SPACING * 0.5, 0);
         dynamicFrameGroup.add(topBeam);
 
-        const botBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
-        botBeam.position.set(x, y - CELL_SPACING * 0.5, 0);
-        dynamicFrameGroup.add(botBeam);
+        const belowPlayable = r > 0 && (mask && mask[r - 1] ? mask[r - 1][c] : true);
+        if (!perf || !belowPlayable) {
+          const botBeam = new THREE.Mesh(cellStrutHGeo, carvedWoodMat);
+          botBeam.position.set(x, y - CELL_SPACING * 0.5, 0);
+          dynamicFrameGroup.add(botBeam);
+        }
 
         const leftBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
         leftBeam.position.set(x - CELL_SPACING * 0.5, y, 0);
         dynamicFrameGroup.add(leftBeam);
 
-        const rightBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
-        rightBeam.position.set(x + CELL_SPACING * 0.5, y, 0);
-        dynamicFrameGroup.add(rightBeam);
+        const rightPlayable = c + 1 < COLS && (mask && mask[r] ? mask[r][c + 1] : true);
+        if (!perf || !rightPlayable) {
+          const rightBeam = new THREE.Mesh(cellStrutVGeo, carvedWoodMat);
+          rightBeam.position.set(x + CELL_SPACING * 0.5, y, 0);
+          dynamicFrameGroup.add(rightBeam);
+        }
 
         const fRing = new THREE.Mesh(ringGeo, brassInlayMat);
         fRing.position.set(x, y, 0.36);
         dynamicFrameGroup.add(fRing);
 
-        const bRing = new THREE.Mesh(ringGeo, brassInlayMat);
-        bRing.position.set(x, y, -0.36);
-        dynamicFrameGroup.add(bRing);
+        if (!perf) {
+          const bRing = new THREE.Mesh(ringGeo, brassInlayMat);
+          bRing.position.set(x, y, -0.36);
+          dynamicFrameGroup.add(bRing);
+        }
       } else {
         let hasPlayableAbove = false;
         for (let rr = r + 1; rr < ROWS; rr++) {
@@ -1260,18 +1279,45 @@ const etherealStarMat = new THREE.PointsMaterial({
 const etherealStarField = new THREE.Points(etherealStarGeo, etherealStarMat);
 etherealPlaneGroup.add(etherealStarField);
 
+function getAllCavernCrumbleTargets() {
+  const compositeGroups = new Set([
+    cavernAltarGroup,
+    cavernPillarsGroup,
+    cavernSpeleothemGroup,
+    cavernBackdropGroup,
+    obsidianSpikesGroup,
+    eldritchWatchersGroup,
+    voidMonolithsGroup,
+    act4SingularityGroup,
+    act5TesseractGroup
+  ]);
+  const targets = [];
+  cavernEnvGroup.children.forEach((child) => {
+    if (!child) return;
+    if (compositeGroups.has(child) && Array.isArray(child.children) && child.children.length > 0) {
+      child.children.forEach((sub) => {
+        if (sub) targets.push(sub);
+      });
+    } else {
+      targets.push(child);
+    }
+  });
+  return targets;
+}
+
 function resetCavernFromEtherealPlane() {
   if (typeof state !== 'undefined' && state) {
     state.etherealPlaneActive = false;
+    state.isCavernCrumbling = false;
   }
   cavernEnvGroup.visible = true;
   cavernEnvGroup.position.set(0, 0, 0);
   cavernEnvGroup.rotation.set(0, 0, 0);
-  cavernEnvGroup.children.forEach((child) => {
-    if (child && child.userData && child.userData._origCached) {
-      child.position.copy(child.userData._origPos);
-      child.rotation.copy(child.userData._origRot);
-      child.scale.copy(child.userData._origScale);
+  getAllCavernCrumbleTargets().forEach((item) => {
+    if (item && item.userData && item.userData._origCached) {
+      item.position.copy(item.userData._origPos);
+      item.rotation.copy(item.userData._origRot);
+      item.scale.copy(item.userData._origScale);
     }
   });
   phantomBoards.forEach((pb) => {
@@ -1286,23 +1332,32 @@ function resetCavernFromEtherealPlane() {
 function triggerCavernCrumbleToEtherealPlane(onComplete = null) {
   if (typeof state !== 'undefined' && state) {
     state.etherealPlaneActive = true;
+    state.isCavernCrumbling = true;
   }
-  cavernEnvGroup.children.forEach((child, idx) => {
-    if (!child) return;
-    if (!child.userData) child.userData = {};
-    if (!child.userData._origCached) {
-      child.userData._origCached = true;
-      child.userData._origPos = child.position.clone();
-      child.userData._origRot = child.rotation.clone();
-      child.userData._origScale = child.scale.clone();
+
+  const targets = getAllCavernCrumbleTargets();
+  targets.forEach((item, idx) => {
+    if (!item.userData) item.userData = {};
+    if (!item.userData._origCached) {
+      item.userData._origCached = true;
+      item.userData._origPos = item.position.clone();
+      item.userData._origRot = item.rotation.clone();
+      item.userData._origScale = item.scale.clone();
     }
-    child.userData._crumbleSpeedY = 16.0 + (idx % 7) * 2.8;
-    child.userData._crumbleRotX = ((idx % 2 === 0 ? 1 : -1) * (0.45 + (idx % 5) * 0.14));
-    child.userData._crumbleRotZ = ((idx % 3 === 0 ? 1 : -1) * (0.38 + (idx % 4) * 0.12));
+    // Stagger detachment slightly (0.00 -> 0.22) and drop 46 to 62 world units
+    // so even the 24-unit-tall deep backdrop walls & cathedral pillars fall 100% below the camera frustum!
+    item.userData._crumbleDelay = (idx % 8) * 0.028;
+    item.userData._crumbleDropY = 46.0 + (idx % 7) * 2.4;
+    item.userData._crumbleDriftX = ((idx % 2 === 0 ? 1 : -1) * (0.6 + (idx % 5) * 0.35));
+    item.userData._crumbleDriftZ = -2.5 - (idx % 4) * 1.1;
+    item.userData._crumbleRotX = ((idx % 2 === 0 ? 1 : -1) * (0.55 + (idx % 5) * 0.16));
+    item.userData._crumbleRotZ = ((idx % 3 === 0 ? 1 : -1) * (0.42 + (idx % 4) * 0.14));
   });
 
+  // Keep cavernEnvGroup visible during the crumble while revealing etherealPlaneGroup behind it
+  cavernEnvGroup.visible = true;
   etherealPlaneGroup.visible = true;
-  etherealPlaneGroup.scale.setScalar(0.35);
+  etherealPlaneGroup.scale.setScalar(0.42);
 
   if (typeof sfx !== 'undefined' && sfx && typeof sfx.playCavernCrumbleToEthereal === 'function') {
     sfx.playCavernCrumbleToEthereal();
@@ -1315,39 +1370,59 @@ function triggerCavernCrumbleToEtherealPlane(onComplete = null) {
   }
 
   const startMs = performance.now();
-  const durationMs = 2350;
+  const durationMs = 3650;
 
   function stepCrumble(now) {
     const p = Math.min(1, (now - startMs) / durationMs);
-    const easeIn = p * p * p;
     const easeOut = 1 - Math.pow(1 - p, 3);
 
-    if (p < 0.75 && Math.random() < 0.35 && typeof triggerBoardShake === 'function') {
-      triggerBoardShake(0.28 * (1 - p));
+    if (p < 0.78 && Math.random() < 0.38 && typeof triggerBoardShake === 'function') {
+      triggerBoardShake(0.30 * (1 - p * 0.75));
     }
 
-    cavernEnvGroup.children.forEach((child) => {
-      if (!child || !child.userData || !child.userData._origCached) return;
-      const origPos = child.userData._origPos;
-      const origRot = child.userData._origRot;
-      const jitterX = (Math.random() - 0.5) * 0.28 * (1 - p);
-      child.position.set(
-        origPos.x + jitterX,
-        origPos.y - easeIn * child.userData._crumbleSpeedY,
-        origPos.z - easeIn * 4.5
+    // Smoothly transition fog density down so the Ethereal Plane shines clearly behind the falling rocks
+    if (scene.fog) {
+      scene.fog.density = 0.025 * (1 - easeOut) + 0.010 * easeOut;
+    }
+
+    targets.forEach((item) => {
+      if (!item || !item.userData || !item.userData._origCached) return;
+      const origPos = item.userData._origPos;
+      const origRot = item.userData._origRot;
+      const delay = item.userData._crumbleDelay || 0;
+
+      if (p <= delay) {
+        // Pre-detachment tectonic shudder
+        const tremor = (Math.random() - 0.5) * 0.36;
+        item.position.set(origPos.x + tremor, origPos.y + (Math.random() - 0.5) * 0.18, origPos.z);
+        return;
+      }
+
+      const localP = Math.min(1, (p - delay) / (1 - delay));
+      // Accelerating gravity curve (starts moving immediately upon detachment and accelerates downward)
+      const fallFactor = 0.22 * localP + 0.78 * localP * localP;
+      const jitterX = (Math.random() - 0.5) * 0.22 * (1 - localP);
+
+      item.position.set(
+        origPos.x + jitterX + fallFactor * item.userData._crumbleDriftX,
+        origPos.y - fallFactor * item.userData._crumbleDropY,
+        origPos.z + fallFactor * item.userData._crumbleDriftZ
       );
-      child.rotation.set(
-        origRot.x + easeIn * child.userData._crumbleRotX,
+      item.rotation.set(
+        origRot.x + fallFactor * item.userData._crumbleRotX,
         origRot.y,
-        origRot.z + easeIn * child.userData._crumbleRotZ
+        origRot.z + fallFactor * item.userData._crumbleRotZ
       );
     });
 
-    etherealPlaneGroup.scale.setScalar(0.35 + 0.65 * easeOut);
+    etherealPlaneGroup.scale.setScalar(0.42 + 0.58 * easeOut);
 
     if (p < 1) {
       requestAnimationFrame(stepCrumble);
     } else {
+      if (typeof state !== 'undefined' && state) {
+        state.isCavernCrumbling = false;
+      }
       cavernEnvGroup.visible = false;
       etherealPlaneGroup.scale.setScalar(1.0);
       updateCavernAesthetics();
@@ -1757,8 +1832,9 @@ function updateCavernAesthetics() {
 
   // Toggle Boss-Tier Ominous Architecture across all 5 Acts
   const isEthereal = typeof state !== 'undefined' && state && !!state.etherealPlaneActive;
+  const isCrumblingNow = typeof state !== 'undefined' && state && !!state.isCavernCrumbling;
   if (isEthereal) {
-    cavernEnvGroup.visible = false;
+    cavernEnvGroup.visible = isCrumblingNow;
     etherealPlaneGroup.visible = true;
     if (scene.fog) {
       if (scene.fog.color && typeof scene.fog.color.setHex === 'function') {
@@ -1796,6 +1872,23 @@ function updateCavernAesthetics() {
 function updateCavernAnimation(elapsed) {
   const prof = cavernAestheticState.activeProfile || CAVERN_TIER_PROFILES[0];
   const tier = cavernAestheticState.currentTier;
+  const isCrumblingNow = typeof state !== 'undefined' && state && !!state.isCavernCrumbling;
+  if (isCrumblingNow) {
+    if (etherealPlaneGroup.visible) {
+      etherealAstrolabeRings.forEach((rObj) => {
+        rObj.mesh.rotation.x += 0.0035 * rObj.speedX;
+        rObj.mesh.rotation.y += 0.0045 * rObj.speedY;
+        rObj.mesh.rotation.z += 0.0030 * rObj.speedZ;
+      });
+      etherealHypercubes.forEach((hc) => {
+        hc.group.position.y = hc.baseY + Math.sin(elapsed * 1.4 + hc.phase) * 0.55;
+        hc.outer.rotation.set(elapsed * 0.85 + hc.phase, elapsed * 1.1, 0);
+        hc.inner.rotation.set(-elapsed * 1.3, -elapsed * 0.95, elapsed * 0.7);
+        hc.core.rotation.y = elapsed * 2.4;
+      });
+    }
+    return;
+  }
 
   // Decay any boss HP shatter / enrage surge
   if (cavernAestheticState.enragePulse > 0.005) {
@@ -1956,6 +2049,26 @@ function updateCavernAnimation(elapsed) {
       }
       etherealStarGeo.attributes.position.needsUpdate = true;
     }
+  }
+
+  const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
+  if (perf) {
+    // In Performance Mode, skip mist overdraw planes and throttle spore updates to 1/3 particle count every 2nd tick
+    cavernAestheticState._perfTick = ((cavernAestheticState._perfTick || 0) + 1) % 2;
+    if (cavernAestheticState._perfTick === 0) {
+      const pSpeed = prof.particleSpeed;
+      const sArr = sporeGeo.attributes.position.array;
+      if (sArr) {
+        const activeCount = Math.min(64, sporeCount);
+        for (let i = 0; i < activeCount; i++) {
+          const idx3 = i * 3;
+          sArr[idx3 + 1] += 0.016 * pSpeed;
+          if (sArr[idx3 + 1] > 9.0) sArr[idx3 + 1] = -9.0;
+        }
+        sporeGeo.attributes.position.needsUpdate = true;
+      }
+    }
+    return;
   }
 
   // 7. Drift Subterranean Mist Layers
@@ -2140,9 +2253,11 @@ function createTokenMesh(r, c, type, initialY) {
   }
   mesh.userData = { row: r, col: c, targetX, targetY, targetZ, velY: 0, type };
 
-  const innerRing = new THREE.Mesh(tokenInnerRingGeo, brassInlayMat);
-  innerRing.position.z = 0.16;
-  mesh.add(innerRing);
+  if (!(typeof isPerformanceMode === 'function' && isPerformanceMode())) {
+    const innerRing = new THREE.Mesh(tokenInnerRingGeo, brassInlayMat);
+    innerRing.position.z = 0.16;
+    mesh.add(innerRing);
+  }
 
   if (type === PLAYER && hasGambit('shrinking_shroom')) {
     mesh.scale.set(0.68, 0.68, 0.85);
@@ -2272,6 +2387,56 @@ function updateCylindricalBoardTransforms(dt = 0) {
           ghostToken.rotation.y = gPos.rotY;
         }
       }
+    }
+  }
+}
+
+
+function applySceneGraphicsQuality() {
+  const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
+  updateCameraAspect();
+
+  // 1. Toggle secondary PointLights to cut per-pixel PBR shader loop overhead
+  if (typeof cavernRimLightLeft !== 'undefined') cavernRimLightLeft.visible = !perf;
+  if (typeof cavernRimLightRight !== 'undefined') cavernRimLightRight.visible = !perf;
+  if (typeof cavernVaultLight !== 'undefined') cavernVaultLight.visible = !perf;
+
+  // 2. Toggle 6 fullscreen alpha-blended mist planes & secondary wisp particle stream
+  if (typeof cavernMistLayers !== 'undefined' && Array.isArray(cavernMistLayers)) {
+    cavernMistLayers.forEach((m) => {
+      if (m && m.mesh) m.mesh.visible = !perf;
+    });
+  }
+  if (typeof abyssalWispPoints !== 'undefined' && abyssalWispPoints) {
+    abyssalWispPoints.visible = !perf;
+  }
+  if (typeof sporeGeo !== 'undefined' && sporeGeo && typeof sporeGeo.setDrawRange === 'function') {
+    sporeGeo.setDrawRange(0, perf ? 64 : sporeCount);
+  }
+
+  // 3. Toggle high-draw-call background speleothem clusters (168 meshes) & crystal halo spheres
+  if (typeof cavernSpeleothemGroup !== 'undefined' && cavernSpeleothemGroup) {
+    cavernSpeleothemGroup.visible = !perf;
+  }
+  if (typeof cavernCrystals !== 'undefined' && Array.isArray(cavernCrystals)) {
+    cavernCrystals.forEach((c) => {
+      if (c && c.halo) c.halo.visible = !perf;
+    });
+  }
+
+  // 4. Boost ambient light slightly in Performance Mode to compensate for disabled rim/vault lights
+  if (typeof updateCavernAesthetics === 'function') {
+    updateCavernAesthetics();
+  }
+  if (perf && typeof ambientLight !== 'undefined' && ambientLight) {
+    ambientLight.intensity = Math.min(0.85, (ambientLight.intensity || 0.4) + 0.20);
+  }
+
+  // 5. Rebuild board frame & token meshes if a board is currently active so draw-call reduction takes effect immediately
+  if (typeof state !== 'undefined' && state && Array.isArray(state.boardMask) && state.boardMask.length === ROWS) {
+    rebuild3DBoardGeometry(state.boardMask);
+    if (Array.isArray(state.board) && state.board.length === ROWS && !state.busy) {
+      rebuildBoardMeshes();
     }
   }
 }

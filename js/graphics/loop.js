@@ -1,8 +1,9 @@
 // ============================================================================
-// ANIMATION LOOP, OCCLUSION CULLING & RESPONSIVE RESIZE (js/graphics/loop.js)
+// ANIMATION LOOP, OCCLUSION CULLING, FRAME PACING & RESPONSIVE RESIZE (js/graphics/loop.js)
 // ============================================================================
 const clock = new THREE.Clock();
 let lastFrameElapsed = 0;
+let lastRenderedMs = 0;
 const projVec = new THREE.Vector3();
 
 const OCCLUDING_MODAL_IDS = [
@@ -17,6 +18,22 @@ function isSceneOccludedByModal() {
   for (let i = 0; i < OCCLUDING_MODAL_IDS.length; i++) {
     const el = document.getElementById(OCCLUDING_MODAL_IDS[i]);
     if (el && !el.classList.contains('hidden')) return true;
+  }
+  return false;
+}
+
+function hasActiveBoardMotion() {
+  if (activeVFX.length > 0 || boardShakeState.intensity > 0.005) return true;
+  if (typeof state !== 'undefined' && state) {
+    if (state.busy || state.isCarouselRotating || state.isCylinderPhase || state.isCavernCrumbling) {
+      return true;
+    }
+  }
+  for (let i = 0; i < tokensGroup.children.length; i++) {
+    const d = tokensGroup.children[i].userData;
+    if (d && (d.freefall || tokensGroup.children[i].position.y > d.targetY || Math.abs(d.velY || 0) > 0.001)) {
+      return true;
+    }
   }
   return false;
 }
@@ -37,6 +54,18 @@ function animate() {
   if (occluded) {
     return;
   }
+
+  // 3. Smart Frame-Rate Pacing (prevents 120Hz ProMotion overheat & throttles idle frames in Performance Mode)
+  const nowMs = performance.now();
+  const perf = typeof isPerformanceMode === 'function' && isPerformanceMode();
+  const minIntervalMs = perf
+    ? (hasActiveBoardMotion() ? 21.0 : 32.5) // ~45 FPS active / ~30 FPS idle in Performance Mode
+    : 15.5;                                  // ~60 FPS cap in Fancy Mode (prevents 120Hz thermal drain)
+
+  if (nowMs - lastRenderedMs < minIntervalMs) {
+    return;
+  }
+  lastRenderedMs = nowMs;
 
   const elapsed = clock.getElapsedTime();
   const dt = Math.min(0.1, Math.max(0, elapsed - lastFrameElapsed));
@@ -61,7 +90,6 @@ function animate() {
   camera.lookAt(shakeX * 0.35, 0.25 + shakeY * 0.35, 0);
 
   // Step active 3D Arcane Card, Reserve Token & Gambit VFX
-  const nowMs = performance.now();
   for (let i = activeVFX.length - 1; i >= 0; i--) {
     const v = activeVFX[i];
     const p = Math.min(1, (nowMs - v.startTime) / v.duration);
@@ -72,7 +100,7 @@ function animate() {
     }
   }
   if (typeof vfxKeyLight !== 'undefined' && vfxKeyLight) {
-    vfxKeyLight.intensity = activeVFX.length > 0 ? 0.95 : 0.0;
+    vfxKeyLight.intensity = (!perf && activeVFX.length > 0) ? 0.95 : 0.0;
   }
 
   tokensGroup.children.forEach((mesh) => {
@@ -102,11 +130,13 @@ function animate() {
     }
   });
 
-  // Pulse Enchanted Slot Rings
-  enchantGroup.children.forEach((ring, i) => {
-    const s = 1.0 + Math.sin(elapsed * 4.0 + i) * 0.08;
-    ring.scale.set(s, s, 1);
-  });
+  // Pulse Enchanted Slot Rings (throttled in Performance Mode)
+  if (!perf || (Math.floor(nowMs / 32) % 2 === 0)) {
+    enchantGroup.children.forEach((ring, i) => {
+      const s = 1.0 + Math.sin(elapsed * 4.0 + i) * 0.08;
+      ring.scale.set(s, s, 1);
+    });
+  }
 
   if (ghostToken.visible) {
     ghostToken.rotation.z = elapsed * 1.6;
@@ -129,35 +159,55 @@ function animate() {
     const badge = colBadges[c];
     if (!badge) continue;
     if (c >= COLS) {
-      badge.style.display = 'none';
+      if (badge._lastDisplay !== 'none') {
+        badge.style.display = 'none';
+        badge._lastDisplay = 'none';
+      }
       continue;
     }
     if (isCyl) {
       if (typeof isCylinderColumnInteractive === 'function' && !isCylinderColumnInteractive(c)) {
-        badge.style.display = 'none';
+        if (badge._lastDisplay !== 'none') {
+          badge.style.display = 'none';
+          badge._lastDisplay = 'none';
+        }
         continue;
       }
-      badge.style.display = 'flex';
+      if (badge._lastDisplay !== 'flex') {
+        badge.style.display = 'flex';
+        badge._lastDisplay = 'flex';
+      }
       const pos = getCylinderCellWorldCoords(0, c, 0);
       projVec.set(pos.x, topY, pos.z);
     } else {
-      badge.style.display = 'flex';
+      if (badge._lastDisplay !== 'flex') {
+        badge.style.display = 'flex';
+        badge._lastDisplay = 'flex';
+      }
       const colX = START_X + c * CELL_SPACING;
       projVec.set(colX, topY, 0);
     }
     projVec.project(camera);
 
-    const sx = (projVec.x * 0.5 + 0.5) * winW;
-    const sy = (-(projVec.y * 0.5) + 0.5) * winH;
+    const sx = Math.round((projVec.x * 0.5 + 0.5) * winW * 2) / 2;
+    const sy = Math.round((-(projVec.y * 0.5) + 0.5) * winH * 2) / 2;
 
-    badge.style.left = `${sx}px`;
-    badge.style.top = `${sy}px`;
+    if (badge._lastSx !== sx || badge._lastSy !== sy) {
+      badge.style.left = `${sx}px`;
+      badge.style.top = `${sy}px`;
+      badge._lastSx = sx;
+      badge._lastSy = sy;
+    }
 
     const numEl = (typeof colNumEls !== 'undefined' && colNumEls[c]) || document.getElementById(`col-num-${c}`);
     if (numEl) {
-      numEl.className = (c === state.previewCol)
-        ? 'text-xs font-mono-code font-bold text-amber-300 scale-125 transition'
-        : 'text-[10px] font-mono-code font-bold text-amber-400/75 mt-0.5';
+      const isPreview = c === state.previewCol;
+      if (numEl._lastPreview !== isPreview) {
+        numEl._lastPreview = isPreview;
+        numEl.className = isPreview
+          ? 'text-xs font-mono-code font-bold text-amber-300 scale-125 transition'
+          : 'text-[10px] font-mono-code font-bold text-amber-400/75 mt-0.5';
+      }
     }
   }
 

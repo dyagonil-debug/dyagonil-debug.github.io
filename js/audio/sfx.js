@@ -1207,34 +1207,34 @@ class TactileSFX {
         this.playNoiseBurst(0.26, 1500, 0.15, 'bandpass');
     }
 
-    // 68. 8-Bit Cavern Crumble to Ethereal Cosmic Plane Transition
+    // 68. 8-Bit Cavern Crumble to Ethereal Cosmic Plane Transition (Extended 3.65s Collapse)
     playCavernCrumbleToEthereal() {
         if (this.muted) return;
-        // Part 1: Deep tectonic cavern collapse
-        for (let i = 0; i < 4; i++) {
+        // Part 1: Extended 6-wave tectonic cavern collapse as walls & pillars plummet out of view
+        for (let i = 0; i < 6; i++) {
             setTimeout(() => {
                 if (this.muted) return;
                 this.playSteppedSequence([
-                    { freq: 164.81 - i * 18, dur: 0.065, gain: 0.18 },
-                    { freq: 110.00 - i * 12, dur: 0.095, gain: 0.19 },
-                    { freq: 65.41 - i * 6,   dur: 0.180, gain: 0.20 }
+                    { freq: 174.61 - i * 15, dur: 0.075, gain: 0.18 },
+                    { freq: 116.54 - i * 10, dur: 0.105, gain: 0.19 },
+                    { freq: 65.41 - i * 4,   dur: 0.210, gain: 0.20 }
                 ], 'triangle', 0.19, 1200);
-                this.playNoiseBurst(0.24, 900 - i * 120, 0.18, 'lowpass');
-            }, i * 280);
+                this.playNoiseBurst(0.28, 950 - i * 100, 0.18, 'lowpass');
+            }, i * 420);
         }
-        // Part 2: Shimmering astral plane reveal chord
+        // Part 2: Shimmering astral plane reveal chord as the last boulders clear the bottom of the screen
         setTimeout(() => {
             if (this.muted) return;
             this.playSteppedSequence([
-                { freq: 293.66,  dur: 0.090, gain: 0.13 },
-                { freq: 440.00,  dur: 0.090, gain: 0.14 },
-                { freq: 587.33,  dur: 0.090, gain: 0.15 },
-                { freq: 739.99,  dur: 0.090, gain: 0.15 },
-                { freq: 880.00,  dur: 0.100, gain: 0.16 },
-                { freq: 1174.66, dur: 0.120, gain: 0.16 },
-                { freq: 1479.98, dur: 0.340, gain: 0.17 }
+                { freq: 369.99,  dur: 0.095, gain: 0.13 },
+                { freq: 440.00,  dur: 0.095, gain: 0.14 },
+                { freq: 554.37,  dur: 0.095, gain: 0.15 },
+                { freq: 739.99,  dur: 0.095, gain: 0.15 },
+                { freq: 880.00,  dur: 0.110, gain: 0.16 },
+                { freq: 1108.73, dur: 0.130, gain: 0.16 },
+                { freq: 1479.98, dur: 0.380, gain: 0.17 }
             ], 'square', 0.16, 4200);
-        }, 1050);
+        }, 2350);
     }
 
     // 69. 8-Bit 12-Column Cylindrical Board Descent & Lock-In

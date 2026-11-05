@@ -162,6 +162,9 @@ const C4_VFX_MATS = {
 
 // Helper: 3D Particle Burst at (r, c)
 function spawn3DParticleBurst(r, c, colorHex = 0xfbbf24, count = 16, speed = 0.12, durationMs = 560, shape = 'box') {
+  if (typeof isPerformanceMode === 'function' && isPerformanceMode()) {
+    count = Math.max(4, Math.ceil(count * 0.45));
+  }
   const group = new THREE.Group();
   group.position.copy(getCellWorldPos(r, c, 0.65));
 

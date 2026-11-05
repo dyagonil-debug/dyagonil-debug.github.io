@@ -4,6 +4,7 @@
 const SETTINGS_STORAGE_KEY = 'c4_subterranean_settings';
 const VALID_NOTIFICATION_SPEEDS = new Set(['fast', 'normal', 'extended']);
 const VALID_TOUCH_DROP_MODES = new Set(['confirm', 'instant']);
+const VALID_GRAPHICS_MODES = new Set(['fancy', 'performance']);
 const BOOLEAN_SETTING_KEYS = [
   'simplifiedViewEnabled',
   'uiAutoScale',
@@ -24,8 +25,28 @@ const userSettings = {
   musicEnabled: true,
   sfxEnabled: true,
   hapticsEnabled: true,
-  touchDropMode: 'confirm'     // 'confirm' (Two-Tap Safe) | 'instant' (Single-Tap Fast)
+  touchDropMode: 'confirm',    // 'confirm' (Two-Tap Safe) | 'instant' (Single-Tap Fast)
+  graphicsMode: 'fancy'        // 'fancy' (High Detail 3D & Blur) | 'performance' (Cool & Fast)
 };
+
+function isPerformanceMode() {
+  return typeof userSettings !== 'undefined' && userSettings && userSettings.graphicsMode === 'performance';
+}
+
+function applyGraphicsModeSetting() {
+  const perf = isPerformanceMode();
+  if (typeof document !== 'undefined') {
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('perf-mode', perf);
+    }
+    if (document.documentElement && typeof document.documentElement.setAttribute === 'function') {
+      document.documentElement.setAttribute('data-graphics-mode', perf ? 'performance' : 'fancy');
+    }
+  }
+  if (typeof applySceneGraphicsQuality === 'function') {
+    applySceneGraphicsQuality();
+  }
+}
 
 function isSimplifiedView() {
   return !(typeof userSettings !== 'undefined' && userSettings && userSettings.simplifiedViewEnabled === false);
@@ -99,6 +120,9 @@ function loadUserSettings() {
     if (VALID_TOUCH_DROP_MODES.has(parsed.touchDropMode)) {
       userSettings.touchDropMode = parsed.touchDropMode;
     }
+    if (VALID_GRAPHICS_MODES.has(parsed.graphicsMode)) {
+      userSettings.graphicsMode = parsed.graphicsMode;
+    }
     if (typeof parsed.uiScalePercent === 'number' && Number.isFinite(parsed.uiScalePercent)) {
       userSettings.uiScalePercent = Math.max(75, Math.min(150, Math.round(parsed.uiScalePercent)));
     } else if (typeof parsed.uiScale === 'string') {
@@ -121,6 +145,7 @@ function saveUserSettings() {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(userSettings));
   } catch (_) {}
   applyUiScaleSetting();
+  applyGraphicsModeSetting();
   if (typeof syncSettingsUI === 'function') {
     syncSettingsUI();
   }
@@ -134,6 +159,7 @@ function getConfiguredHoldDuration(baseMs = 4800) {
 
 loadUserSettings();
 applyUiScaleSetting();
+applyGraphicsModeSetting();
 
 if (typeof window !== 'undefined') {
   window.addEventListener('resize', () => {
@@ -144,6 +170,8 @@ if (typeof window !== 'undefined') {
   });
   Object.assign(window, {
     userSettings,
+    isPerformanceMode,
+    applyGraphicsModeSetting,
     isSimplifiedView,
     getItemDesc,
     getCardShortDesc,

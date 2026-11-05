@@ -2160,6 +2160,19 @@ function syncSettingsUI() {
     }`;
   });
 
+  const activeGfxMode = userSettings.graphicsMode === 'performance' ? 'performance' : 'fancy';
+  document.querySelectorAll('.gfx-mode-btn').forEach((btn) => {
+    const mode = btn.getAttribute('data-gfx');
+    const active = mode === activeGfxMode;
+    btn.className = `gfx-mode-btn py-1.5 px-2 rounded-xl border text-[10px] font-mono-code font-bold transition active:scale-95 ${
+      active
+        ? (mode === 'performance'
+            ? 'bg-emerald-400 text-stone-950 border-emerald-300 shadow-md'
+            : 'bg-amber-400 text-stone-950 border-amber-300 shadow-md')
+        : 'bg-stone-950/70 text-slate-300 border-white/10'
+    }`;
+  });
+
   const isAutoScale = userSettings.uiAutoScale !== false;
   const effPct = typeof getEffectiveUiScalePercent === 'function'
     ? getEffectiveUiScalePercent()
@@ -2290,6 +2303,25 @@ document.querySelectorAll('.drop-mode-btn').forEach((btn) => {
       if (typeof updateColumnPreviewVisual === 'function') {
         updateColumnPreviewVisual(state.previewCol);
       }
+    }
+  });
+});
+
+document.querySelectorAll('.gfx-mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const mode = btn.getAttribute('data-gfx');
+    if (mode && (mode === 'fancy' || mode === 'performance')) {
+      userSettings.graphicsMode = mode;
+      sfx.playHoverTick();
+      saveUserSettings();
+      syncSettingsUI();
+      showToast(
+        mode === 'performance'
+          ? '⚡ Performance Mode Active: Reduced GPU heat & boosted frame rate!'
+          : '✨ Fancy Graphics Mode Active: Full 3D lighting, mist & glass blur!',
+        modalHudIcon('sparkle.svg'),
+        3200
+      );
     }
   });
 });
