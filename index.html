@@ -23,10 +23,10 @@
   <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="./css/main.css?v=58">
-  <link rel="stylesheet" href="./css/animations.css?v=58">
-  <link rel="stylesheet" href="./css/overlays.css?v=58">
-  <link rel="stylesheet" href="./css/icons.css?v=58">
+  <link rel="stylesheet" href="./css/main.css?v=59">
+  <link rel="stylesheet" href="./css/animations.css?v=59">
+  <link rel="stylesheet" href="./css/overlays.css?v=59">
+  <link rel="stylesheet" href="./css/icons.css?v=59">
 </head>
 <body class="flex flex-col justify-between">
 
@@ -888,12 +888,108 @@
 
   <!-- OPENING DYAGONIL SPLASH SCREEN & ANIMATED TITLE OPENER OVERLAY -->
   <div id="intro-sequence-overlay">
-    <!-- Ambient Subterranean Glow Orbs -->
-    <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl"></div>
-    <div class="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl"></div>
+    <!-- Subterranean Cathedral Vault, Basalt Pillars, Hanging Braziers & Bioluminescent Spores Backdrop -->
+    <div id="title-cavern-backdrop" aria-hidden="true">
+      <svg class="w-full h-full object-cover" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="titleAmberLanternGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde047" stop-opacity="0.55"/>
+            <stop offset="40%" stop-color="#f59e0b" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="titleTealBiolumGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#5eead4" stop-opacity="0.52"/>
+            <stop offset="40%" stop-color="#14b8a6" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="titleBasaltPillarLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#07060b"/>
+            <stop offset="70%" stop-color="#171422"/>
+            <stop offset="100%" stop-color="#262136"/>
+          </linearGradient>
+          <linearGradient id="titleBasaltPillarRight" x1="100%" y1="0%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#07060b"/>
+            <stop offset="70%" stop-color="#151824"/>
+            <stop offset="100%" stop-color="#212838"/>
+          </linearGradient>
+        </defs>
 
-    <!-- STAGE 0: RETRO TERMINAL "START APP" BOOT GATE (Unlocks Web Audio via Mechanical Keystroke) -->
-    <div id="terminal-boot-stage" class="flex flex-col items-center justify-center w-full max-w-md md:max-w-lg lg:max-w-xl px-5 select-none cursor-pointer z-10">
+        <!-- Distant Cathedral Vault Ribs -->
+        <path d="M-40 240 Q600 -60 1240 240" stroke="#231d33" stroke-width="18" opacity="0.55"/>
+        <path d="M-20 310 Q600 10 1220 310" stroke="#1b1628" stroke-width="10" opacity="0.45"/>
+
+        <!-- Flanking Segmented Basalt Cathedral Pillars (Mirrors PILLAR_LAYOUT in scene3d.js) -->
+        <g opacity="0.88">
+          <polygon points="0,0 105,0 82,900 0,900" fill="url(#titleBasaltPillarLeft)"/>
+          <rect x="0" y="210" width="98" height="22" rx="3" fill="#231e30" stroke="#f59e0b" stroke-opacity="0.22"/>
+          <rect x="0" y="510" width="90" height="22" rx="3" fill="#231e30" stroke="#f59e0b" stroke-opacity="0.22"/>
+          <!-- Glowing Mineral Vein Strip along Left Pillar -->
+          <line x1="74" y1="90" x2="58" y2="820" stroke="#fbbf24" stroke-width="2.5" stroke-opacity="0.38" stroke-dasharray="18 8"/>
+
+          <polygon points="1200,0 1095,0 1118,900 1200,900" fill="url(#titleBasaltPillarRight)"/>
+          <rect x="1102" y="210" width="98" height="22" rx="3" fill="#1e2433" stroke="#2dd4bf" stroke-opacity="0.22"/>
+          <rect x="1110" y="510" width="90" height="22" rx="3" fill="#1e2433" stroke="#2dd4bf" stroke-opacity="0.22"/>
+          <!-- Glowing Bioluminescent Vein Strip along Right Pillar -->
+          <line x1="1126" y1="90" x2="1142" y2="820" stroke="#2dd4bf" stroke-width="2.5" stroke-opacity="0.4" stroke-dasharray="18 8"/>
+        </g>
+
+        <!-- Upper Cavern Stalactite Crown Silhouette -->
+        <polygon points="0,0 1200,0 1200,88 1135,52 1105,118 1055,44 1010,94 955,34 910,76 850,24 790,68 730,22 675,62 600,18 525,62 470,22 410,68 350,24 290,76 245,34 190,94 145,44 95,118 65,52 0,88" fill="#060509"/>
+        <polyline points="0,88 65,52 95,118 145,44 190,94 245,34 290,76 350,24 410,68 470,22 525,62 600,18 675,62 730,22 790,68 850,24 910,76 955,34 1010,94 1055,44 1105,118 1135,52 1200,88" stroke="#fbbf24" stroke-opacity="0.16" stroke-width="1.5"/>
+
+        <!-- Left Suspended Wrought-Iron Amber Lantern Brazier (Pendulum Sway) -->
+        <g class="title-brazier-left">
+          <circle cx="140" cy="205" r="130" fill="url(#titleAmberLanternGlow)"/>
+          <line x1="140" y1="0" x2="140" y2="175" stroke="#57534e" stroke-width="3" stroke-dasharray="6 3"/>
+          <polygon points="116,175 164,175 154,206 126,206" fill="#1c1917" stroke="#fbbf24" stroke-width="1.8"/>
+          <polygon points="140,152 152,175 128,175" fill="#fde047" opacity="0.92"/>
+          <circle cx="140" cy="170" r="6" fill="#ffffff"/>
+        </g>
+
+        <!-- Right Suspended Wrought-Iron Teal Bioluminescent Brazier (Pendulum Sway) -->
+        <g class="title-brazier-right">
+          <circle cx="1060" cy="205" r="130" fill="url(#titleTealBiolumGlow)"/>
+          <line x1="1060" y1="0" x2="1060" y2="175" stroke="#57534e" stroke-width="3" stroke-dasharray="6 3"/>
+          <polygon points="1036,175 1084,175 1074,206 1046,206" fill="#1c1917" stroke="#2dd4bf" stroke-width="1.8"/>
+          <polygon points="1060,152 1072,175 1048,175" fill="#5eead4" opacity="0.92"/>
+          <circle cx="1060" cy="170" r="6" fill="#ffffff"/>
+        </g>
+
+        <!-- Lower Cavern Chasm Ledge & Glowing Crystal Clusters (Mirrors cavernCrystals in scene3d.js) -->
+        <g opacity="0.85">
+          <!-- Left Amber & Gold Crystal Cluster -->
+          <polygon points="48,900 72,775 96,900" fill="#d97706" fill-opacity="0.45" stroke="#fde047" stroke-width="1.5"/>
+          <polygon points="82,900 114,805 132,900" fill="#f59e0b" fill-opacity="0.38" stroke="#fef08a" stroke-width="1.2"/>
+          <polygon points="24,900 42,820 64,900" fill="#b45309" fill-opacity="0.5" stroke="#fbbf24" stroke-width="1.2"/>
+          <!-- Right Bioluminescent Teal Crystal Cluster -->
+          <polygon points="1152,900 1128,775 1104,900" fill="#0d9488" fill-opacity="0.45" stroke="#5eead4" stroke-width="1.5"/>
+          <polygon points="1118,900 1086,805 1068,900" fill="#14b8a6" fill-opacity="0.38" stroke="#99f6e4" stroke-width="1.2"/>
+          <polygon points="1176,900 1158,820 1136,900" fill="#0f766e" fill-opacity="0.5" stroke="#2dd4bf" stroke-width="1.2"/>
+        </g>
+      </svg>
+
+      <!-- Drifting Bioluminescent Spore Motes -->
+      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-300/70 shadow-[0_0_8px_#fde047]" style="left: 8%; bottom: 18%; animation-delay: 0s;"></span>
+      <span class="title-spore-mote w-2 h-2 bg-teal-300/65 shadow-[0_0_10px_#2dd4bf]" style="left: 91%; bottom: 22%; animation-delay: 1.4s;"></span>
+      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-200/65 shadow-[0_0_8px_#fbbf24]" style="left: 6%; bottom: 62%; animation-delay: 2.8s;"></span>
+      <span class="title-spore-mote w-1.5 h-1.5 bg-teal-200/70 shadow-[0_0_8px_#5eead4]" style="left: 93%; bottom: 66%; animation-delay: 0.9s;"></span>
+      <span class="title-spore-mote w-1 h-1 bg-fuchsia-300/65 shadow-[0_0_8px_#e879f9]" style="left: 12%; bottom: 38%; animation-delay: 3.6s;"></span>
+    </div>
+
+    <!-- Tucked Top-Right Fullscreen Toggle for the Intro Boot Screen -->
+    <button
+      type="button"
+      id="intro-fullscreen-btn"
+      class="intro-fullscreen-toggle-btn"
+      title="Toggle Fullscreen Mode"
+      aria-label="Toggle Fullscreen Mode"
+    >
+      <img src="./assets/icons/hud/fullscreen.svg" alt="" class="w-3.5 h-3.5 shrink-0" />
+      <span id="intro-fullscreen-label">FULLSCREEN</span>
+    </button>
+
+    <!--STAGE 0: RETRO TERMINAL "START APP" BOOT GATE (Unlocks Web Audio via Mechanical Keystroke) -->
+    <div id="terminal-boot-stage" class="relative flex flex-col items-center justify-center w-full max-w-md md:max-w-lg lg:max-w-xl px-5 select-none cursor-pointer z-10">
       <div id="terminal-crt-card" class="terminal-crt-box w-full rounded-2xl p-5 font-mono-code text-left space-y-3">
         <!-- Terminal Window Header -->
         <div class="flex items-center justify-between border-b border-teal-500/25 pb-2.5 text-[10px] text-slate-400">
@@ -930,7 +1026,7 @@
     </div>
 
     <!-- STAGE 1: DYAGONIL LOGO & ALIAS SPLASH SCREEN -->
-    <div id="dyagonil-splash-stage" class="hidden flex-col items-center justify-center text-center px-6 select-none">
+    <div id="dyagonil-splash-stage" class="relative z-10 hidden flex-col items-center justify-center text-center px-6 select-none">
       <div class="relative flex items-center justify-center p-4 rounded-3xl">
         <!-- Outer subtle geometric ring -->
         <div id="dyagonil-ring-halo" class="absolute inset-0 rounded-full border border-amber-400/20 scale-95 transition-all duration-700"></div>
@@ -951,53 +1047,114 @@
       </div>
     </div>
 
-    <!-- STAGE 2: ANIMATED TITLE OPENER SCREEN -->
-    <div id="title-opener-stage" class="hidden flex-col items-center justify-center text-center px-5 w-full max-w-md md:max-w-lg lg:max-w-xl select-none">
-      <!-- Animated 4-in-a-Row Connect 4 Drop Rack -->
-      <div class="cavern-panel px-4 py-3 rounded-2xl border border-amber-500/35 mb-5 flex items-center gap-2.5 shadow-2xl relative">
-        <div class="title-token-slot">
-          <div id="title-tok-0" class="title-token-piece bg-gradient-to-br from-amber-300 via-amber-500 to-orange-700 border border-amber-200/80 shadow-md"></div>
+    <!-- STAGE 2: REWORKED SUBTERRANEAN ASCENSION TITLE SCREEN -->
+    <div id="title-opener-stage" class="relative z-10 hidden flex-col items-center justify-center text-center px-4 sm:px-5 py-4 w-full max-w-md md:max-w-lg lg:max-w-xl select-none my-auto">
+
+      <!-- 1. COMPACT 4-CELL CARVED WOOD & BRASS CONNECT-4 RACK (Strictly fixed width, never stretches) -->
+      <div id="title-board-rack" class="title-board-rack mb-5">
+        <span class="title-wood-rivet rivet-tl" aria-hidden="true"></span>
+        <span class="title-wood-rivet rivet-tr" aria-hidden="true"></span>
+        <span class="title-wood-rivet rivet-bl" aria-hidden="true"></span>
+        <span class="title-wood-rivet rivet-br" aria-hidden="true"></span>
+
+        <!-- 4-Cell Carved Mahogany Board Frame & Brass Torus Slot Rings -->
+        <div class="title-rack-wood-body">
+          <!-- Slot 0 (Left Token) -->
+          <div class="title-token-slot" title="Tap Token 1">
+            <div id="title-tok-0" class="title-token-piece">
+              <span class="title-token-grain" aria-hidden="true"></span>
+              <span class="title-token-inner-ring" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <!-- Slot 1 (Second Token) -->
+          <div class="title-token-slot" title="Tap Token 2">
+            <div id="title-tok-1" class="title-token-piece">
+              <span class="title-token-grain" aria-hidden="true"></span>
+              <span class="title-token-inner-ring" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <!-- Slot 2 (Third Token) -->
+          <div class="title-token-slot" title="Tap Token 3">
+            <div id="title-tok-2" class="title-token-piece">
+              <span class="title-token-grain" aria-hidden="true"></span>
+              <span class="title-token-inner-ring" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <!-- Slot 3 (Right Token) -->
+          <div class="title-token-slot" title="Tap Token 4">
+            <div id="title-tok-3" class="title-token-piece">
+              <span class="title-token-grain" aria-hidden="true"></span>
+              <span class="title-token-inner-ring" aria-hidden="true"></span>
+            </div>
+          </div>
         </div>
-        <div class="title-token-slot">
-          <div id="title-tok-1" class="title-token-piece bg-gradient-to-br from-teal-300 via-teal-500 to-emerald-800 border border-teal-200/80 shadow-md"></div>
-        </div>
-        <div class="title-token-slot">
-          <div id="title-tok-2" class="title-token-piece bg-gradient-to-br from-amber-300 via-amber-500 to-orange-700 border border-amber-200/80 shadow-md"></div>
-        </div>
-        <div class="title-token-slot">
-          <div id="title-tok-3" class="title-token-piece bg-gradient-to-br from-fuchsia-300 via-purple-500 to-indigo-800 border border-fuchsia-200/80 shadow-md"></div>
+
+        <!-- Slim Basalt Ledge with 4 Runic Channels -->
+        <div class="title-altar-plinth" aria-hidden="true">
+          <div class="title-altar-runes-row">
+            <span id="title-rune-0" data-rune="0" class="title-altar-rune-strip"></span>
+            <span id="title-rune-1" data-rune="1" class="title-altar-rune-strip"></span>
+            <span id="title-rune-2" data-rune="2" class="title-altar-rune-strip"></span>
+            <span id="title-rune-3" data-rune="3" class="title-altar-rune-strip"></span>
+          </div>
         </div>
       </div>
 
-      <!-- Main Game Title & Subtitle -->
-      <div id="title-Main-Header" class="title-slam-element space-y-1">
-        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/35 text-[10px] font-mono-code uppercase tracking-widest text-amber-300">
-          <span>⛰️ 3D Roguelike Deckbuilder</span>
-        </div>
-        <h1 class="font-display font-bold text-4xl sm:text-5xl tracking-tight text-white pt-1 drop-shadow-[0_4px_24px_rgba(245,158,11,0.35)]">
-          CONNECT <span class="text-amber-400">4</span>
+      <!-- 2. CHISELLED MONUMENTAL GAME TITLE & RUNIC DIVIDER -->
+      <div id="title-Main-Header" class="title-slam-element flex flex-col items-center">
+        <h1 class="font-display font-bold text-4xl sm:text-5xl tracking-tight flex items-center justify-center gap-2.5">
+          <span class="title-chiselled-heading">CONNECT</span>
+          <span class="title-four-emblem text-3xl sm:text-4xl font-extrabold">4</span>
         </h1>
-        <h2 class="font-display font-bold text-lg sm:text-xl tracking-[0.18em] uppercase bg-gradient-to-r from-amber-200 via-amber-400 to-teal-300 bg-clip-text text-transparent">
+
+        <!-- Subterranean Runic Horizon Divider -->
+        <div class="my-2 flex items-center justify-center gap-2.5" aria-hidden="true">
+          <span class="title-runic-divider-line"></span>
+          <span class="text-[10px] text-amber-300 drop-shadow-[0_0_8px_#fbbf24]">◆</span>
+          <span class="title-runic-divider-line line-right"></span>
+        </div>
+
+        <h2 class="font-display font-bold text-base sm:text-xl tracking-[0.22em] uppercase bg-gradient-to-r from-amber-200 via-amber-400 to-teal-300 bg-clip-text text-transparent">
           Subterranean Ascension
         </h2>
       </div>
 
-      <p id="title-Sub-Desc" class="title-slam-element text-xs text-slate-300/90 max-w-xs mt-3 leading-relaxed">
-        Outsmart the Grandmaster Negamax AI across procedural cavern topologies, wield Arcane Cards, and spin the Wheel of Fate.
+      <!-- 3. CONCISE DESCRIPTION -->
+      <p id="title-Sub-Desc" class="title-slam-element text-xs text-slate-300/95 max-w-xs sm:max-w-sm mx-auto mt-3 leading-relaxed">
+        Outsmart the Grandmaster Negamax AI across warped cavern topologies, wield Arcane Cards &amp; Reserve Tokens, and spin the Wheel of Fate.
       </p>
 
-      <!-- Start Game & Tutorial CTA Buttons -->
-      <div id="title-Start-Wrap" class="title-slam-element w-full mt-7 flex flex-col items-center gap-2.5">
-        <button id="title-start-game-btn" class="w-full max-w-xs py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-stone-950 font-display font-bold text-sm tracking-wide uppercase shadow-[0_0_30px_rgba(245,158,11,0.45)] border border-amber-200/60 active:scale-95 transition flex items-center justify-center gap-2">
-          <span>⛏️ Start Game</span>
-        </button>
-        <button id="title-tutorial-btn" type="button" class="w-full max-w-xs py-2.5 px-5 rounded-2xl bg-stone-900/90 hover:bg-stone-800 text-teal-200 font-display font-bold text-xs tracking-wider uppercase border border-teal-400/45 shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-          <span>📖 How to Play (Tutorial)</span>
-        </button>
-        <div class="flex items-center gap-1.5 text-[10px] font-mono-code text-slate-400">
-          <span>Created by <strong class="text-amber-300/90">Dyagonil</strong></span>
-          <span>•</span>
-          <span>8-Bit Chiptune Audio Active</span>
+      <!-- 4. CARVED OBSIDIAN COMMAND ALTAR DOCK (Start Game, Tutorial & Telemetry) -->
+      <div id="title-Start-Wrap" class="title-slam-element w-full mt-6">
+        <div class="title-command-dock rounded-2xl p-3.5 max-w-xs sm:max-w-sm mx-auto flex flex-col items-center gap-2.5">
+          <span class="title-wood-rivet rivet-tl" aria-hidden="true"></span>
+          <span class="title-wood-rivet rivet-tr" aria-hidden="true"></span>
+          <span class="title-wood-rivet rivet-bl" aria-hidden="true"></span>
+          <span class="title-wood-rivet rivet-br" aria-hidden="true"></span>
+
+          <span id="c4-checkpoint-pill" class="hidden" aria-hidden="true"></span>
+          <div id="title-saved-run-pill" class="hidden items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-950/90 border border-teal-400/50 text-[9px] font-mono-code text-teal-200 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping"></span>
+            <span id="title-saved-run-text">CHECKPOINT READY</span>
+          </div>
+
+          <button id="title-start-game-btn" class="title-primary-cta-btn w-full py-3.5 px-5 rounded-xl text-stone-950 font-display font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2">
+            <span>⛏️ Start Game</span>
+          </button>
+
+          <button id="title-tutorial-btn" type="button" class="title-secondary-cta-btn w-full py-2.5 px-4 rounded-xl text-teal-200 font-display font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2">
+            <span>📖 How to Play (Tutorial)</span>
+          </button>
+
+          <!-- Subterranean Telemetry Footer Bar -->
+          <div class="w-full pt-1.5 mt-0.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono-code text-slate-400 px-1">
+            <span>BY <strong class="text-amber-300/95">DYAGONIL</strong></span>
+            <span class="text-teal-300/90">• 8-BIT APU SYNTH •</span>
+            <span class="text-amber-200/80">NEGAMAX AI</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1220,46 +1377,46 @@
 
   <!-- Option B: Ordered Classic Scripts (Double-Click file:// & GitHub Pages Compatible) -->
   <!-- 1. Configuration & Static Catalogs -->
-  <script defer src="./js/config/constants.js?v=58"></script>
-  <script defer src="./js/config/topologies.js?v=58"></script>
-  <script defer src="./js/config/catalogs.js?v=58"></script>
-  <script defer src="./js/config/loadouts.js?v=58"></script>
-  <script defer src="./js/ui/iconSystem.js?v=58"></script>
-  <script defer src="./js/ui/emojiReplacer.js?v=58"></script>
-  <script defer src="./js/config/difficulty.js?v=58"></script>
+  <script defer src="./js/config/constants.js?v=59"></script>
+  <script defer src="./js/config/topologies.js?v=59"></script>
+  <script defer src="./js/config/catalogs.js?v=59"></script>
+  <script defer src="./js/config/loadouts.js?v=59"></script>
+  <script defer src="./js/ui/iconSystem.js?v=59"></script>
+  <script defer src="./js/ui/emojiReplacer.js?v=59"></script>
+  <script defer src="./js/config/difficulty.js?v=59"></script>
 
   <!-- 2. Persistent Settings & Run State -->
-  <script defer src="./js/state/settings.js?v=58"></script>
-  <script defer src="./js/state/gameState.js?v=58"></script>
-  <script src="./js/state/persistence.js?v=58"></script>
+  <script defer src="./js/state/settings.js?v=59"></script>
+  <script defer src="./js/state/gameState.js?v=59"></script>
+  <script src="./js/state/persistence.js?v=59"></script>
 
   <!-- 3. 8-Bit Web Audio Synthesizers -->
-  <script defer src="./js/audio/sfx.js?v=58"></script>
-  <script defer src="./js/audio/bgm.js?v=58"></script>
+  <script defer src="./js/audio/sfx.js?v=59"></script>
+  <script defer src="./js/audio/bgm.js?v=59"></script>
 
   <!-- 4. Grandmaster Negamax AI Solver -->
-  <script defer src="./js/engine/ai.js?v=58"></script>
+  <script defer src="./js/engine/ai.js?v=59"></script>
 
   <!-- 5. Three.js 3D Scene, Board Geometry & Choreography VFX -->
-  <script defer src="./js/graphics/scene3d.js?v=58"></script>
-  <script defer src="./js/graphics/vfx3d.js?v=58"></script>
+  <script defer src="./js/graphics/scene3d.js?v=59"></script>
+  <script defer src="./js/graphics/vfx3d.js?v=59"></script>
 
   <!-- 6. HUD, Notifications & Core Board Mechanics -->
-  <script defer src="./js/ui/notifications.js?v=58"></script>
-  <script defer src="./js/ui/hud.js?v=58"></script>
-  <script defer src="./js/engine/boardLogic.js?v=58"></script>
-  <script defer src="./js/engine/rouletteSim.js?v=58"></script>
+  <script defer src="./js/ui/notifications.js?v=59"></script>
+  <script defer src="./js/ui/hud.js?v=59"></script>
+  <script defer src="./js/engine/boardLogic.js?v=59"></script>
+  <script defer src="./js/engine/rouletteSim.js?v=59"></script>
 
   <!-- 7. Modals, Pointer Raycasting, Intro, Tutorial & Debug Console -->
-  <script defer src="./js/ui/modals.js?v=58"></script>
-  <script defer src="./js/ui/input.js?v=58"></script>
-  <script defer src="./js/ui/introSequence.js?v=58"></script>
-  <script defer src="./js/ui/tutorial.js?v=58"></script>
-  <script defer src="./js/ui/debugMenu.js?v=58"></script>
+  <script defer src="./js/ui/modals.js?v=59"></script>
+  <script defer src="./js/ui/input.js?v=59"></script>
+  <script defer src="./js/ui/introSequence.js?v=59"></script>
+  <script defer src="./js/ui/tutorial.js?v=59"></script>
+  <script defer src="./js/ui/debugMenu.js?v=59"></script>
 
   <!-- 8. Render Loop & Application Boot Entry Point -->
-  <script defer src="./js/graphics/loop.js?v=58"></script>
-  <script defer src="./js/main.js?v=58"></script>
+  <script defer src="./js/graphics/loop.js?v=59"></script>
+  <script defer src="./js/main.js?v=59"></script>
 
 </body>
 </html>

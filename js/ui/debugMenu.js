@@ -537,10 +537,24 @@ function enableTitleTokensSecretInteraction() {
             sfx.playTitleTokenToyNote(tokIdx);
             triggerHaptic(15);
 
-            // 2. Restart elastic boing animation on the tapped token
+            // 2. Restart elastic boing animation on the tapped token, then resume 4-in-a-row pulse
             tokEl.classList.remove('token-tap-boing');
             void tokEl.offsetWidth; // Force reflow so rapid taps re-trigger cleanly
             tokEl.classList.add('token-tap-boing');
+            if (tokEl._boingClearTimer) clearTimeout(tokEl._boingClearTimer);
+            tokEl._boingClearTimer = setTimeout(() => {
+                tokEl.classList.remove('token-tap-boing');
+            }, 430);
+
+            // 2B. Flare corresponding basalt altar rune channel beneath the tapped slot
+            const runeEl = document.getElementById(`title-rune-${tokIdx}`);
+            if (runeEl) {
+                runeEl.classList.add('rune-tap-flare');
+                if (runeEl._runeFlareTimer) clearTimeout(runeEl._runeFlareTimer);
+                runeEl._runeFlareTimer = setTimeout(() => {
+                    runeEl.classList.remove('rune-tap-flare');
+                }, 380);
+            }
 
             // 3. Spawn color-matched expanding ripple ring on the token slot
             if (slotEl) {

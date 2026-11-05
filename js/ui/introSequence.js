@@ -53,6 +53,41 @@ const ACT_DEFINITIONS = [
   }
 ];
 
+function syncTitleSavedRunBadge() {
+  const pill = document.getElementById('title-saved-run-pill');
+  const pillText = document.getElementById('title-saved-run-text');
+  if (!pill) return;
+
+  const hasSave =
+    typeof runPersistence !== 'undefined' &&
+    runPersistence &&
+    typeof runPersistence.hasSavedRun === 'function' &&
+    runPersistence.hasSavedRun();
+
+  if (!hasSave) {
+    pill.classList.add('hidden');
+    pill.classList.remove('inline-flex');
+    return;
+  }
+
+  let details = 'CHECKPOINT ACTIVE';
+  try {
+    const payload = typeof runPersistence.loadRun === 'function' ? runPersistence.loadRun() : null;
+    if (payload && payload.summary) {
+      const fNum = Math.min(15, Math.max(1, (payload.summary.floorIndex || 0) + 1));
+      const lId = payload.summary.loadoutId || 'spelunker';
+      const vName = (typeof LOADOUT_CATALOG !== 'undefined' && LOADOUT_CATALOG[lId])
+        ? LOADOUT_CATALOG[lId].shortName.toUpperCase()
+        : 'DELVER';
+      details = `CHECKPOINT READY • FLOOR ${fNum}/15 (${vName})`;
+    }
+  } catch (_) {}
+
+  if (pillText) pillText.textContent = details;
+  pill.classList.remove('hidden');
+  pill.classList.add('inline-flex');
+}
+
 function playFloorIntroTransition(floorData, topo, targetBgmMode) {
   const overlay = document.getElementById('floor-intro-overlay');
   const actCurtain = document.getElementById('act-intro-curtain');
@@ -351,6 +386,7 @@ function runOpeningSplashAndTitleSequence() {
   const termStage = document.getElementById('terminal-boot-stage');
   const termCard = document.getElementById('terminal-crt-card');
   const termBtn = document.getElementById('terminal-start-app-btn');
+  const introFsBtn = document.getElementById('intro-fullscreen-btn');
   const termStatus = document.getElementById('terminal-audio-status');
   const splashStage = document.getElementById('dyagonil-splash-stage');
   const logoImg = document.getElementById('dyagonil-logo-img');
@@ -388,8 +424,13 @@ function runOpeningSplashAndTitleSequence() {
         termCard.style.opacity = '0';
         termCard.style.transform = 'scale(0.96) translateY(-8px)';
       }
+      if (introFsBtn) {
+        introFsBtn.style.opacity = '0';
+        introFsBtn.style.pointerEvents = 'none';
+      }
       setTimeout(() => {
         if (termStage) termStage.classList.add('hidden');
+        if (introFsBtn) introFsBtn.classList.add('hidden');
         splashStage.classList.remove('hidden');
         splashStage.classList.add('flex');
 
@@ -412,21 +453,44 @@ function runOpeningSplashAndTitleSequence() {
 
         setTimeout(() => {
           splashStage.classList.add('hidden');
+          if (overlay) overlay.classList.add('title-stage-active');
+          syncTitleSavedRunBadge();
+
           titleStage.classList.remove('hidden');
           titleStage.classList.add('flex');
 
+          // Drop the 4 actual in-game Player tokens into the carved wood & brass slots
           [0, 1, 2, 3].forEach((tokIdx) => {
             setTimeout(() => {
               const tokEl = document.getElementById(`title-tok-${tokIdx}`);
-              if (tokEl) tokEl.classList.add('token-landed');
+              if (tokEl) {
+                tokEl.classList.add('token-landed');
+                if (tokEl.parentElement) {
+                  tokEl.parentElement.classList.add('slot-token-landed');
+                }
+              }
               sfx.playTitleTokenDrop(tokIdx);
             }, 160 + tokIdx * 210);
           });
 
+          // Ignite all 4 landed tokens into the in-game 4-in-a-row winGlowMat highlight state
           setTimeout(() => {
+            const rackEl = document.getElementById('title-board-rack');
+            if (rackEl) rackEl.classList.add('rack-win-active');
+
             [0, 1, 2, 3].forEach((i) => {
               const t = document.getElementById(`title-tok-${i}`);
-              if (t) t.classList.add('token-ignited');
+              if (t) {
+                t.classList.add('token-ignited');
+                const slotEl = t.parentElement;
+                if (slotEl) {
+                  slotEl.classList.add('slot-win-ignited');
+                  const wave = document.createElement('div');
+                  wave.className = 'title-win-shockwave-ring';
+                  slotEl.appendChild(wave);
+                  setTimeout(() => wave.remove(), 680);
+                }
+              }
             });
             document.getElementById('title-Main-Header').classList.add('slam-in');
             sfx.playTitleConnectFanfare();
@@ -443,6 +507,21 @@ function runOpeningSplashAndTitleSequence() {
       }, 340);
     }, 140);
   };
+
+  if (introFsBtn) {
+    introFsBtn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+    });
+    introFsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sfx.init();
+      sfx.playHoverTick();
+      triggerHaptic(15);
+      if (typeof toggleFullScreenCavernMode === 'function') {
+        toggleFullScreenCavernMode();
+      }
+    });
+  }
 
   if (termStage) termStage.addEventListener('pointerdown', triggerTerminalBoot);
   if (termBtn) termBtn.addEventListener('click', triggerTerminalBoot);
@@ -526,6 +605,10 @@ function returnToTitleScreen() {
     termStage.classList.add('hidden');
     termStage.classList.remove('flex');
   }
+  const introFsBtn = document.getElementById('intro-fullscreen-btn');
+  if (introFsBtn) {
+    introFsBtn.classList.add('hidden');
+  }
   if (splashStage) {
     splashStage.classList.add('hidden');
     splashStage.classList.remove('flex', 'splash-visible', 'splash-fadeout');
@@ -539,16 +622,24 @@ function returnToTitleScreen() {
     titleStage.classList.add('flex');
   }
 
+  const rackEl = document.getElementById('title-board-rack');
+  if (rackEl) rackEl.classList.add('rack-win-active');
+
   [0, 1, 2, 3].forEach((i) => {
     const tokEl = document.getElementById(`title-tok-${i}`);
     if (tokEl) {
       tokEl.classList.add('token-landed', 'token-ignited');
+      if (tokEl.parentElement) {
+        tokEl.parentElement.classList.add('slot-token-landed', 'slot-win-ignited');
+      }
     }
   });
   ['title-Main-Header', 'title-Sub-Desc', 'title-Start-Wrap'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.classList.add('slam-in');
   });
+
+  syncTitleSavedRunBadge();
 
   if (typeof enableTitleTokensSecretInteraction === 'function') {
     enableTitleTokensSecretInteraction();
@@ -557,6 +648,7 @@ function returnToTitleScreen() {
   // 4. Reveal #intro-sequence-overlay smoothly & set BGM to cavern theme
   if (introOverlay) {
     introOverlay.style.display = '';
+    introOverlay.classList.add('title-stage-active');
     introOverlay.classList.remove('hidden');
     requestAnimationFrame(() => {
       introOverlay.style.opacity = '1';
@@ -571,3 +663,38 @@ function returnToTitleScreen() {
     if (typeof bgm.resumeFromSettings === 'function') bgm.resumeFromSettings();
   }
 }
+
+
+// Generates the exact procedural carved-wood token texture from scene3d.js (generateCarvedWoodTexture + playerMat)
+(function hydrateTitleInGameTokenTexture() {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    for (let y = 0; y < 128; y++) {
+      const sy = y * 4;
+      const wave = Math.sin(sy * 0.04) * 16;
+      const v = Math.floor(30 + Math.sin(sy * 0.11 + wave * 0.25) * 14);
+      // Combine scene3d.js woodTex (v+22, v*0.68, v*0.42) with playerMat (color 0xfbbf24 + emissive 0xd97706 * 0.52)
+      const r = Math.min(255, Math.round(124 + (v + 22) * 1.48));
+      const g = Math.min(255, Math.round(64 + (v * 0.68) * 1.38));
+      const b = Math.min(255, Math.round(6 + (v * 0.42) * 0.55));
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+      ctx.fillRect(0, y, 128, 1);
+    }
+
+    // Subtle planar top-left amber lantern shading across the flat cylinder cap
+    const grad = ctx.createLinearGradient(0, 0, 128, 128);
+    grad.addColorStop(0, 'rgba(254, 240, 138, 0.24)');
+    grad.addColorStop(0.55, 'rgba(245, 158, 11, 0.04)');
+    grad.addColorStop(1, 'rgba(69, 26, 3, 0.28)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+
+    const uri = canvas.toDataURL('image/png');
+    document.documentElement.style.setProperty('--c4-token-wood-uri', `url("${uri}")`);
+  } catch (_) {}
+})();

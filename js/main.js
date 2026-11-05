@@ -16,13 +16,13 @@ function registerSubterraneanServiceWorker() {
       if (window.caches && typeof window.caches.keys === 'function') {
         window.caches.keys().then((keys) => {
           keys.forEach((k) => {
-            if (k !== 'subterranean-ascension-v58.0.0') {
+            if (k !== 'subterranean-ascension-v59.0.0') {
               window.caches.delete(k).catch(() => {});
             }
           });
         }).catch(() => {});
       }
-      navigator.serviceWorker.register('./sw.js?v=58').then((reg) => {
+      navigator.serviceWorker.register('./sw.js?v=59').then((reg) => {
         if (reg && typeof reg.update === 'function') {
           reg.update().catch(() => {});
         }
@@ -35,7 +35,7 @@ function registerSubterraneanServiceWorker() {
 
 // Expose structured global namespace for inspection and extensibility
 window.C4 = {
-  version: '2.9.0-ascension-v58',
+  version: '2.9.0-ascension-v59',
   config: {
     ROWS,
     COLS,

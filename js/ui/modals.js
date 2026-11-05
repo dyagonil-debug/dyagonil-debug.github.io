@@ -2113,8 +2113,18 @@ function isFullscreenActive() {
 }
 
 function syncFullscreenUI() {
+  const active = isFullscreenActive();
   const fsBtn = document.getElementById('toggle-fullscreen-btn');
-  if (fsBtn) styleTogglePill(fsBtn, isFullscreenActive());
+  if (fsBtn) styleTogglePill(fsBtn, active);
+
+  const introFsBtn = document.getElementById('intro-fullscreen-btn');
+  const introFsLbl = document.getElementById('intro-fullscreen-label');
+  if (introFsBtn) {
+    introFsBtn.classList.toggle('fs-active', active);
+  }
+  if (introFsLbl) {
+    introFsLbl.textContent = active ? 'FULLSCREEN: ON' : 'FULLSCREEN';
+  }
 }
 
 function toggleFullScreenCavernMode() {
