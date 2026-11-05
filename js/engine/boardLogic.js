@@ -2806,22 +2806,20 @@ function triggerAITurn() {
         state.busy = false;
       }
 
-      if (!state.voidFlamePurged) {
-        const diff = getActiveDifficulty();
-        const regenInterval = diff.manaRegenInterval || 1;
-        if (state.turnNumber % regenInterval === 0) {
-          const regenAmt = diff.manaRegenPerTurn || 1;
-          state.mana = Math.min(state.maxMana, state.mana + regenAmt);
-        }
+      const diff = getActiveDifficulty();
+      const regenInterval = diff.manaRegenInterval || 1;
+      if (state.turnNumber % regenInterval === 0) {
+        const regenAmt = diff.manaRegenPerTurn || 1;
+        state.mana = Math.min(state.maxMana, state.mana + regenAmt);
+      }
 
-        const drawInterval = diff.drawRateInterval || 1;
-        if (state.turnNumber % drawInterval === 0) {
-          let cardsToDraw = diff.cardsPerTurn || 1;
-          if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
-            cardsToDraw += 1;
-          }
-          drawCards(cardsToDraw);
+      const drawInterval = diff.drawRateInterval || 1;
+      if (state.turnNumber % drawInterval === 0) {
+        let cardsToDraw = diff.cardsPerTurn || 1;
+        if (diff.bonusDrawEveryNTurns && state.turnNumber % diff.bonusDrawEveryNTurns === 1) {
+          cardsToDraw += 1;
         }
+        drawCards(cardsToDraw);
       }
 
       updateHUD();
@@ -3917,7 +3915,7 @@ function triggerPhase3VoidFlamePurge(onComplete = null) {
   state.busy = true;
 
   // Save a pre-burn snapshot so if the player loses in Phase 3 and clicks "Retry Floor",
-  // their deck, reserves, and relics are restored for the fresh Floor 15 attempt!
+  // their full deck, reserves, relics, and maxMana are restored for the fresh Floor 15 attempt!
   state._preVoidFlameSnapshot = {
     gambits: Array.isArray(state.gambits) ? [...state.gambits] : [],
     maxGambitSlots: state.maxGambitSlots || 1,
@@ -3928,12 +3926,6 @@ function triggerPhase3VoidFlamePurge(onComplete = null) {
     handSize: state.handSize || 2
   };
 
-  // If the player's hand is currently empty but they still own cards in drawPile/masterDeck,
-  // fan those cards into hand right before the Void Flame strikes so they visibly burn in the UI!
-  if (state.hand.length === 0 && (state.drawPile.length > 0 || state.masterDeck.length > 0)) {
-    const sourceCards = state.drawPile.length > 0 ? state.drawPile : state.masterDeck;
-    state.hand = sourceCards.slice(0, Math.max(2, state.handSize || 3));
-  }
   clearActionSelection();
   updateHUD();
 
@@ -3954,15 +3946,15 @@ function triggerPhase3VoidFlamePurge(onComplete = null) {
     spawn3DParticleBurst(2, c, 0xf43f5e, 12, 0.14, 760, 'octa');
   }
 
-  setStatusBanner(false, `🔥 VOID FLAME PURGE! The Sovereign Tesseract is incinerating all Arcane Cards, Reserve Tokens & Relics!`);
+  setStatusBanner(false, `🔥 VOID FLAME PURGE! Burning current Hand, Reserve Tokens & Relics, and draining Mana to 0/3!`);
   showToast(
-    '🔥 VOID FLAME PURGE! All Arcane Cards, Special Reserve Tokens & Relics are burning away!',
+    '🔥 VOID FLAME PURGE! Current Hand, Reserve Tokens & Relics burned — Remaining Deck intact & Mana drained to 0/3!',
     '🔥',
     4500,
     'border-purple-400/90 text-purple-100'
   );
 
-  // Collect all UI elements in the Gambit Strip, Reserve Pouch, and Hand Container to ignite with Void Flames
+  // Collect all UI elements in the Gambit Strip, Reserve Pouch, and active Hand cards to ignite with Void Flames
   const gambitStrip = document.getElementById('gambit-strip');
   const pouchEl = document.getElementById('reserve-pouch-container');
   const handEl = document.getElementById('hand-container');
@@ -3974,7 +3966,7 @@ function triggerPhase3VoidFlamePurge(onComplete = null) {
   if (pouchEl && pouchEl.children) {
     Array.from(pouchEl.children).forEach((el) => uiTargets.push({ el, delay: 140 }));
   }
-  if (handEl && handEl.children) {
+  if (handEl && handEl.children && state.hand.length > 0) {
     Array.from(handEl.children).forEach((el, idx) => uiTargets.push({ el, delay: 260 + idx * 75 }));
   }
 
@@ -3995,12 +3987,22 @@ function triggerPhase3VoidFlamePurge(onComplete = null) {
     state.gambits = [];
     state.maxGambitSlots = 0;
     state.reservePouch = [];
+
+    // Burn ONLY the cards currently in the player's hand, keeping whatever remains in drawPile!
+    if (Array.isArray(state.hand) && state.hand.length > 0) {
+      state.hand.forEach((burnedCardId) => {
+        if (burnedCardId && Array.isArray(state.masterDeck)) {
+          const mIdx = state.masterDeck.indexOf(burnedCardId);
+          if (mIdx !== -1) state.masterDeck.splice(mIdx, 1);
+        }
+      });
+    }
     state.hand = [];
-    state.drawPile = [];
-    state.discardPile = [];
-    state.masterDeck = [];
+
+    // Drain Max Mana to 3 (and clamp current Mana to 3)
+    state.maxMana = 3;
     state.mana = 0;
-    state.maxMana = 0;
+
     clearActionSelection();
     updateHUD();
     updateTelemetryBadges();
@@ -4096,12 +4098,12 @@ function triggerPhase3EtherealCylinderTransition() {
           updateHUD();
           updateTelemetryBadges();
           showToast(
-            '🪐 FINAL PHASE (1/5 ❤️): 12-Column Rotating Cylinder! All items burned by Void Flame — Pure Connect-4 Duel!',
+            '🪐 FINAL PHASE (1/5 ❤️): 12-Column Rotating Cylinder! Hand, Reserves & Relics Burned • Mana Drained to 0/3!',
             '🪐',
             6200,
             'border-amber-300/90 text-amber-100'
           );
-          setStatusBanner(true, `🪐 Ethereal Cylinder Active (1/5 ❤️) • Pure Connect-4 Trial — Wait for columns to rotate & Connect 4!`);
+          setStatusBanner(true, `🪐 Ethereal Cylinder Active (1/5 ❤️) • Mana: 0/3 • Wait for columns to rotate & Connect 4!`);
         });
       }
     }

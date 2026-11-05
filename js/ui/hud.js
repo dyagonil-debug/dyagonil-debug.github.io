@@ -334,7 +334,9 @@ function updateHUD() {
     const emptyMsg = document.createElement('div');
     if (state.voidFlamePurged) {
       emptyMsg.className = 'w-full flex items-center justify-center text-[10px] font-mono-code text-purple-300 py-3 px-2 border border-dashed border-purple-500/40 bg-purple-950/30 rounded-xl';
-      emptyMsg.textContent = '🔥 All Arcane Cards, Reserve Tokens & Relics Incinerated by Void Flame — Pure Connect-4 Final Trial!';
+      emptyMsg.textContent = state.drawPile.length > 0
+        ? `🔥 Hand Incinerated by Void Flame • ${state.drawPile.length} card(s) remaining in deck (Max Mana: ${state.maxMana})`
+        : '🔥 Hand Incinerated by Void Flame & Deck Expended!';
     } else {
       emptyMsg.className = 'w-full flex items-center justify-center text-[10px] font-mono-code text-slate-400 py-3 px-2 border border-dashed border-white/10 rounded-xl';
       emptyMsg.textContent = state.drawPile.length > 0
