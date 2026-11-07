@@ -664,7 +664,6 @@ function returnToTitleScreen() {
   }
 }
 
-
 // Generates the exact procedural carved-wood token texture from scene3d.js (generateCarvedWoodTexture + playerMat)
 (function hydrateTitleInGameTokenTexture() {
   try {

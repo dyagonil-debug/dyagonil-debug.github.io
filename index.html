@@ -888,92 +888,119 @@
 
   <!-- OPENING DYAGONIL SPLASH SCREEN & ANIMATED TITLE OPENER OVERLAY -->
   <div id="intro-sequence-overlay">
-    <!-- Subterranean Cathedral Vault, Basalt Pillars, Hanging Braziers & Bioluminescent Spores Backdrop -->
+    <!-- Subterranean Cathedral Vault, Basalt Pillars, Hanging Braziers & Bioluminescent Spores Backdrop
+         Anchored to viewport corners and edges so mobile and desktop both display all graphical elements -->
     <div id="title-cavern-backdrop" aria-hidden="true">
-      <svg class="w-full h-full object-cover" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 1. Left & Right Flanking Basalt Cathedral Pillars with Glowing Mineral Veins -->
+      <svg class="title-pillar-edge title-pillar-left" viewBox="0 0 110 900" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="titleAmberLanternGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#fde047" stop-opacity="0.55"/>
-            <stop offset="40%" stop-color="#f59e0b" stop-opacity="0.22"/>
-            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="titleTealBiolumGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#5eead4" stop-opacity="0.52"/>
-            <stop offset="40%" stop-color="#14b8a6" stop-opacity="0.20"/>
-            <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
-          </radialGradient>
           <linearGradient id="titleBasaltPillarLeft" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#07060b"/>
-            <stop offset="70%" stop-color="#171422"/>
-            <stop offset="100%" stop-color="#262136"/>
-          </linearGradient>
-          <linearGradient id="titleBasaltPillarRight" x1="100%" y1="0%" x2="0%" y2="0%">
-            <stop offset="0%" stop-color="#07060b"/>
-            <stop offset="70%" stop-color="#151824"/>
-            <stop offset="100%" stop-color="#212838"/>
+            <stop offset="0%" stop-color="#06050a"/>
+            <stop offset="68%" stop-color="#171324"/>
+            <stop offset="100%" stop-color="#29223a"/>
           </linearGradient>
         </defs>
-
-        <!-- Distant Cathedral Vault Ribs -->
-        <path d="M-40 240 Q600 -60 1240 240" stroke="#231d33" stroke-width="18" opacity="0.55"/>
-        <path d="M-20 310 Q600 10 1220 310" stroke="#1b1628" stroke-width="10" opacity="0.45"/>
-
-        <!-- Flanking Segmented Basalt Cathedral Pillars (Mirrors PILLAR_LAYOUT in scene3d.js) -->
-        <g opacity="0.88">
-          <polygon points="0,0 105,0 82,900 0,900" fill="url(#titleBasaltPillarLeft)"/>
-          <rect x="0" y="210" width="98" height="22" rx="3" fill="#231e30" stroke="#f59e0b" stroke-opacity="0.22"/>
-          <rect x="0" y="510" width="90" height="22" rx="3" fill="#231e30" stroke="#f59e0b" stroke-opacity="0.22"/>
-          <!-- Glowing Mineral Vein Strip along Left Pillar -->
-          <line x1="74" y1="90" x2="58" y2="820" stroke="#fbbf24" stroke-width="2.5" stroke-opacity="0.38" stroke-dasharray="18 8"/>
-
-          <polygon points="1200,0 1095,0 1118,900 1200,900" fill="url(#titleBasaltPillarRight)"/>
-          <rect x="1102" y="210" width="98" height="22" rx="3" fill="#1e2433" stroke="#2dd4bf" stroke-opacity="0.22"/>
-          <rect x="1110" y="510" width="90" height="22" rx="3" fill="#1e2433" stroke="#2dd4bf" stroke-opacity="0.22"/>
-          <!-- Glowing Bioluminescent Vein Strip along Right Pillar -->
-          <line x1="1126" y1="90" x2="1142" y2="820" stroke="#2dd4bf" stroke-width="2.5" stroke-opacity="0.4" stroke-dasharray="18 8"/>
-        </g>
-
-        <!-- Upper Cavern Stalactite Crown Silhouette -->
-        <polygon points="0,0 1200,0 1200,88 1135,52 1105,118 1055,44 1010,94 955,34 910,76 850,24 790,68 730,22 675,62 600,18 525,62 470,22 410,68 350,24 290,76 245,34 190,94 145,44 95,118 65,52 0,88" fill="#060509"/>
-        <polyline points="0,88 65,52 95,118 145,44 190,94 245,34 290,76 350,24 410,68 470,22 525,62 600,18 675,62 730,22 790,68 850,24 910,76 955,34 1010,94 1055,44 1105,118 1135,52 1200,88" stroke="#fbbf24" stroke-opacity="0.16" stroke-width="1.5"/>
-
-        <!-- Left Suspended Wrought-Iron Amber Lantern Brazier (Pendulum Sway) -->
-        <g class="title-brazier-left">
-          <circle cx="140" cy="205" r="130" fill="url(#titleAmberLanternGlow)"/>
-          <line x1="140" y1="0" x2="140" y2="175" stroke="#57534e" stroke-width="3" stroke-dasharray="6 3"/>
-          <polygon points="116,175 164,175 154,206 126,206" fill="#1c1917" stroke="#fbbf24" stroke-width="1.8"/>
-          <polygon points="140,152 152,175 128,175" fill="#fde047" opacity="0.92"/>
-          <circle cx="140" cy="170" r="6" fill="#ffffff"/>
-        </g>
-
-        <!-- Right Suspended Wrought-Iron Teal Bioluminescent Brazier (Pendulum Sway) -->
-        <g class="title-brazier-right">
-          <circle cx="1060" cy="205" r="130" fill="url(#titleTealBiolumGlow)"/>
-          <line x1="1060" y1="0" x2="1060" y2="175" stroke="#57534e" stroke-width="3" stroke-dasharray="6 3"/>
-          <polygon points="1036,175 1084,175 1074,206 1046,206" fill="#1c1917" stroke="#2dd4bf" stroke-width="1.8"/>
-          <polygon points="1060,152 1072,175 1048,175" fill="#5eead4" opacity="0.92"/>
-          <circle cx="1060" cy="170" r="6" fill="#ffffff"/>
-        </g>
-
-        <!-- Lower Cavern Chasm Ledge & Glowing Crystal Clusters (Mirrors cavernCrystals in scene3d.js) -->
-        <g opacity="0.85">
-          <!-- Left Amber & Gold Crystal Cluster -->
-          <polygon points="48,900 72,775 96,900" fill="#d97706" fill-opacity="0.45" stroke="#fde047" stroke-width="1.5"/>
-          <polygon points="82,900 114,805 132,900" fill="#f59e0b" fill-opacity="0.38" stroke="#fef08a" stroke-width="1.2"/>
-          <polygon points="24,900 42,820 64,900" fill="#b45309" fill-opacity="0.5" stroke="#fbbf24" stroke-width="1.2"/>
-          <!-- Right Bioluminescent Teal Crystal Cluster -->
-          <polygon points="1152,900 1128,775 1104,900" fill="#0d9488" fill-opacity="0.45" stroke="#5eead4" stroke-width="1.5"/>
-          <polygon points="1118,900 1086,805 1068,900" fill="#14b8a6" fill-opacity="0.38" stroke="#99f6e4" stroke-width="1.2"/>
-          <polygon points="1176,900 1158,820 1136,900" fill="#0f766e" fill-opacity="0.5" stroke="#2dd4bf" stroke-width="1.2"/>
-        </g>
+        <polygon points="0,0 104,0 78,900 0,900" fill="url(#titleBasaltPillarLeft)"/>
+        <rect x="0" y="210" width="96" height="22" rx="3" fill="#241e33" stroke="#f59e0b" stroke-opacity="0.34" stroke-width="1.5"/>
+        <rect x="0" y="520" width="88" height="22" rx="3" fill="#241e33" stroke="#f59e0b" stroke-opacity="0.34" stroke-width="1.5"/>
+        <line x1="74" y1="80" x2="56" y2="830" stroke="#fbbf24" stroke-width="3.5" stroke-opacity="0.55" stroke-dasharray="18 9"/>
       </svg>
 
-      <!-- Drifting Bioluminescent Spore Motes -->
-      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-300/70 shadow-[0_0_8px_#fde047]" style="left: 8%; bottom: 18%; animation-delay: 0s;"></span>
-      <span class="title-spore-mote w-2 h-2 bg-teal-300/65 shadow-[0_0_10px_#2dd4bf]" style="left: 91%; bottom: 22%; animation-delay: 1.4s;"></span>
-      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-200/65 shadow-[0_0_8px_#fbbf24]" style="left: 6%; bottom: 62%; animation-delay: 2.8s;"></span>
-      <span class="title-spore-mote w-1.5 h-1.5 bg-teal-200/70 shadow-[0_0_8px_#5eead4]" style="left: 93%; bottom: 66%; animation-delay: 0.9s;"></span>
-      <span class="title-spore-mote w-1 h-1 bg-fuchsia-300/65 shadow-[0_0_8px_#e879f9]" style="left: 12%; bottom: 38%; animation-delay: 3.6s;"></span>
+      <svg class="title-pillar-edge title-pillar-right" viewBox="0 0 110 900" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="titleBasaltPillarRight" x1="100%" y1="0%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#06050a"/>
+            <stop offset="68%" stop-color="#131926"/>
+            <stop offset="100%" stop-color="#212b3d"/>
+          </linearGradient>
+        </defs>
+        <polygon points="110,0 6,0 32,900 110,900" fill="url(#titleBasaltPillarRight)"/>
+        <rect x="14" y="210" width="96" height="22" rx="3" fill="#1d2536" stroke="#2dd4bf" stroke-opacity="0.34" stroke-width="1.5"/>
+        <rect x="22" y="520" width="88" height="22" rx="3" fill="#1d2536" stroke="#2dd4bf" stroke-opacity="0.34" stroke-width="1.5"/>
+        <line x1="36" y1="80" x2="54" y2="830" stroke="#2dd4bf" stroke-width="3.5" stroke-opacity="0.55" stroke-dasharray="18 9"/>
+      </svg>
+
+      <!-- 2. Upper Cavern Stalactite Crown & Cathedral Vault Ribs -->
+      <svg class="title-stalactite-crown" viewBox="0 0 1200 170" preserveAspectRatio="xMidYMin slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M-20 155 Q600 15 1220 155" stroke="#251e38" stroke-width="10" opacity="0.65"/>
+        <path d="M-10 170 Q600 42 1210 170" stroke="#1b162a" stroke-width="6" opacity="0.5"/>
+        <polygon points="0,0 1200,0 1200,88 1135,48 1095,118 1040,42 985,96 925,32 870,78 805,24 745,70 680,22 600,64 520,22 455,70 395,24 330,78 275,32 215,96 160,42 105,118 65,48 0,88" fill="#060509"/>
+        <polyline points="0,88 65,48 105,118 160,42 215,96 275,32 330,78 395,24 455,70 520,22 600,64 680,22 745,70 805,24 870,78 925,32 985,96 1040,42 1095,118 1135,48 1200,88" stroke="#fbbf24" stroke-opacity="0.24" stroke-width="2"/>
+      </svg>
+
+      <!-- 3. Top-Left Suspended Wrought-Iron Amber Lantern Brazier (Responsive Corner Anchor + Pendulum Sway) -->
+      <svg class="title-corner-brazier title-brazier-left" viewBox="0 0 220 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="titleAmberLanternGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde047" stop-opacity="0.68"/>
+            <stop offset="38%" stop-color="#f59e0b" stop-opacity="0.30"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="110" cy="182" r="105" fill="url(#titleAmberLanternGlow)"/>
+        <line x1="110" y1="0" x2="110" y2="148" stroke="#78716c" stroke-width="4" stroke-dasharray="8 4"/>
+        <line x1="86" y1="152" x2="110" y2="122" stroke="#a8a29e" stroke-width="2.2"/>
+        <line x1="134" y1="152" x2="110" y2="122" stroke="#a8a29e" stroke-width="2.2"/>
+        <polygon points="78,152 142,152 128,190 92,190" fill="#1c1917" stroke="#fbbf24" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="84" y1="165" x2="136" y2="165" stroke="#f59e0b" stroke-width="1.6" stroke-opacity="0.75"/>
+        <polygon points="103,190 117,190 110,205" fill="#fbbf24"/>
+        <polygon points="110,116 128,152 92,152" fill="#f59e0b" opacity="0.9"/>
+        <polygon points="110,126 121,152 99,152" fill="#fde047" opacity="0.98"/>
+        <circle cx="110" cy="144" r="7.5" fill="#ffffff"/>
+      </svg>
+
+      <!-- 4. Top-Right Suspended Wrought-Iron Teal Bioluminescent Brazier (Responsive Corner Anchor + Pendulum Sway) -->
+      <svg class="title-corner-brazier title-brazier-right" viewBox="0 0 220 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="titleTealBiolumGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#5eead4" stop-opacity="0.65"/>
+            <stop offset="38%" stop-color="#14b8a6" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="110" cy="182" r="105" fill="url(#titleTealBiolumGlow)"/>
+        <line x1="110" y1="0" x2="110" y2="148" stroke="#78716c" stroke-width="4" stroke-dasharray="8 4"/>
+        <line x1="86" y1="152" x2="110" y2="122" stroke="#a8a29e" stroke-width="2.2"/>
+        <line x1="134" y1="152" x2="110" y2="122" stroke="#a8a29e" stroke-width="2.2"/>
+        <polygon points="78,152 142,152 128,190 92,190" fill="#1c1917" stroke="#2dd4bf" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="84" y1="165" x2="136" y2="165" stroke="#14b8a6" stroke-width="1.6" stroke-opacity="0.75"/>
+        <polygon points="103,190 117,190 110,205" fill="#2dd4bf"/>
+        <polygon points="110,116 128,152 92,152" fill="#14b8a6" opacity="0.9"/>
+        <polygon points="110,126 121,152 99,152" fill="#5eead4" opacity="0.98"/>
+        <circle cx="110" cy="144" r="7.5" fill="#ffffff"/>
+      </svg>
+
+      <!-- 5. Bottom-Left & Bottom-Right Glowing Crystal Clusters -->
+      <svg class="title-corner-crystals title-crystals-left" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <radialGradient id="titleCrystalGlowL" cx="35%" cy="80%" r="60%">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.34"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+        </radialGradient>
+        <circle cx="65" cy="140" r="85" fill="url(#titleCrystalGlowL)"/>
+        <polygon points="26,180 54,68 82,180" fill="#d97706" fill-opacity="0.54" stroke="#fde047" stroke-width="2"/>
+        <line x1="54" y1="68" x2="54" y2="180" stroke="#fef08a" stroke-opacity="0.45" stroke-width="1.4"/>
+        <polygon points="64,180 98,96 118,180" fill="#f59e0b" fill-opacity="0.44" stroke="#fef08a" stroke-width="1.6"/>
+        <polygon points="4,180 24,108 46,180" fill="#b45309" fill-opacity="0.6" stroke="#fbbf24" stroke-width="1.6"/>
+      </svg>
+
+      <svg class="title-corner-crystals title-crystals-right" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <radialGradient id="titleCrystalGlowR" cx="65%" cy="80%" r="60%">
+          <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.34"/>
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+        </radialGradient>
+        <circle cx="115" cy="140" r="85" fill="url(#titleCrystalGlowR)"/>
+        <polygon points="154,180 126,68 98,180" fill="#0d9488" fill-opacity="0.54" stroke="#5eead4" stroke-width="2"/>
+        <line x1="126" y1="68" x2="126" y2="180" stroke="#99f6e4" stroke-opacity="0.45" stroke-width="1.4"/>
+        <polygon points="116,180 82,96 62,180" fill="#14b8a6" fill-opacity="0.44" stroke="#99f6e4" stroke-width="1.6"/>
+        <polygon points="176,180 156,108 134,180" fill="#0f766e" fill-opacity="0.6" stroke="#2dd4bf" stroke-width="1.6"/>
+      </svg>
+
+      <!-- 6. Drifting Bioluminescent Spore Motes -->
+      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-300/70 shadow-[0_0_8px_#fde047]" style="left: 9%; bottom: 20%; animation-delay: 0s;"></span>
+      <span class="title-spore-mote w-2 h-2 bg-teal-300/65 shadow-[0_0_10px_#2dd4bf]" style="left: 90%; bottom: 24%; animation-delay: 1.4s;"></span>
+      <span class="title-spore-mote w-1.5 h-1.5 bg-amber-200/65 shadow-[0_0_8px_#fbbf24]" style="left: 7%; bottom: 60%; animation-delay: 2.8s;"></span>
+      <span class="title-spore-mote w-1.5 h-1.5 bg-teal-200/70 shadow-[0_0_8px_#5eead4]" style="left: 92%; bottom: 64%; animation-delay: 0.9s;"></span>
+      <span class="title-spore-mote w-1 h-1 bg-fuchsia-300/65 shadow-[0_0_8px_#e879f9]" style="left: 11%; bottom: 38%; animation-delay: 3.6s;"></span>
     </div>
 
     <!-- Tucked Top-Right Fullscreen Toggle for the Intro Boot Screen -->
@@ -988,7 +1015,7 @@
       <span id="intro-fullscreen-label">FULLSCREEN</span>
     </button>
 
-    <!--STAGE 0: RETRO TERMINAL "START APP" BOOT GATE (Unlocks Web Audio via Mechanical Keystroke) -->
+    <!-- STAGE 0: RETRO TERMINAL "START APP" BOOT GATE (Unlocks Web Audio via Mechanical Keystroke) -->
     <div id="terminal-boot-stage" class="relative flex flex-col items-center justify-center w-full max-w-md md:max-w-lg lg:max-w-xl px-5 select-none cursor-pointer z-10">
       <div id="terminal-crt-card" class="terminal-crt-box w-full rounded-2xl p-5 font-mono-code text-left space-y-3">
         <!-- Terminal Window Header -->
@@ -1048,10 +1075,10 @@
     </div>
 
     <!-- STAGE 2: REWORKED SUBTERRANEAN ASCENSION TITLE SCREEN -->
-    <div id="title-opener-stage" class="relative z-10 hidden flex-col items-center justify-center text-center px-4 sm:px-5 py-4 w-full max-w-md md:max-w-lg lg:max-w-xl select-none my-auto">
+    <div id="title-opener-stage" class="relative z-10 hidden flex-col items-center justify-center text-center px-6 sm:px-8 py-4 w-full max-w-md md:max-w-lg lg:max-w-xl select-none my-auto">
 
       <!-- 1. COMPACT 4-CELL CARVED WOOD & BRASS CONNECT-4 RACK (Strictly fixed width, never stretches) -->
-      <div id="title-board-rack" class="title-board-rack mb-5">
+      <div id="title-board-rack" class="title-board-rack mb-4 sm:mb-5">
         <span class="title-wood-rivet rivet-tl" aria-hidden="true"></span>
         <span class="title-wood-rivet rivet-tr" aria-hidden="true"></span>
         <span class="title-wood-rivet rivet-bl" aria-hidden="true"></span>
@@ -1105,31 +1132,31 @@
 
       <!-- 2. CHISELLED MONUMENTAL GAME TITLE & RUNIC DIVIDER -->
       <div id="title-Main-Header" class="title-slam-element flex flex-col items-center">
-        <h1 class="font-display font-bold text-4xl sm:text-5xl tracking-tight flex items-center justify-center gap-2.5">
+        <h1 class="font-display font-bold text-3xl sm:text-5xl tracking-tight flex items-center justify-center gap-2 sm:gap-2.5">
           <span class="title-chiselled-heading">CONNECT</span>
-          <span class="title-four-emblem text-3xl sm:text-4xl font-extrabold">4</span>
+          <span class="title-four-emblem text-2xl sm:text-4xl font-extrabold">4</span>
         </h1>
 
         <!-- Subterranean Runic Horizon Divider -->
-        <div class="my-2 flex items-center justify-center gap-2.5" aria-hidden="true">
+        <div class="my-1.5 sm:my-2 flex items-center justify-center gap-2.5" aria-hidden="true">
           <span class="title-runic-divider-line"></span>
           <span class="text-[10px] text-amber-300 drop-shadow-[0_0_8px_#fbbf24]">◆</span>
           <span class="title-runic-divider-line line-right"></span>
         </div>
 
-        <h2 class="font-display font-bold text-base sm:text-xl tracking-[0.22em] uppercase bg-gradient-to-r from-amber-200 via-amber-400 to-teal-300 bg-clip-text text-transparent">
+        <h2 class="font-display font-bold text-sm sm:text-xl tracking-[0.2em] sm:tracking-[0.22em] uppercase bg-gradient-to-r from-amber-200 via-amber-400 to-teal-300 bg-clip-text text-transparent">
           Subterranean Ascension
         </h2>
       </div>
 
       <!-- 3. CONCISE DESCRIPTION -->
-      <p id="title-Sub-Desc" class="title-slam-element text-xs text-slate-300/95 max-w-xs sm:max-w-sm mx-auto mt-3 leading-relaxed">
+      <p id="title-Sub-Desc" class="title-slam-element text-[11px] sm:text-xs text-slate-300/95 max-w-[18.5rem] sm:max-w-sm mx-auto mt-2.5 sm:mt-3 leading-relaxed">
         Outsmart the Grandmaster Negamax AI across warped cavern topologies, wield Arcane Cards &amp; Reserve Tokens, and spin the Wheel of Fate.
       </p>
 
       <!-- 4. CARVED OBSIDIAN COMMAND ALTAR DOCK (Start Game, Tutorial & Telemetry) -->
-      <div id="title-Start-Wrap" class="title-slam-element w-full mt-6">
-        <div class="title-command-dock rounded-2xl p-3.5 max-w-xs sm:max-w-sm mx-auto flex flex-col items-center gap-2.5">
+      <div id="title-Start-Wrap" class="title-slam-element w-full mt-5 sm:mt-6">
+        <div class="title-command-dock rounded-2xl p-3 sm:p-3.5 max-w-[18.5rem] sm:max-w-sm mx-auto flex flex-col items-center gap-2 sm:gap-2.5">
           <span class="title-wood-rivet rivet-tl" aria-hidden="true"></span>
           <span class="title-wood-rivet rivet-tr" aria-hidden="true"></span>
           <span class="title-wood-rivet rivet-bl" aria-hidden="true"></span>
@@ -1141,7 +1168,7 @@
             <span id="title-saved-run-text">CHECKPOINT READY</span>
           </div>
 
-          <button id="title-start-game-btn" class="title-primary-cta-btn w-full py-3.5 px-5 rounded-xl text-stone-950 font-display font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2">
+          <button id="title-start-game-btn" class="title-primary-cta-btn w-full py-3 sm:py-3.5 px-5 rounded-xl text-stone-950 font-display font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2">
             <span>⛏️ Start Game</span>
           </button>
 

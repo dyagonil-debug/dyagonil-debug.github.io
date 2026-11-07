@@ -19,8 +19,8 @@
 }
 #intro-sequence-overlay.title-stage-active {
   background:
-    radial-gradient(circle at 18% 24%, rgba(245, 158, 11, 0.12) 0%, transparent 46%),
-    radial-gradient(circle at 82% 26%, rgba(20, 184, 166, 0.12) 0%, transparent 46%),
+    radial-gradient(circle at 16% 18%, rgba(245, 158, 11, 0.14) 0%, transparent 44%),
+    radial-gradient(circle at 84% 18%, rgba(20, 184, 166, 0.14) 0%, transparent 44%),
     radial-gradient(circle at 50% 88%, rgba(13, 148, 136, 0.14) 0%, transparent 52%),
     radial-gradient(circle at 50% 42%, #171226 0%, #08060c 72%, #030204 100%);
 }
@@ -38,14 +38,90 @@
 #intro-sequence-overlay.title-stage-active #title-cavern-backdrop {
   opacity: 1;
 }
+
+/* Responsive Viewport-Anchored Cavern Pillars, Stalactites, Lantern Braziers & Crystals
+   Ensures mobile screens display all corner lanterns, pillars, and crystals cleanly */
+.title-pillar-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.65rem;
+  height: 100%;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.title-pillar-left { left: 0; }
+.title-pillar-right { right: 0; }
+
+.title-stalactite-crown {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3.8rem;
+  pointer-events: none;
+}
+
+.title-corner-brazier {
+  position: absolute;
+  top: 0;
+  width: 5.8rem;
+  height: 7.4rem;
+  pointer-events: none;
+  transform-origin: 50% 0%;
+}
 .title-brazier-left {
-  transform-origin: 140px 0px;
+  left: 0.25rem;
   animation: titleBrazierSway 4.6s ease-in-out infinite alternate;
 }
 .title-brazier-right {
-  transform-origin: 1060px 0px;
+  right: 0.25rem;
   animation: titleBrazierSway 5.2s ease-in-out infinite alternate-reverse;
 }
+
+.title-corner-crystals {
+  position: absolute;
+  bottom: 0;
+  width: 5.2rem;
+  height: 5.2rem;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.title-crystals-left { left: 0; }
+.title-crystals-right { right: 0; }
+
+@media (max-height: 720px) and (max-width: 639px) {
+  .title-corner-brazier {
+    width: 4.8rem;
+    height: 6.1rem;
+  }
+  .title-stalactite-crown {
+    height: 3.1rem;
+  }
+  .title-corner-crystals {
+    width: 4.2rem;
+    height: 4.2rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .title-pillar-edge { width: 3.5rem; }
+  .title-stalactite-crown { height: 5.5rem; }
+  .title-corner-brazier { width: 8.8rem; height: 11.2rem; }
+  .title-brazier-left { left: 1.25rem; }
+  .title-brazier-right { right: 1.25rem; }
+  .title-corner-crystals { width: 7.5rem; height: 7.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .title-pillar-edge { width: 5.5rem; }
+  .title-stalactite-crown { height: 6.75rem; }
+  .title-corner-brazier { width: 10.8rem; height: 13.8rem; }
+  .title-brazier-left { left: 3.25rem; }
+  .title-brazier-right { right: 3.25rem; }
+  .title-corner-crystals { width: 9.25rem; height: 9.25rem; }
+}
+
 .title-spore-mote {
   position: absolute;
   border-radius: 9999px;
@@ -56,6 +132,46 @@ body.perf-mode .title-brazier-left,
 body.perf-mode .title-brazier-right,
 body.perf-mode .title-spore-mote {
   animation: none !important;
+}
+
+/* Tucked Top-Right Fullscreen Toggle on the Intro Boot Screen */
+.intro-fullscreen-toggle-btn {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.38rem 0.65rem;
+  border-radius: 0.7rem;
+  background: rgba(12, 16, 20, 0.86);
+  border: 1px solid rgba(45, 212, 191, 0.38);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: rgba(153, 246, 228, 0.9);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.25s ease, transform 0.12s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.intro-fullscreen-toggle-btn:hover {
+  opacity: 1;
+  border-color: rgba(45, 212, 191, 0.78);
+  background: rgba(15, 23, 28, 0.95);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85), 0 0 14px rgba(45, 212, 191, 0.22);
+}
+.intro-fullscreen-toggle-btn:active {
+  transform: scale(0.95);
+}
+.intro-fullscreen-toggle-btn.fs-active {
+  border-color: rgba(52, 211, 153, 0.75);
+  background: rgba(6, 44, 36, 0.9);
+  color: #a7f3d0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8), 0 0 14px rgba(52, 211, 153, 0.25);
 }
 
 .dyagonil-logo-glow {
@@ -107,14 +223,14 @@ body.perf-mode .title-spore-mote {
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
-  border-radius: 1.1rem;
+  border-radius: 1.05rem;
   background: linear-gradient(180deg, #2b140a 0%, #170b05 100%);
   border: 2px solid #b45309;
   box-shadow:
     0 18px 42px rgba(0, 0, 0, 0.92),
     0 0 26px rgba(245, 158, 11, 0.14),
     inset 0 1px 0 rgba(254, 243, 199, 0.22);
-  padding: 0.42rem;
+  padding: 0.38rem;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 .title-board-rack.rack-win-active {
@@ -130,10 +246,10 @@ body.perf-mode .title-spore-mote {
 .title-rack-wood-body {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 3.45rem);
-  gap: 0.38rem;
-  padding: 0.42rem;
-  border-radius: 0.8rem;
+  grid-template-columns: repeat(4, 3.05rem);
+  gap: 0.34rem;
+  padding: 0.38rem;
+  border-radius: 0.75rem;
   background:
     repeating-linear-gradient(
       180deg,
@@ -152,6 +268,10 @@ body.perf-mode .title-spore-mote {
     0 2px 6px rgba(0, 0, 0, 0.8);
 }
 @media (min-width: 640px) {
+  .title-board-rack {
+    padding: 0.44rem;
+    border-radius: 1.15rem;
+  }
   .title-rack-wood-body {
     grid-template-columns: repeat(4, 3.75rem);
     gap: 0.45rem;
@@ -161,8 +281,8 @@ body.perf-mode .title-spore-mote {
 
 /* Individual Square Board Cell Aperture (Dark cavern void in the 4 corners around the circular brass ring) */
 .title-token-slot {
-  width: 3.45rem;
-  height: 3.45rem;
+  width: 3.05rem;
+  height: 3.05rem;
   border-radius: 9999px;
   /* Outer Burnished Brass Inlay Ring (ringGeo + brassInlayMat in scene3d.js) */
   border: 3px solid #d97706;
@@ -171,7 +291,7 @@ body.perf-mode .title-spore-mote {
     inset 0 4px 10px rgba(0, 0, 0, 0.95),
     inset 0 0 0 1px rgba(254, 243, 199, 0.2),
     0 2px 5px rgba(0, 0, 0, 0.9),
-    0 0 0 3px #1a0c06;
+    0 0 0 2.5px #1a0c06;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -183,6 +303,11 @@ body.perf-mode .title-spore-mote {
   .title-token-slot {
     width: 3.75rem;
     height: 3.75rem;
+    box-shadow:
+      inset 0 4px 10px rgba(0, 0, 0, 0.95),
+      inset 0 0 0 1px rgba(254, 243, 199, 0.2),
+      0 2px 5px rgba(0, 0, 0, 0.9),
+      0 0 0 3px #1a0c06;
   }
 }
 
@@ -190,9 +315,9 @@ body.perf-mode .title-spore-mote {
 .title-token-slot:not(:last-child)::after {
   content: "";
   position: absolute;
-  right: -0.39rem;
-  top: -0.15rem;
-  bottom: -0.15rem;
+  right: -0.36rem;
+  top: -0.14rem;
+  bottom: -0.14rem;
   width: 4px;
   border-radius: 2px;
   background: repeating-linear-gradient(
@@ -221,7 +346,7 @@ body.perf-mode .title-spore-mote {
     inset 0 2px 6px rgba(0, 0, 0, 0.75),
     0 0 16px rgba(253, 224, 71, 0.75),
     0 0 28px rgba(245, 158, 11, 0.45),
-    0 0 0 3px #261208;
+    0 0 0 2.5px #261208;
 }
 
 /* ============================================================================
@@ -271,6 +396,13 @@ body.perf-mode .title-spore-mote {
     background 0.32s ease,
     box-shadow 0.32s ease,
     filter 0.3s ease;
+}
+.title-token-piece:not(.token-ignited) {
+  background-image:
+    var(--c4-token-wood-uri),
+    linear-gradient(135deg, rgba(254, 240, 138, 0.22) 0%, rgba(217, 119, 6, 0.05) 55%, rgba(120, 53, 15, 0.32) 100%),
+    repeating-linear-gradient(180deg, #c26a0c 0px, #c26a0c 3px, #d97706 3px, #d97706 6px, #a1550b 6px, #a1550b 9px) !important;
+  background-size: cover !important;
 }
 
 /* Subtle organic wood-grain wave overlay matching generateCarvedWoodTexture() */
@@ -375,16 +507,16 @@ body.perf-mode .title-spore-mote {
 /* Slim Carved Basalt Base Ledge with 4 Runic Channels directly beneath the 4 cells */
 .title-altar-plinth {
   width: 100%;
-  margin-top: 0.3rem;
-  padding: 0.22rem 0.42rem;
-  border-radius: 0.5rem;
+  margin-top: 0.28rem;
+  padding: 0.2rem 0.38rem;
+  border-radius: 0.45rem;
   background: linear-gradient(180deg, #1b1926 0%, #100e17 100%);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
 .title-altar-runes-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.38rem;
+  gap: 0.34rem;
   justify-items: center;
 }
 .title-altar-rune-strip {
@@ -480,9 +612,9 @@ body.perf-mode .title-spore-mote {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.55rem;
-  height: 2.55rem;
-  border-radius: 0.75rem;
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.72rem;
   background: radial-gradient(circle at 35% 30%, #fef9c3 0%, #fde047 42%, #f59e0b 85%, #b45309 100%);
   border: 2px solid #fef08a;
   color: #1c1917;
@@ -503,7 +635,7 @@ body.perf-mode .title-spore-mote {
 
 .title-runic-divider-line {
   height: 1.5px;
-  width: 4.5rem;
+  width: 4.2rem;
   background: linear-gradient(90deg, transparent 0%, rgba(251, 191, 36, 0.8) 55%, rgba(45, 212, 191, 0.9) 100%);
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
 }
@@ -813,53 +945,4 @@ body.perf-mode .title-spore-mote {
   width: min(92vw, 24rem);
   z-index: 190;
   transition: top 0.38s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.title-token-piece:not(.token-ignited) {
-  background-image:
-    var(--c4-token-wood-uri),
-    linear-gradient(135deg, rgba(254, 240, 138, 0.22) 0%, rgba(217, 119, 6, 0.05) 55%, rgba(120, 53, 15, 0.32) 100%),
-    repeating-linear-gradient(180deg, #c26a0c 0px, #c26a0c 3px, #d97706 3px, #d97706 6px, #a1550b 6px, #a1550b 9px) !important;
-  background-size: cover !important;
-}
-
-
-/* Tucked Top-Right Fullscreen Toggle on the Intro Boot Screen */
-.intro-fullscreen-toggle-btn {
-  position: fixed;
-  top: max(0.75rem, env(safe-area-inset-top));
-  right: max(0.75rem, env(safe-area-inset-right));
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.38rem;
-  padding: 0.38rem 0.65rem;
-  border-radius: 0.7rem;
-  background: rgba(12, 16, 20, 0.86);
-  border: 1px solid rgba(45, 212, 191, 0.38);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  color: rgba(153, 246, 228, 0.9);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  opacity: 0.85;
-  transition: opacity 0.25s ease, transform 0.12s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-}
-.intro-fullscreen-toggle-btn:hover {
-  opacity: 1;
-  border-color: rgba(45, 212, 191, 0.78);
-  background: rgba(15, 23, 28, 0.95);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85), 0 0 14px rgba(45, 212, 191, 0.22);
-}
-.intro-fullscreen-toggle-btn:active {
-  transform: scale(0.95);
-}
-.intro-fullscreen-toggle-btn.fs-active {
-  border-color: rgba(52, 211, 153, 0.75);
-  background: rgba(6, 44, 36, 0.9);
-  color: #a7f3d0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8), 0 0 14px rgba(52, 211, 153, 0.25);
 }
